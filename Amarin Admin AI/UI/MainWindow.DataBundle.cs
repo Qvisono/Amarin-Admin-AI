@@ -634,23 +634,11 @@ namespace Amarin.UI
             string? problem = null;
             while (true)
             {
-                var input = new PasswordBox
-                {
-                    Background = System.Windows.Media.Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
-                    FontSize = 13
-                };
-                input.SetResourceReference(ForegroundProperty, "Text.Bright");
-                input.SetResourceReference(PasswordBox.CaretBrushProperty, "Text.Bright");
-                var frame = new Border
-                {
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(10, 7, 10, 7),
-                    Child = input
-                };
-                frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
-                frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+                // Поле — общими стилями диалога, как пароль экспорта рядом.
+                var input = new PasswordBox();
+                input.SetResourceReference(StyleProperty, "DialogPasswordInput");
+                var frame = new Border { Child = input };
+                frame.SetResourceReference(StyleProperty, "DialogField");
 
                 var answer = ShowNoticeAsync(
                     Loc.Get("S.Bundle.Import.PasswordTitle"),

@@ -65,24 +65,11 @@ namespace Amarin.UI
 
             var includeAudit = audit.IsChecked == true;
             var word = Loc.Get("S.Wipe.Word");
-            var input = new TextBox
-            {
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                FontSize = 13,
-                MaxLength = 40
-            };
-            input.SetResourceReference(ForegroundProperty, "Text.Body");
-            input.SetResourceReference(TextBoxBase.CaretBrushProperty, "Text.Bright");
-            var frame = new Border
-            {
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(10, 7, 10, 7),
-                Child = input
-            };
-            frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
-            frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+            // Поле — общими стилями диалога: самодельная рамка была выше и светлее остальных полей.
+            var input = new TextBox { MaxLength = 40 };
+            input.SetResourceReference(StyleProperty, "DialogInput");
+            var frame = new Border { Child = input };
+            frame.SetResourceReference(StyleProperty, "DialogField");
 
             var answer = ShowNoticeAsync(
                 Loc.Get("S.Wipe.ConfirmTitle"),

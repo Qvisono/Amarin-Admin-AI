@@ -101,11 +101,7 @@ internal static class HealthRules
         var card = new HealthCard { Area = HealthArea.Disks, Status = drives.Count == 0 ? HealthStatus.Unknown : HealthStatus.Ok };
         foreach (var drive in drives)
         {
-            var status = drive.FreePercent < DiskProblemPercent || drive.FreeBytes < DiskProblemBytes
-                ? HealthStatus.Problem
-                : drive.FreePercent < DiskAttentionPercent || drive.FreeBytes < DiskAttentionBytes
-                    ? HealthStatus.Attention
-                    : HealthStatus.Ok;
+            var status = DriveStatus(drive);
             card.Status = Worse(card.Status, status);
             card.Facts.Add(Loc.Format("S.Health.DriveFree", drive.Name, Gb(drive.FreeBytes), Gb(drive.TotalBytes),
                 Math.Round(drive.FreePercent).ToString(CultureInfo.InvariantCulture)));
@@ -151,6 +147,17 @@ internal static class HealthRules
         card.Ask = Request("S.Health.Ask.DisksIntro", card.Facts, task);
         return card;
     }
+
+    /// <summary>
+    /// Место на одном диске — по тем же порогам и для раздела «Диски», и для живой плитки
+    /// системного диска (1.37.0): разойдись они, плитка и раздел спорили бы на одной плашке.
+    /// </summary>
+    public static HealthStatus DriveStatus(DriveHealth drive) =>
+        drive.FreePercent < DiskProblemPercent || drive.FreeBytes < DiskProblemBytes
+            ? HealthStatus.Problem
+            : drive.FreePercent < DiskAttentionPercent || drive.FreeBytes < DiskAttentionBytes
+                ? HealthStatus.Attention
+                : HealthStatus.Ok;
 
     public static HealthCard System(SystemHealth system)
     {

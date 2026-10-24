@@ -468,7 +468,7 @@ namespace Amarin.UI
             JournalList.Visibility = Visibility.Visible;
             JournalBackButton.Visibility = Visibility.Collapsed;
             JournalTabsRow.Visibility = Visibility.Visible;
-            JournalSearchBox.Visibility = Visibility.Visible;
+            JournalSearchRow.Visibility = Visibility.Visible;
             JournalFooter.Visibility = Visibility.Visible;
 
             // Надпись «пусто» — часть списка, и показывать ли её, знает только фильтр; его же
@@ -525,8 +525,10 @@ namespace Amarin.UI
 
             JournalEmpty.Visibility = Visibility.Collapsed;
             JournalList.Visibility = Visibility.Collapsed;
+            // Вкладки, поиск и охват — для списка; в подробностях они предлагали бы фильтры,
+            // которые ничего видимого не меняют.
             JournalTabsRow.Visibility = Visibility.Collapsed;
-            JournalSearchBox.Visibility = Visibility.Collapsed;
+            JournalSearchRow.Visibility = Visibility.Collapsed;
             JournalFooter.Visibility = Visibility.Collapsed;
             JournalBackButton.Visibility = Visibility.Visible;
             JournalDetails.Visibility = Visibility.Visible;

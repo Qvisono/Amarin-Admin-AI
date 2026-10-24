@@ -217,6 +217,8 @@ namespace Amarin.UI
                 case HotkeyMap.Cheatsheet:
                     HotkeySheet.Show(_services?.Settings.Hotkeys);
                     return true;
+                case HotkeyMap.CommandPalette:
+                    return OpenCommandPalette();
                 default:
                     return false;
             }

@@ -492,8 +492,8 @@
 
     <!-- ===== Кнопки модальных диалогов (подтверждение, добавление домена) ===== -->
     <Style x:Key="DialogSecondaryButton" TargetType="Button">
-        <Setter Property="Height" Value="30"/>
-        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="13,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
         <Setter Property="Template">
@@ -527,8 +527,8 @@
 
     <!-- Та же вторичная кнопка, но с выпадашкой: «Разрешить…» в окне подтверждения. -->
     <Style x:Key="DialogSecondaryToggle" TargetType="ToggleButton">
-        <Setter Property="Height" Value="30"/>
-        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="11,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="ClickMode" Value="Press"/>
         <Setter Property="Template">
@@ -581,8 +581,8 @@
     </Style>
 
     <Style x:Key="DialogPrimaryButton" TargetType="Button">
-        <Setter Property="Height" Value="30"/>
-        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="13,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -616,45 +616,50 @@
         справа кнопки. До 1.28.0 каждое окно рисовалось своими полями и отступами, в каждом был
         абзац пояснений, а ошибка вставала под полем и меняла высоту окна: окно по центру
         экрана от этого подпрыгивало. В подвале ей место есть всегда.
+
+        С 1.37.0 всё плотнее и темнее: подложка Bg.Sheet (своя у каждой темы, темнее меню),
+        заголовок 14, кнопки 28, между блоками 10-12 точек вместо 16-22 — на прежних полях
+        окно из одного поля занимало треть экрана, а кнопки стояли в стороне от вопроса.
     -->
     <Style x:Key="DialogCard" TargetType="Border">
-        <Setter Property="Width" Value="400"/>
+        <Setter Property="Width" Value="360"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Background" Value="{DynamicResource Bg.Panel}"/>
+        <Setter Property="Background" Value="{DynamicResource Bg.Sheet}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="22,20,22,18"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="16,14,16,12"/>
     </Style>
 
     <Style x:Key="DialogTitle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
 
     <Style x:Key="DialogText" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="LineHeight" Value="17"/>
         <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="Margin" Value="0,6,0,0"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
     </Style>
 
     <Style x:Key="DialogLabel" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="11.5"/>
         <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
-        <Setter Property="Margin" Value="0,16,0,6"/>
+        <Setter Property="Margin" Value="0,10,0,4"/>
     </Style>
 
     <Style x:Key="DialogField" TargetType="Border">
-        <Setter Property="Height" Value="34"/>
-        <Setter Property="Padding" Value="11,0"/>
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="Padding" Value="10,0"/>
         <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="CornerRadius" Value="7"/>
         <Style.Triggers>
             <Trigger Property="IsKeyboardFocusWithin" Value="True">
                 <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
@@ -716,7 +721,7 @@
 
     <!-- Подвал: волосок сверху не нужен, хватает воздуха. -->
     <Style x:Key="DialogFooter" TargetType="Grid">
-        <Setter Property="Margin" Value="0,22,0,0"/>
+        <Setter Property="Margin" Value="0,12,0,0"/>
     </Style>
 
     <!--
@@ -725,12 +730,12 @@
     -->
     <Style x:Key="DialogSegment" TargetType="RadioButton">
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Height" Value="32"/>
+        <Setter Property="Height" Value="28"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                            BorderThickness="1" CornerRadius="8" Padding="12,0">
+                            BorderThickness="1" CornerRadius="7" Padding="10,0">
                         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="{TemplateBinding Content}" FontSize="12.5" FontWeight="SemiBold" Visibility="Hidden"/>
                             <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12.5"
@@ -746,6 +751,42 @@
                             <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
                             <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
                             <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Свёрнутая строка диалога (1.37.0): шеврон и подпись, по нажатию раскрывает то, что под ней.
+        Легче экспандера с рамкой: рамка вокруг каждого блока подтверждения и делала окно тяжёлым.
+    -->
+    <Style x:Key="DialogFoldToggle" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Path x:Name="Chevron" Data="M0.5,0.5 L4,4 L0.5,7.5" Stroke="{TemplateBinding Foreground}"
+                              StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round" Width="5" Height="8" VerticalAlignment="Center"
+                              Margin="1,1,7,0" RenderTransformOrigin="0.5,0.5"/>
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="11.5"
+                                   Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chevron" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="90"/>
+                                </Setter.Value>
+                            </Setter>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -838,7 +879,7 @@
     <Style x:Key="DialogComboBox" TargetType="ComboBox">
         <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="Height" Value="34"/>
+        <Setter Property="Height" Value="30"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource DialogComboBoxItem}"/>
         <Setter Property="Template">
@@ -851,7 +892,7 @@
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
-                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="8">
+                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="7">
                                         <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                               Width="8" Height="4" Stretch="Uniform"
@@ -1036,18 +1077,19 @@
                              (UiScale.PlaceUnderTarget), и только из середины она показывает
                              на то, на что навели. Минус пиксель снизу прячет стык её обводки
                              с рамкой карточки: иначе на склейке видна лишняя черта. -->
-                        <!-- Bg.Panel, а не Bg.Card: подсказка — своё окно, и полупрозрачный в
-                             «стекле» Bg.Card показывал бы сквозь неё рабочий стол. -->
+                        <!-- Bg.Sheet, а не Bg.Card: подсказка — своё окно, и полупрозрачный в
+                             «стекле» Bg.Card показывал бы сквозь неё рабочий стол. Подложка та же,
+                             что у диалогов (1.37.0): темнее меню, чтобы не светлеть пятном. -->
                         <Path Grid.Row="0"
                               Data="M0,6 L6,0 L12,6 Z"
-                              Fill="{DynamicResource Bg.Panel}"
+                              Fill="{DynamicResource Bg.Sheet}"
                               Stroke="{DynamicResource Border.Default}"
                               StrokeThickness="1"
                               HorizontalAlignment="Center"
                               Margin="0,0,0,-1"/>
 
                         <Border Grid.Row="1"
-                                Background="{DynamicResource Bg.Panel}"
+                                Background="{DynamicResource Bg.Sheet}"
                                 BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="8" Padding="10,8">
                             <ContentPresenter>

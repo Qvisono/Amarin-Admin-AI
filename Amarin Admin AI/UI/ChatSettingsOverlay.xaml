@@ -79,7 +79,7 @@
                                     Click="ResetButton_Click"/>
                             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                                 <Button x:Name="CancelButton" Content="{DynamicResource S.Common.Cancel}"
-                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,6,0"
                                         Click="CancelButton_Click"/>
                                 <Button x:Name="SaveButton" Content="{DynamicResource S.Common.Save}"
                                         Style="{StaticResource DialogPrimaryButton}" Click="SaveButton_Click"/>

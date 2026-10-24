@@ -65,6 +65,8 @@ namespace Amarin.UI
             ChatSettings.Visibility == Visibility.Visible ||
             HealthOverlay.Visibility == Visibility.Visible ||
             DomainOverlay.Visibility == Visibility.Visible ||
+            PaletteHost.Visibility == Visibility.Visible ||
+            WhatsNewHost.Visibility == Visibility.Visible ||
             IsLocked;
 
         /// <summary>Возвращает ленте обычный вид.</summary>

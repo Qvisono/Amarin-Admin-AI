@@ -20,7 +20,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToolTip">
-                            <Border Background="{DynamicResource Bg.Panel}"
+                            <Border Background="{DynamicResource Bg.Sheet}"
                                     BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="8" Padding="10,8">
                                 <ContentPresenter>

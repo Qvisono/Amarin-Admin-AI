@@ -167,26 +167,34 @@
                         Заголовок папки или архива (D5) — кнопка, которая сворачивает свою группу.
                         Папка всегда карточка: свёрнутая — из одной строки, раскрытая — её верх
                         (ChatRowState.Band = Top), а низ дорисует последний чат. Верх у обеих
-                        одинаковый — поле 3, подсветка с отступом 4, — поэтому при раскрытии
+                        одинаковый — поле 1, подсветка с отступом 2, — поэтому при раскрытии
                         заголовок не сдвигается ни на точку: карточка просто растёт вниз. Пока
                         свёрнутая папка была голой строкой, она при раскрытии меняла высоту и
-                        съезжала на несколько точек. Углы концентричны: у карточки 10, у подсветки 6.
+                        съезжала на несколько точек. Углы концентричны: у карточки 8, у подсветки 6.
+
+                        С 1.37.0 карточка тихая: высота строки чата (32, а не 38), заливка — Bg.Card на
+                        четверть поверх колонки, рамка — отдельной линией Border.Subtle (прозрачность
+                        заливки гасила бы и её), между карточками зазор 4. Светлая крупная карточка
+                        выделялась сильнее самих чатов, ради которых папка и заведена.
                     -->
                     <Style x:Key="FolderHeader" TargetType="Button">
-                        <Setter Property="Height" Value="38"/>
-                        <Setter Property="Margin" Value="6,3"/>
+                        <Setter Property="Height" Value="32"/>
+                        <Setter Property="Margin" Value="6,2"/>
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
                                     <Grid>
-                                        <Border x:Name="Band" Background="{DynamicResource Bg.Card}" CornerRadius="10"/>
-                                        <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Margin="4"
-                                                Padding="5,0,6,0">
+                                        <Border x:Name="Band" Background="{DynamicResource Bg.Card}" CornerRadius="8"
+                                                Opacity="0.25"/>
+                                        <Border x:Name="Edge" CornerRadius="8" BorderThickness="1"
+                                                BorderBrush="{DynamicResource Border.Subtle}"/>
+                                        <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Margin="2"
+                                                Padding="7,0,6,0">
                                             <Grid>
                                                 <!-- Папка выбрана целиком: тон акцента, как у выбранной строки. -->
-                                                <Border x:Name="Picked" CornerRadius="6" Opacity="0" Margin="-5,0,-6,0"
+                                                <Border x:Name="Picked" CornerRadius="6" Opacity="0" Margin="-7,0,-6,0"
                                                         IsHitTestVisible="False" Background="{DynamicResource Accent.Fill}"/>
                                                 <ContentPresenter VerticalAlignment="Center"/>
                                             </Grid>
@@ -194,10 +202,12 @@
                                     </Grid>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="local:ChatRowState.Band" Value="Top">
-                                            <Setter Property="Height" Value="35"/>
-                                            <Setter Property="Margin" Value="6,3,6,0"/>
-                                            <Setter TargetName="Band" Property="CornerRadius" Value="10,10,0,0"/>
-                                            <Setter TargetName="Bg" Property="Margin" Value="4,4,4,1"/>
+                                            <Setter Property="Height" Value="31"/>
+                                            <Setter Property="Margin" Value="6,2,6,0"/>
+                                            <Setter TargetName="Band" Property="CornerRadius" Value="8,8,0,0"/>
+                                            <Setter TargetName="Edge" Property="CornerRadius" Value="8,8,0,0"/>
+                                            <Setter TargetName="Edge" Property="BorderThickness" Value="1,1,1,0"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="2,2,2,1"/>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
@@ -229,7 +239,10 @@
                                 <ControlTemplate TargetType="Button">
                                     <Grid>
                                     <!-- Кусок карточки раскрытой папки: см. FolderHeader и ChatRowState.Band. -->
-                                    <Border x:Name="Band" Background="{DynamicResource Bg.Card}" Visibility="Collapsed"/>
+                                    <Border x:Name="Band" Background="{DynamicResource Bg.Card}" Visibility="Collapsed"
+                                            Opacity="0.25"/>
+                                    <Border x:Name="Edge" Visibility="Collapsed" BorderThickness="1,0,1,0"
+                                            BorderBrush="{DynamicResource Border.Subtle}"/>
                                     <Border x:Name="Bg" Background="{TemplateBinding Background}"
                         CornerRadius="6" Padding="9,0,4,0">
                                         <Grid>
@@ -315,27 +328,32 @@
                                     <ControlTemplate.Triggers>
                                         <!--
                                             Чат раскрытой папки. Название стоит под именем папки (после
-                                            значка), подсветка — внутри карточки с отступом 4. Строки
+                                            значка), подсветка — внутри карточки с отступом 2. Строки
                                             карточки идут без зазора (поле 6,0): куски подложки обязаны
                                             сомкнуться, зазор между подсветками даёт само поле Bg.
                                         -->
                                         <Trigger Property="local:ChatRowState.Band" Value="Middle">
+                                            <Setter Property="Height" Value="30"/>
                                             <Setter Property="Margin" Value="6,0"/>
                                             <Setter TargetName="Band" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="Bg" Property="Margin" Value="4,1"/>
-                                            <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
-                                            <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
-                                            <Setter TargetName="Picked" Property="Margin" Value="-28,0,-4,0"/>
+                                            <Setter TargetName="Edge" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="2,1"/>
+                                            <Setter TargetName="Bg" Property="Padding" Value="30,0,4,0"/>
+                                            <Setter TargetName="Flash" Property="Margin" Value="-30,0,-4,0"/>
+                                            <Setter TargetName="Picked" Property="Margin" Value="-30,0,-4,0"/>
                                         </Trigger>
                                         <Trigger Property="local:ChatRowState.Band" Value="Bottom">
-                                            <Setter Property="Height" Value="35"/>
-                                            <Setter Property="Margin" Value="6,0,6,3"/>
+                                            <Setter Property="Height" Value="32"/>
+                                            <Setter Property="Margin" Value="6,0,6,2"/>
                                             <Setter TargetName="Band" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="Band" Property="CornerRadius" Value="0,0,10,10"/>
-                                            <Setter TargetName="Bg" Property="Margin" Value="4,1,4,4"/>
-                                            <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
-                                            <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
-                                            <Setter TargetName="Picked" Property="Margin" Value="-28,0,-4,0"/>
+                                            <Setter TargetName="Band" Property="CornerRadius" Value="0,0,8,8"/>
+                                            <Setter TargetName="Edge" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Edge" Property="CornerRadius" Value="0,0,8,8"/>
+                                            <Setter TargetName="Edge" Property="BorderThickness" Value="1,0,1,1"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="2,1,2,3"/>
+                                            <Setter TargetName="Bg" Property="Padding" Value="30,0,4,0"/>
+                                            <Setter TargetName="Flash" Property="Margin" Value="-30,0,-4,0"/>
+                                            <Setter TargetName="Picked" Property="Margin" Value="-30,0,-4,0"/>
                                         </Trigger>
                                         <!--
                                             Открытый чат. Стоит первым: IsMouseOver ниже перекрывает
@@ -1869,7 +1887,7 @@
                                                 <!-- Стрелка, указывающая на иконку -->
                                                 <Path Grid.Row="0"
                               Data="M0,6 L6,0 L12,6 Z"
-                              Fill="{DynamicResource Bg.Panel}"
+                              Fill="{DynamicResource Bg.Sheet}"
                               Stroke="{DynamicResource Status.WarningBorder}"
                               StrokeThickness="1"
                               HorizontalAlignment="Center"
@@ -1878,7 +1896,7 @@
                                                 <!-- Тело подсказки -->
                                                 <Border Grid.Row="1"
                                 Width="230"
-                                Background="{DynamicResource Bg.Panel}"
+                                Background="{DynamicResource Bg.Sheet}"
                                 BorderBrush="{DynamicResource Status.WarningBorder}"
                                 BorderThickness="1"
                                 CornerRadius="8"
@@ -1946,30 +1964,29 @@
         <Grid x:Name="JournalOverlay" Visibility="Collapsed" Panel.ZIndex="34"
               Focusable="True" PreviewKeyDown="Journal_PreviewKeyDown">
             <Grid.Resources>
-                <!-- ===== Вкладка / переключатель охвата ===== -->
+                <!-- ===== Вкладка / переключатель охвата: сегмент на общей подложке ===== -->
                 <Style x:Key="JournalTab" TargetType="ToggleButton">
-                    <Setter Property="Height" Value="26"/>
-                    <Setter Property="Padding" Value="12,0"/>
+                    <Setter Property="Height" Value="22"/>
+                    <Setter Property="Padding" Value="10,0"/>
                     <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Margin" Value="0,0,6,0"/>
+                    <Setter Property="Margin" Value="0"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ToggleButton">
-                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
-                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="5"
                                         Padding="{TemplateBinding Padding}">
                                     <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
                                              соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
                                         <TextBlock Text="{TemplateBinding Content}" FontSize="12" FontWeight="SemiBold" Visibility="Hidden"/>
                                         <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
-                                                   Foreground="{DynamicResource Text.Tertiary}"
+                                                   Foreground="{DynamicResource Text.Muted}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
                                     </Trigger>
                                     <Trigger Property="IsChecked" Value="True">
                                         <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
@@ -1982,20 +1999,19 @@
                     </Setter>
                 </Style>
 
-                <!-- ===== Кнопка в строке вкладок: выгрузка аудита ===== -->
+                <!-- ===== Кнопка в строке поиска: выгрузка аудита ===== -->
                 <Style x:Key="JournalChipButton" TargetType="Button">
                     <Setter Property="Height" Value="26"/>
-                    <Setter Property="Padding" Value="12,0"/>
+                    <Setter Property="Padding" Value="9,0"/>
                     <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Margin" Value="6,0,0,0"/>
+                    <Setter Property="Margin" Value="4,0,0,0"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
-                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" CornerRadius="6"
                                         Padding="{TemplateBinding Padding}">
-                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
-                                               Foreground="{DynamicResource Text.Tertiary}"
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5"
+                                               Foreground="{DynamicResource Text.Muted}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -2019,7 +2035,7 @@
                     прокрутки, и она прыгала бы на каждом шаге. Полный текст — в подсказке.
                 -->
                 <Style x:Key="JournalRowButton" TargetType="Button">
-                    <Setter Property="Height" Value="46"/>
+                    <Setter Property="Height" Value="32"/>
                     <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="Template">
@@ -2044,20 +2060,28 @@
             </Border>
 
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border x:Name="JournalCard" Width="760" Height="560" Background="{DynamicResource Bg.Panel}"
+                <!--
+                    1.37.0: плотнее и темнее — подложка Bg.Sheet, вкладки сегментами в строке
+                    заголовка, поиск с охватом одной строкой, записи в одну линию по 32 точки.
+                -->
+                <Border x:Name="JournalCard" Width="720" Height="500" Background="{DynamicResource Bg.Sheet}"
                         BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
-                        Padding="20,18">
+                        Padding="10,8,10,6">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- ===== ЗАГОЛОВОК ===== -->
-                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                        <!-- ===== ЗАГОЛОВОК И ВКЛАДКИ ===== -->
+                        <Grid Grid.Row="0" Height="28" Margin="4,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button x:Name="JournalBackButton" Width="24" Height="24" Cursor="Hand"
                                         Visibility="Collapsed" Margin="0,0,8,0"
@@ -2083,11 +2107,31 @@
                                     </Button.Template>
                                 </Button>
                                 <TextBlock x:Name="JournalTitleText" Text="{DynamicResource S.Journal.Title}"
-                                           FontSize="15" FontWeight="SemiBold"
+                                           FontSize="13.5" FontWeight="SemiBold"
                                            Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button x:Name="JournalCloseButton" AutomationProperties.Name="{DynamicResource S.Common.Close}" Width="26" Height="26"
-                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                            <!-- Вкладки — сегментами на одной подложке, рядом с заголовком. -->
+                            <Grid x:Name="JournalTabsRow" Grid.Column="1" Margin="14,0,0,0" HorizontalAlignment="Left"
+                                  VerticalAlignment="Center">
+                                <Border Background="{DynamicResource Bg.Card}" CornerRadius="7" Padding="2">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton x:Name="JournalActionsTab" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Tab.Actions}" IsChecked="True"
+                                                  Click="JournalActionsTab_Click"/>
+                                    <ToggleButton x:Name="JournalSnapshotsTab" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Tab.Snapshots}"
+                                                  Click="JournalSnapshotsTab_Click"/>
+                                    <ToggleButton x:Name="JournalSummariesTab" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Tab.Summaries}"
+                                                  Click="JournalSummariesTab_Click"/>
+                                    <ToggleButton x:Name="JournalAuditTab" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Tab.Audit}"
+                                                  Click="JournalAuditTab_Click"/>
+                                </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Button x:Name="JournalCloseButton" Grid.Column="2" AutomationProperties.Name="{DynamicResource S.Common.Close}" Width="24" Height="24"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
                                     Cursor="Hand" Click="JournalCloseButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
@@ -2109,27 +2153,38 @@
                             </Button>
                         </Grid>
 
-                        <!-- ===== ВКЛАДКИ И ОХВАТ ===== -->
-                        <Grid x:Name="JournalTabsRow" Grid.Row="1" Margin="0,0,0,10">
-                            <StackPanel Orientation="Horizontal">
-                                <ToggleButton x:Name="JournalActionsTab" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Tab.Actions}" IsChecked="True"
-                                              Click="JournalActionsTab_Click"/>
-                                <ToggleButton x:Name="JournalSnapshotsTab" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Tab.Snapshots}"
-                                              Click="JournalSnapshotsTab_Click"/>
-                                <ToggleButton x:Name="JournalSummariesTab" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Tab.Summaries}"
-                                              Click="JournalSummariesTab_Click"/>
-                                <ToggleButton x:Name="JournalAuditTab" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Tab.Audit}"
-                                              Click="JournalAuditTab_Click"/>
-                            </StackPanel>
+                        <!-- ===== ПОИСК И ОХВАТ ===== -->
+                        <Grid x:Name="JournalSearchRow" Grid.Row="1" Margin="4,0,4,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="JournalSearchBox" Height="28"
+                                    Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="7" Padding="9,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Path Data="M5.5,1.5 A4,4 0 1 1 5.49,1.5 Z M8.5,8.5 L11.5,11.5" Stroke="{DynamicResource Text.Faint}"
+                                          StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          Width="13" Height="13" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="JournalSearchPlaceholder" Grid.Column="1"
+                                               Text="{DynamicResource S.Journal.SearchHint}" FontSize="12"
+                                               Foreground="{DynamicResource Text.Faint}" VerticalAlignment="Center"
+                                               IsHitTestVisible="False"/>
+                                    <TextBox x:Name="JournalSearch" Grid.Column="1" Background="Transparent" BorderThickness="0"
+                                             FontSize="12" Foreground="{DynamicResource Text.Body}" VerticalAlignment="Center"
+                                             CaretBrush="{DynamicResource Text.Bright}"
+                                             TextChanged="JournalSearch_TextChanged"/>
+                                </Grid>
+                            </Border>
                             <!-- Выгружается то, что в списке: с поиском — найденное, без него — всё. -->
-                            <StackPanel x:Name="JournalAuditExportPanel" Orientation="Horizontal"
-                                        HorizontalAlignment="Right" Visibility="Collapsed">
+                            <StackPanel x:Name="JournalAuditExportPanel" Grid.Column="1" Orientation="Horizontal"
+                                        Margin="8,0,0,0" Visibility="Collapsed">
                                 <!-- Цепочка хешей (1.37.0): цела или где разорвана. Пока цепочки нет — пусто. -->
-                                <TextBlock x:Name="JournalAuditChainText" FontSize="12" VerticalAlignment="Center"
+                                <TextBlock x:Name="JournalAuditChainText" FontSize="11.5" VerticalAlignment="Center"
                                            Margin="0,0,4,0" Visibility="Collapsed"
                                            Foreground="{DynamicResource Text.Faint}"/>
                                 <Button x:Name="JournalAuditCsvButton" Style="{StaticResource JournalChipButton}"
@@ -2139,34 +2194,21 @@
                                         Content="{DynamicResource S.Journal.Audit.ExportJson}"
                                         Click="JournalAuditJsonButton_Click"/>
                             </StackPanel>
-                            <StackPanel x:Name="JournalScopePanel" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <ToggleButton x:Name="JournalScopeChat" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Scope.Chat}" IsChecked="True"
-                                              Click="JournalScopeChat_Click"/>
-                                <ToggleButton x:Name="JournalScopeAll" Style="{StaticResource JournalTab}"
-                                              Content="{DynamicResource S.Journal.Scope.All}" Margin="0"
-                                              Click="JournalScopeAll_Click"/>
-                            </StackPanel>
+                            <Border x:Name="JournalScopePanel" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                    Background="{DynamicResource Bg.Card}" CornerRadius="7" Padding="2">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton x:Name="JournalScopeChat" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Scope.Chat}" IsChecked="True"
+                                                  Click="JournalScopeChat_Click"/>
+                                    <ToggleButton x:Name="JournalScopeAll" Style="{StaticResource JournalTab}"
+                                                  Content="{DynamicResource S.Journal.Scope.All}"
+                                                  Click="JournalScopeAll_Click"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
 
-                        <!-- ===== ПОИСК ===== -->
-                        <Border Grid.Row="2" x:Name="JournalSearchBox" Margin="0,0,0,10"
-                                Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,6">
-                            <Grid>
-                                <TextBlock x:Name="JournalSearchPlaceholder"
-                                           Text="{DynamicResource S.Journal.SearchHint}" FontSize="12.5"
-                                           Foreground="{DynamicResource Text.Faint}" VerticalAlignment="Center"
-                                           IsHitTestVisible="False"/>
-                                <TextBox x:Name="JournalSearch" Background="Transparent" BorderThickness="0"
-                                         FontSize="12.5" Foreground="{DynamicResource Text.Body}"
-                                         CaretBrush="{DynamicResource Text.Bright}"
-                                         TextChanged="JournalSearch_TextChanged"/>
-                            </Grid>
-                        </Border>
-
                         <!-- ===== СПИСОК ===== -->
-                        <Grid Grid.Row="3">
+                        <Grid Grid.Row="2">
                             <ItemsControl x:Name="JournalList"
                                           VirtualizingStackPanel.IsVirtualizing="True"
                                           VirtualizingStackPanel.VirtualizationMode="Recycling"
@@ -2186,53 +2228,53 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
+                                        <!-- Запись в одну линию: значок, название, аргументы моноширинно до
+                                             обрезки, справа чат и длительность, время — ровным столбцом. -->
                                         <Button Style="{StaticResource JournalRowButton}"
                                                 ToolTip="{Binding Tooltip}" Click="JournalRow_Click">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto" MaxWidth="240"/>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto" MinWidth="52"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="*"/>
-                                                    <RowDefinition Height="*"/>
-                                                </Grid.RowDefinitions>
 
-                                                <TextBlock Grid.RowSpan="2" Text="{Binding Glyph}" FontSize="12"
-                                                           VerticalAlignment="Center" Margin="0,0,9,0">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{DynamicResource Status.Success}"/>
+                                                <Path Data="{Binding Icon}" Width="12" Height="12" StrokeThickness="1.4"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                      VerticalAlignment="Center" Margin="0,0,9,0">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Stroke" Value="{DynamicResource Status.Success}"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsFailure}" Value="True">
-                                                                    <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
+                                                                    <Setter Property="Stroke" Value="{DynamicResource Status.Danger}"/>
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding IsPending}" Value="True">
-                                                                    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                                                                    <Setter Property="Stroke" Value="{DynamicResource Text.Faint}"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
+                                                    </Path.Style>
+                                                </Path>
 
-                                                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Title}"
-                                                           FontSize="12.5" FontWeight="SemiBold"
+                                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="12.5"
                                                            Foreground="{DynamicResource Text.Body}"
-                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
-                                                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Subtitle}"
-                                                           FontSize="11" FontFamily="Consolas"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Subtitle}"
+                                                           FontSize="11" FontFamily="Consolas" Margin="10,0,0,0"
                                                            Foreground="{DynamicResource Text.Faint}"
-                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
 
-                                                <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding Timestamp}"
-                                                           FontSize="11" Foreground="{DynamicResource Text.Dim}"
-                                                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                           Margin="10,0,0,0"/>
-                                                <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Trailer}"
+                                                <TextBlock Grid.Column="3" Text="{Binding Trailer}"
                                                            FontSize="11" Foreground="{DynamicResource Text.Faint}"
-                                                           HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                           VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis" MaxWidth="200"
+                                                           Margin="12,0,0,0"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding Timestamp}"
+                                                           FontSize="11" Foreground="{DynamicResource Text.Dim}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center"
                                                            Margin="10,0,0,0"/>
                                             </Grid>
                                         </Button>
@@ -2252,34 +2294,34 @@
                             -->
                             <ScrollViewer x:Name="JournalDetails" Visibility="Collapsed"
                                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel Margin="0,0,8,0">
+                                <StackPanel Margin="4,0,8,0">
                                     <TextBlock x:Name="JournalDetailTitle" FontSize="13.5" FontWeight="SemiBold"
                                                Foreground="{DynamicResource Text.Body}" TextWrapping="Wrap"/>
                                     <TextBlock x:Name="JournalDetailMeta" FontSize="11.5" Margin="0,4,0,0"
                                                Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
 
                                     <!-- WrapPanel: кнопок стало шесть, в одну строку на узком журнале они не влезают. -->
-                                    <WrapPanel Margin="0,12,0,-6">
+                                    <WrapPanel Margin="0,10,0,-6">
                                         <Button x:Name="JournalAskButton" Style="{StaticResource DialogPrimaryButton}"
-                                                Content="{DynamicResource S.Journal.Ask}" Margin="0,0,8,6"
+                                                Content="{DynamicResource S.Journal.Ask}" Margin="0,0,6,6"
                                                 Click="JournalAskButton_Click"/>
                                         <Button x:Name="JournalOpenChatButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Content="{DynamicResource S.Journal.OpenChat}" Margin="0,0,8,6"
+                                                Content="{DynamicResource S.Journal.OpenChat}" Margin="0,0,6,6"
                                                 Click="JournalOpenChatButton_Click"/>
                                         <Button x:Name="JournalRebuildSummaryButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,6"
+                                                Visibility="Collapsed" Margin="0,0,6,6"
                                                 Content="{DynamicResource S.Journal.Summary.Rebuild}"
                                                 Click="JournalRebuildSummaryButton_Click"/>
                                         <Button x:Name="JournalRollbackButton" Style="{StaticResource DialogPrimaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,6"
+                                                Visibility="Collapsed" Margin="0,0,6,6"
                                                 Content="{DynamicResource S.Journal.Rollback.Preview}"
                                                 Click="JournalRollbackButton_Click"/>
                                         <Button x:Name="JournalRestoreSystemButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,6"
+                                                Visibility="Collapsed" Margin="0,0,6,6"
                                                 Content="{DynamicResource S.Journal.RestoreSystem}"
                                                 Click="JournalRestoreSystemButton_Click"/>
                                         <Button x:Name="JournalSaveRecipeButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,6"
+                                                Visibility="Collapsed" Margin="0,0,6,6"
                                                 Content="{DynamicResource S.Recipe.SaveFromJournal}"
                                                 ToolTip="{DynamicResource S.Recipe.SaveFromJournalTip}"
                                                 Click="JournalSaveRecipeButton_Click"/>
@@ -2357,7 +2399,7 @@
                                                 <Button x:Name="JournalRollbackCancelButton"
                                                         Style="{StaticResource DialogSecondaryButton}"
                                                         Content="{DynamicResource S.Journal.Rollback.Cancel}"
-                                                        Margin="0,0,8,0" Click="JournalRollbackCancelButton_Click"/>
+                                                        Margin="0,0,6,0" Click="JournalRollbackCancelButton_Click"/>
                                                 <Button x:Name="JournalRollbackApplyButton"
                                                         Style="{StaticResource DialogPrimaryButton}"
                                                         Click="JournalRollbackApplyButton_Click"/>
@@ -2365,12 +2407,12 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <TextBlock Text="{DynamicResource S.Journal.Arguments}" Margin="0,16,0,6"
+                                    <TextBlock Text="{DynamicResource S.Journal.Arguments}" Margin="0,12,0,4"
                                                FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource Text.Faint}"/>
                                     <ContentControl x:Name="JournalArgumentsHost"/>
 
-                                    <TextBlock Text="{DynamicResource S.Journal.Result}" Margin="0,14,0,6"
+                                    <TextBlock Text="{DynamicResource S.Journal.Result}" Margin="0,10,0,4"
                                                FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource Text.Faint}"/>
                                     <ContentControl x:Name="JournalResultHost" Margin="0,0,0,4"/>
@@ -2379,7 +2421,7 @@
                         </Grid>
 
                         <!-- ===== ПОДВАЛ ===== -->
-                        <TextBlock Grid.Row="4" x:Name="JournalFooter" Margin="0,12,0,0"
+                        <TextBlock Grid.Row="3" x:Name="JournalFooter" Margin="6,6,0,0"
                                    FontSize="11" Foreground="{DynamicResource Text.Faint}"/>
                     </Grid>
                 </Border>
@@ -2393,6 +2435,9 @@
         <local:HotkeySheetOverlay x:Name="HotkeySheet" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:ChatSettingsOverlay x:Name="ChatSettings" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:TranslationEditorOverlay x:Name="TranslationEditor" Visibility="Collapsed" Panel.ZIndex="29"/>
+        <!-- Палитра команд (1.37.0, Ctrl+Shift+P). Хост пуст до первого открытия: на первом
+             кадре палитры не видно, и разбирать её разметку вместе с окном незачем. -->
+        <Grid x:Name="PaletteHost" Visibility="Collapsed" Panel.ZIndex="29"/>
         <!--
             Перетаскивание на всё окно (D15). Появляется, когда файл внесли в окно, и накрывает его
             целиком: дальше события получает только он, и уход курсора с него — это уход из окна.
@@ -2425,79 +2470,92 @@
                 бы её, и Viewbox ужал бы весь диалог вместе с кнопками до нечитаемого.
             -->
             <Border x:Name="ConfirmationCard" Style="{StaticResource DialogCard}"
-                    Width="480" MinHeight="180" MaxHeight="580">
+                    Width="460" MinHeight="150" MaxHeight="560">
                 <!--
                     Grid, а не StackPanel, — и в этом вся суть. StackPanel меряет детей
                     бесконечностью и раскладывает подряд на полную желаемую высоту: потолок
                     карточки он не соблюдает, и ряд кнопок, стоявший последним, уезжал ниже её
-                    кромки. Длинное разъяснение с двумя раскрытыми экспандерами набирало под
-                    девятьсот точек против пятисот доступных, и человек видел вопрос без «Да» и
-                    «Нет». Здесь всё, что может вырасти, лежит в строке «*» с прокруткой, а
-                    заголовок и кнопки — в строках Auto, и вытолкнуть их нечем.
+                    кромки. Длинное разъяснение с раскрытыми блоками набирало под девятьсот точек
+                    против пятисот доступных, и человек видел вопрос без «Да» и «Нет». Здесь всё,
+                    что может вырасти, лежит в строке «*» с прокруткой, а шапка и кнопки — в
+                    строках Auto, и вытолкнуть их нечем.
                 -->
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Вопрос — заголовком: кнопки внизу отвечают именно на него. -->
-                    <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Confirm.Title}"/>
-
-                    <!-- Кто спрашивает и из какого чата: спрашивать могут сразу несколько, и
-                         «удалить папку X» без имени разговора — опасная неизвестность. -->
-                    <WrapPanel Grid.Row="1" Margin="0,4,0,14">
-                        <TextBlock x:Name="ConfirmationAgentText" FontSize="12" Foreground="{DynamicResource Text.Dim}"/>
-                        <TextBlock x:Name="ConfirmationChatDot" Text=" · " FontSize="12" Foreground="{DynamicResource Text.Dim}"
-                                   Visibility="{Binding Visibility, ElementName=ConfirmationChatButton}"/>
-                        <Button x:Name="ConfirmationChatButton" Style="{StaticResource DialogLink}" Visibility="Collapsed"
-                                Click="ConfirmationChatButton_Click"/>
-                    </WrapPanel>
+                    <!-- Шапка одной строкой (1.37.0): вопрос слева — кнопки внизу отвечают именно на
+                         него, — а кто спрашивает и из какого чата, справа. Спрашивать могут сразу
+                         несколько, и «удалить папку X» без имени разговора — опасная неизвестность. -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Path Data="M8,1.5 L13.5,3.5 L13.5,7.5 C13.5,10.8 11.2,13.3 8,14.5 C4.8,13.3 2.5,10.8 2.5,7.5 L2.5,3.5 Z M8,5.2 L8,8.6 M8,10.9 L8,11"
+                              Stroke="{DynamicResource Status.Warning}" StrokeThickness="1.3"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Confirm.Title}"
+                                   VerticalAlignment="Center"/>
+                        <WrapPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock x:Name="ConfirmationAgentText" FontSize="11.5" Foreground="{DynamicResource Text.Dim}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ConfirmationChatDot" Text=" · " FontSize="11.5" Foreground="{DynamicResource Text.Dim}"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding Visibility, ElementName=ConfirmationChatButton}"/>
+                            <Button x:Name="ConfirmationChatButton" Style="{StaticResource DialogLink}" Visibility="Collapsed"
+                                    VerticalAlignment="Center" Click="ConfirmationChatButton_Click"/>
+                        </WrapPanel>
+                    </Grid>
 
                     <!-- Отступ справа отрицательный: полоса прокрутки встаёт в поле карточки,
                          а не отжимает текст от него. -->
-                    <ScrollViewer x:Name="ConfirmationBodyScroll" Grid.Row="2"
+                    <ScrollViewer x:Name="ConfirmationBodyScroll" Grid.Row="1"
                                   VerticalScrollBarVisibility="Auto" Margin="0,0,-10,0" Padding="0,0,10,0">
+                        <!--
+                            С 1.37.0-beta.5 тело читается сверху вниз за один взгляд: одна главная
+                            фраза (что изменится), плашки того, что меняет систему, сам скрипт и под
+                            ним «Подробнее». Прежде сводка, пояснение модели и разъяснение ИИ стояли
+                            тремя абзацами разного цвета, и человек разбирался, какой из них главный.
+                            Главная фраза — разъяснение ИИ, пока его нет — слова модели, нет и их —
+                            сводка: видна всегда ровно одна. Обычные TextBlock: текст пришёл от модели
+                            и остаётся текстом.
+                        -->
                         <StackPanel>
-                            <TextBlock x:Name="ConfirmationSummaryText" FontSize="13" Foreground="{DynamicResource Text.Body}"
-                                       TextWrapping="Wrap"/>
-                            <TextBlock x:Name="ConfirmationExplanationText" Style="{StaticResource DialogText}" Margin="0,8,0,0"/>
-                            <!--
-                                Разъяснение от ИИ: то же, что в журнале умеет кнопка «Спросить ИИ», только
-                                здесь оно спрашивается само и заранее. Поле explanation у инструмента —
-                                просьба к модели, а не обязанность, и чаще всего оно пустое; человек при
-                                этом жмёт «Разрешить» под текстом скрипта, который никто ему не объяснил.
-                                Отбито чертой слева: это слова модели, а не факты о вызове.
-                                Обычный TextBlock: текст пришёл от модели и остаётся текстом.
-                            -->
-                            <Border x:Name="ConfirmationAiBox" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="2,0,0,0"
-                                    Padding="10,1,0,1" Margin="0,12,0,0"
-                                    Visibility="{Binding Visibility, ElementName=ConfirmationAiText}">
-                                <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                                           TextWrapping="Wrap" Visibility="Collapsed"/>
-                            </Border>
-                            <!--
-                                Пробный прогон (-WhatIf): что именно изменится. Над текстом команды, потому
-                                что отвечает на тот же вопрос короче. Появляется, только когда прогон
-                                возможен, и кнопки его не ждут — как и разъяснение выше.
-                                Ниже — что именно выполнится, целиком, и технические подробности.
-                                Наполняются из кода: пустой экспандер в диалоге хуже его отсутствия.
-                            -->
-                            <ContentControl x:Name="ConfirmationWhatIfHost" Visibility="Collapsed" Margin="0,14,0,0"/>
+                            <TextBlock x:Name="ConfirmationSummaryText" FontSize="13" LineHeight="19"
+                                       Foreground="{DynamicResource Text.Primary}" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="ConfirmationExplanationText" FontSize="13" LineHeight="19"
+                                       Foreground="{DynamicResource Text.Primary}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <TextBlock x:Name="ConfirmationAiText" FontSize="13" LineHeight="19"
+                                       Foreground="{DynamicResource Text.Primary}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <!-- Что в скрипте сочтено записью — плашками по команде. -->
+                            <WrapPanel x:Name="ConfirmationReasons" Margin="0,8,0,0" Visibility="Collapsed"/>
+                            <!-- Что именно выполнится — целиком, одним блоком кода без второй рамки. -->
                             <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,10,0,0"/>
-                            <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,10,0,0"/>
+                            <!--
+                                «Подробнее» — прямо под кодом, к которому относится, а не в подвале
+                                среди ответов. Раскрывает пробный прогон (-WhatIf) и технический разбор;
+                                строки нет, если раскрывать нечего.
+                            -->
+                            <ToggleButton x:Name="ConfirmationDetailsToggle" Content="{DynamicResource S.Confirm.Details}"
+                                          Style="{StaticResource DialogFoldToggle}" HorizontalAlignment="Left"
+                                          Margin="0,6,0,0" Visibility="Collapsed" Click="ConfirmationDetailsToggle_Click"/>
+                            <ContentControl x:Name="ConfirmationWhatIfHost" Visibility="Collapsed" Margin="0,6,0,0"/>
+                            <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,8,0,0"/>
                         </StackPanel>
                     </ScrollViewer>
 
                     <!--
-                        Подвал: слева «Не спрашивать…» (разрешение впрок, отдельно от пары ответов),
-                        справа «Запретить» и «Разрешить». Волосок сверху — край прокручиваемого тела.
+                        Подвал — только решения: слева «Не спрашивать…» (разрешение впрок, отдельно от
+                        пары ответов), справа «Запретить» и «Разрешить».
                     -->
-                    <StackPanel Grid.Row="3">
-                        <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,14,0,0"/>
-                        <Grid Margin="0,14,0,0">
+                    <StackPanel Grid.Row="2">
+                        <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -2509,7 +2567,7 @@
                                 вопросов SynGuard и вопросов без чата кнопки нет.
                             -->
                             <ToggleButton x:Name="ConfirmationAllowToggle" Content="{DynamicResource S.Confirm.Allow}"
-                                          Style="{StaticResource DialogSecondaryToggle}"
+                                          Style="{StaticResource DialogSecondaryToggle}" VerticalAlignment="Center"
                                           ToolTip="{DynamicResource S.Confirm.Allow.Tooltip}"/>
                             <!-- Поля под тень — PopupShadow; смещение держит карточку на 6 выше кнопки, как было. -->
                             <Popup x:Name="ConfirmationAllowPopup"
@@ -2545,7 +2603,7 @@
                             <StackPanel Grid.Column="2" Orientation="Horizontal">
                                 <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Confirm.Deny}"
                                         Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                                        Margin="0,0,6,0" Click="ConfirmationNoButton_Click"/>
                                 <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Confirm.Approve}"
                                         Style="{StaticResource DialogPrimaryButton}"
                                         Click="ConfirmationYesButton_Click"/>
@@ -2567,7 +2625,7 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Domain.Title}"/>
                     <TextBlock Style="{StaticResource DialogText}" Text="{DynamicResource S.Domain.Desc}"/>
-                    <Border Style="{StaticResource DialogField}" Margin="0,16,0,0">
+                    <Border Style="{StaticResource DialogField}" Margin="0,10,0,0">
                         <TextBox x:Name="DomainInput" Style="{StaticResource DialogInput}" FontFamily="Consolas"
                                  Tag="example.com" AutomationProperties.Name="{DynamicResource S.Domain.Title}"
                                  KeyDown="DomainInput_KeyDown"
@@ -2582,7 +2640,7 @@
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <Button x:Name="DomainCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="DomainCancelButton_Click"/>
+                                    Margin="0,0,6,0" Click="DomainCancelButton_Click"/>
                             <Button x:Name="DomainAddButton" Content="{DynamicResource S.Common.Add}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="DomainAddButton_Click"/>
@@ -2611,7 +2669,7 @@
                     по правилу памятки всё, что может вырасти, лежит в строке «*» с прокруткой, а
                     заголовок и кнопки — в строках Auto.
                 -->
-                <Border x:Name="DataExportCard" Style="{StaticResource DialogCard}" Width="460" MaxHeight="560">
+                <Border x:Name="DataExportCard" Style="{StaticResource DialogCard}" Width="440" MaxHeight="560">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -2621,9 +2679,8 @@
 
                         <StackPanel>
                             <TextBlock Text="{DynamicResource S.Bundle.Export.Title}" Style="{StaticResource DialogTitle}"/>
-                            <TextBlock Text="{DynamicResource S.Bundle.Export.Desc}" FontSize="12.5"
-                                       Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
-                                       Margin="0,0,0,12"/>
+                            <TextBlock Text="{DynamicResource S.Bundle.Export.Desc}" Style="{StaticResource DialogText}"
+                                       Margin="0,4,0,10"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -2650,22 +2707,12 @@
                         <StackPanel x:Name="ExportPasswordPanel" Visibility="Collapsed" Margin="4,2,0,0">
                             <TextBlock Text="{DynamicResource S.Bundle.Export.ProtectHint}" FontSize="11.5"
                                        Foreground="{DynamicResource Text.Dim}" TextWrapping="Wrap"/>
-                            <Border Margin="0,8,0,0" CornerRadius="6" Height="30"
-                                    Background="{DynamicResource Bg.Raised}"
-                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                                <PasswordBox x:Name="ExportPasswordBox" Background="Transparent" BorderThickness="0"
-                                             Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
-                                             Foreground="{DynamicResource Text.Bright}"
-                                             CaretBrush="{DynamicResource Text.Bright}"
+                            <Border Style="{StaticResource DialogField}" Margin="0,8,0,0">
+                                <PasswordBox x:Name="ExportPasswordBox" Style="{StaticResource DialogPasswordInput}"
                                              ToolTip="{DynamicResource S.Account.Password}"/>
                             </Border>
-                            <Border Margin="0,6,0,0" CornerRadius="6" Height="30"
-                                    Background="{DynamicResource Bg.Raised}"
-                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                                <PasswordBox x:Name="ExportPasswordRepeatBox" Background="Transparent" BorderThickness="0"
-                                             Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
-                                             Foreground="{DynamicResource Text.Bright}"
-                                             CaretBrush="{DynamicResource Text.Bright}"
+                            <Border Style="{StaticResource DialogField}" Margin="0,6,0,0">
+                                <PasswordBox x:Name="ExportPasswordRepeatBox" Style="{StaticResource DialogPasswordInput}"
                                              ToolTip="{DynamicResource S.Bundle.Export.PasswordRepeat}"/>
                             </Border>
                         </StackPanel>
@@ -2679,9 +2726,9 @@
                                        Foreground="{DynamicResource Status.Danger}" TextWrapping="Wrap"
                                        Visibility="Collapsed"/>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                                 <Button x:Name="DataExportCancelButton" Content="{DynamicResource S.Common.Cancel}"
-                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,6,0"
                                         Click="DataExportCancelButton_Click"/>
                                 <Button x:Name="DataExportSaveButton" Content="{DynamicResource S.Bundle.Export.Save}"
                                         Style="{StaticResource DialogPrimaryButton}"
@@ -2707,7 +2754,7 @@
                     в строке «*» с прокруткой, заголовок и кнопки — в строках Auto, и вытолкнуть
                     кнопки за кромку нечем.
                 -->
-                <Border x:Name="DataImportCard" Style="{StaticResource DialogCard}" Width="460" MaxHeight="660">
+                <Border x:Name="DataImportCard" Style="{StaticResource DialogCard}" Width="440" MaxHeight="660">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -2775,9 +2822,9 @@
                         </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                             <Button x:Name="DataImportCancelButton" Content="{DynamicResource S.Common.Cancel}"
-                                    Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                    Style="{StaticResource DialogSecondaryButton}" Margin="0,0,6,0"
                                     Click="DataImportCancelButton_Click"/>
                             <Button x:Name="DataImportApplyButton" Content="{DynamicResource S.Bundle.Import.Apply}"
                                     Style="{StaticResource DialogPrimaryButton}"
@@ -2794,26 +2841,23 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="UpdateConfirmCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Style="{StaticResource DialogCard}" Width="440">
+                <Border Style="{StaticResource DialogCard}" Width="420">
                     <StackPanel>
                         <TextBlock x:Name="UpdateConfirmTitle" Text="{DynamicResource S.Update.Title}" Style="{StaticResource DialogTitle}"/>
-                        <TextBlock x:Name="UpdateConfirmText" Style="{StaticResource DialogText}" Margin="0,6,0,14"/>
+                        <TextBlock x:Name="UpdateConfirmText" Style="{StaticResource DialogText}" Margin="0,4,0,10"/>
                         <!--
                             Заметки к релизу (H4). Высота ограничена, текст листается внутри: карточка
                             лежит в Viewbox, и длинные заметки иначе сжали бы её целиком до мелкого
-                            шрифта, а не уехали бы под прокрутку.
+                            шрифта, а не уехали бы под прокрутку. С 1.37.0 — как в «Что нового»: прямо
+                            в карточке, без рамки вокруг.
                         -->
-                        <StackPanel x:Name="UpdateConfirmNotesPanel" Visibility="Collapsed" Margin="0,0,0,12">
-                            <TextBlock Text="{DynamicResource S.Updates.NotesTitle}" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Secondary}" Margin="0,0,0,6"/>
-                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,8,2,8">
-                                <RichTextBox x:Name="UpdateConfirmNotes" IsReadOnly="True" IsDocumentEnabled="True"
-                                             MaxHeight="220" Background="Transparent" BorderThickness="0"
-                                             Padding="0,0,8,0" VerticalScrollBarVisibility="Auto"
-                                             Foreground="{DynamicResource Text.Secondary}"
-                                             AutomationProperties.Name="{DynamicResource S.Updates.NotesTitle}"/>
-                            </Border>
+                        <StackPanel x:Name="UpdateConfirmNotesPanel" Visibility="Collapsed" Margin="0,0,0,10">
+                            <TextBlock Text="{DynamicResource S.Updates.NotesTitle}" Style="{StaticResource DialogLabel}" Margin="0,0,0,4"/>
+                            <RichTextBox x:Name="UpdateConfirmNotes" IsReadOnly="True" IsDocumentEnabled="True"
+                                         MaxHeight="220" Background="Transparent" BorderThickness="0"
+                                         Padding="0,0,8,0" Margin="0,0,-8,0" VerticalScrollBarVisibility="Auto"
+                                         Foreground="{DynamicResource Text.Secondary}"
+                                         AutomationProperties.Name="{DynamicResource S.Updates.NotesTitle}"/>
                         </StackPanel>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="6" Padding="10,7">
@@ -2846,13 +2890,13 @@
                             <TextBlock Text="{DynamicResource S.Updates.NoChecksumNote}" FontSize="11.5"
                                        Foreground="{DynamicResource Status.Warning}" TextWrapping="Wrap"/>
                         </Border>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                             <Button x:Name="UpdateConfirmCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="UpdateConfirmCancelButton_Click"/>
+                                    Margin="0,0,6,0" Click="UpdateConfirmCancelButton_Click"/>
                             <Button x:Name="UpdateConfirmUnverifiedButton" Content="{DynamicResource S.Updates.InstallUnverified}"
                                     Style="{StaticResource DialogSecondaryButton}" Visibility="Collapsed"
-                                    Margin="0,0,8,0" Click="UpdateConfirmUnverifiedButton_Click"/>
+                                    Margin="0,0,6,0" Click="UpdateConfirmUnverifiedButton_Click"/>
                             <Button x:Name="UpdateConfirmApplyButton" Content="{DynamicResource S.Update.Confirm}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="UpdateConfirmApplyButton_Click"/>
@@ -2873,7 +2917,7 @@
                         <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Download.Title}"/>
                         <TextBlock x:Name="DownloadRequestText" Style="{StaticResource DialogText}"/>
                         <!-- Сайт — крупно и моноширинно: решение принимается про этот адрес. -->
-                        <Border Style="{StaticResource DialogField}" Margin="0,16,0,0">
+                        <Border Style="{StaticResource DialogField}" Margin="0,10,0,0">
                             <TextBlock x:Name="DownloadRequestHost" FontFamily="Consolas" FontSize="13"
                                        Foreground="{DynamicResource Text.Body}" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"/>
@@ -2884,7 +2928,7 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="DownloadRequestDenyButton" Content="{DynamicResource S.Download.Refuse}"
                                         Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="DownloadRequestDenyButton_Click"/>
+                                        Margin="0,0,6,0" Click="DownloadRequestDenyButton_Click"/>
                                 <Button x:Name="DownloadRequestAllowButton" Content="{DynamicResource S.Download.Allow}"
                                         Style="{StaticResource DialogPrimaryButton}"
                                         Click="DownloadRequestAllowButton_Click"/>
@@ -2905,7 +2949,7 @@
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <TextBlock x:Name="NameDialogTitle" Style="{StaticResource DialogTitle}" Margin="0,0,0,16"
+                        <TextBlock x:Name="NameDialogTitle" Style="{StaticResource DialogTitle}" Margin="0,0,0,10"
                                    Text="{DynamicResource S.Account.UserName}"/>
                         <Border Style="{StaticResource DialogField}">
                             <TextBox x:Name="NameInput" Style="{StaticResource DialogInput}" MaxLength="40"
@@ -2931,7 +2975,7 @@
                             <TextBlock x:Name="NameError" Grid.Column="1" Style="{StaticResource DialogError}"/>
                             <StackPanel Grid.Column="2" Orientation="Horizontal">
                                 <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="NameCancelButton_Click"/>
+                                        Margin="0,0,6,0" Click="NameCancelButton_Click"/>
                                 <Button x:Name="NameSaveButton" Content="{DynamicResource S.Common.Save}"
                                         Style="{StaticResource DialogPrimaryButton}"
                                         Click="NameSaveButton_Click"/>
@@ -2961,7 +3005,7 @@
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource DialogTitle}" Margin="0,0,0,16" Text="{DynamicResource S.Key.RenameTitle}"/>
+                        <TextBlock Style="{StaticResource DialogTitle}" Margin="0,0,0,10" Text="{DynamicResource S.Key.RenameTitle}"/>
                         <Border Style="{StaticResource DialogField}">
                             <!-- Пустое название возвращает то, что стояло по умолчанию: подсказка в пустом поле. -->
                             <TextBox x:Name="KeyRenameValue" Style="{StaticResource DialogInput}" MaxLength="40"
@@ -2972,7 +3016,7 @@
                         <Grid Style="{StaticResource DialogFooter}">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="KeyRenameCancelButton_Click"/>
+                                        Margin="0,0,6,0" Click="KeyRenameCancelButton_Click"/>
                                 <Button x:Name="KeyRenameSaveButton" Content="{DynamicResource S.Common.Save}"
                                         Style="{StaticResource DialogPrimaryButton}"
                                         Click="KeyRenameSaveButton_Click"/>
@@ -2996,7 +3040,7 @@
                         <Grid Style="{StaticResource DialogFooter}">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="KeyRemoveNoButton_Click"/>
+                                        Margin="0,0,6,0" Click="KeyRemoveNoButton_Click"/>
                                 <Button x:Name="KeyRemoveYesButton" Content="{DynamicResource S.Common.Delete}"
                                         Style="{StaticResource DialogDangerButton}"
                                         Click="KeyRemoveYesButton_Click"/>
@@ -3006,6 +3050,11 @@
                 </Border>
             </Viewbox>
         </Grid>
+
+        <!-- ═══════════ ЧТО НОВОГО ═══════════ -->
+        <!-- Хост карточки «Что нового» (1.37.0): пуст, пока заметки не понадобились. Ниже
+             уведомления: вопрос, пришедший поверх заметок, важнее их. -->
+        <Grid x:Name="WhatsNewHost" Visibility="Collapsed" Panel.ZIndex="45"/>
 
         <!-- ═══════════ УВЕДОМЛЕНИЕ ═══════════ -->
         <!--
@@ -3022,7 +3071,7 @@
                     Тон вопроса — у главной кнопки (красная подпись у необратимого), а не цветной
                     точкой у заголовка: точка ничего не говорила, а кнопка отвечает на вопрос.
                 -->
-                <Border x:Name="NoticeCard" Style="{StaticResource DialogCard}" Width="420" MaxHeight="520">
+                <Border x:Name="NoticeCard" Style="{StaticResource DialogCard}" Width="380" MaxHeight="520">
                     <!-- Grid, а не StackPanel: длинный текст уходит в прокрутку, кнопки остаются. -->
                     <Grid>
                         <Grid.RowDefinitions>
@@ -3038,7 +3087,7 @@
                             <StackPanel>
                                 <TextBlock x:Name="NoticeText" Style="{StaticResource DialogText}"/>
                                 <!-- Своё содержимое вопроса: галочка, поле для слова-подтверждения. -->
-                                <ContentControl x:Name="NoticeExtra" Focusable="False" Margin="0,14,0,0"
+                                <ContentControl x:Name="NoticeExtra" Focusable="False" Margin="0,10,0,0"
                                                 Visibility="Collapsed"/>
                             </StackPanel>
                         </ScrollViewer>
@@ -3046,7 +3095,7 @@
                         <Grid Grid.Row="2" Style="{StaticResource DialogFooter}">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="NoticeSecondaryButton" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="NoticeSecondaryButton_Click"/>
+                                        Margin="0,0,6,0" Click="NoticeSecondaryButton_Click"/>
                                 <Button x:Name="NoticePrimaryButton" Style="{StaticResource DialogPrimaryButton}"
                                         Click="NoticePrimaryButton_Click"/>
                             </StackPanel>
@@ -3101,29 +3150,23 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptPresetCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Style="{StaticResource DialogCard}" Width="460">
+                <Border Style="{StaticResource DialogCard}" Width="440">
                     <StackPanel>
-                        <TextBlock x:Name="PromptPresetTitle" Style="{StaticResource DialogTitle}" Margin="0,0,0,2"/>
+                        <TextBlock x:Name="PromptPresetTitle" Style="{StaticResource DialogTitle}"/>
 
-                        <TextBlock Text="{DynamicResource S.Customize.PromptName}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
-                            <TextBox x:Name="PromptPresetName" Background="Transparent" BorderThickness="0"
-                                     FontSize="13" MaxLength="40"
-                                     Foreground="{DynamicResource Text.Body}"
-                                     CaretBrush="{DynamicResource Text.Bright}"
+                        <TextBlock Text="{DynamicResource S.Customize.PromptName}" Style="{StaticResource DialogLabel}"/>
+                        <Border Style="{StaticResource DialogField}">
+                            <TextBox x:Name="PromptPresetName" Style="{StaticResource DialogInput}" MaxLength="40"
                                      KeyDown="PromptPresetName_KeyDown"/>
                         </Border>
 
-                        <TextBlock Text="{DynamicResource S.Customize.PromptText}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,12,0,5"/>
+                        <TextBlock Text="{DynamicResource S.Customize.PromptText}" Style="{StaticResource DialogLabel}"/>
                         <TextBox x:Name="PromptPresetText" Style="{StaticResource PromptDialogTextBox}"/>
 
                         <TextBlock x:Name="PromptPresetError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
                                    TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
 
-                        <Grid Margin="0,16,0,0">
+                        <Grid Margin="0,12,0,0">
                             <!--
                                 DangerButton живёт в Resources настроек и сюда не достаёт;
                                 красный цвет задан значением на самой кнопке - локальное
@@ -3136,7 +3179,7 @@
                                     Click="PromptPresetDeleteButton_Click"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="{DynamicResource S.Common.Reset}" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="PromptPresetResetButton_Click"/>
+                                        Margin="0,0,6,0" Click="PromptPresetResetButton_Click"/>
                                 <Button Content="{DynamicResource S.Common.Save}" Style="{StaticResource DialogPrimaryButton}"
                                         Click="PromptPresetSaveButton_Click"/>
                             </StackPanel>
@@ -3157,13 +3200,13 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptApplyNoButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Style="{StaticResource DialogCard}" Width="420">
+                <Border Style="{StaticResource DialogCard}" Width="400">
                     <StackPanel>
                         <TextBlock x:Name="PromptApplyTitle" Style="{StaticResource DialogTitle}"/>
                         <TextBlock x:Name="PromptApplyText" Style="{StaticResource DialogText}"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                             <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="PromptApplyNoButton_Click"/>
+                                    Margin="0,0,6,0" Click="PromptApplyNoButton_Click"/>
                             <Button x:Name="PromptApplyYesButton" Content="{DynamicResource S.Common.Apply}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="PromptApplyYesButton_Click"/>
@@ -3179,22 +3222,22 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="ProfileCloseButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Style="{StaticResource DialogCard}" Width="420">
+                <Border Style="{StaticResource DialogCard}" Width="400">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource S.Profiles.Title}" Style="{StaticResource DialogTitle}" Margin="0,0,0,14"/>
+                        <TextBlock Text="{DynamicResource S.Profiles.Title}" Style="{StaticResource DialogTitle}" Margin="0,0,0,10"/>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="8" Padding="4">
                             <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
                                 <StackPanel x:Name="ProfileList"/>
                             </ScrollViewer>
                         </Border>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                             <!-- Только у профиля с паролем: без него снять блокировку нечем. -->
                             <Button x:Name="ProfileLockNowButton" Content="{DynamicResource S.Security.LockNow}"
                                     Style="{StaticResource DialogSecondaryButton}" Visibility="Collapsed"
-                                    Margin="0,0,8,0" Click="ProfileLockNowButton_Click"/>
+                                    Margin="0,0,6,0" Click="ProfileLockNowButton_Click"/>
                             <Button Content="{DynamicResource S.Profiles.New}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="CreateProfileButton_Click"/>
+                                    Margin="0,0,6,0" Click="CreateProfileButton_Click"/>
                             <Button Content="{DynamicResource S.Common.Close}" Style="{StaticResource DialogPrimaryButton}"
                                     Click="ProfileCloseButton_Click"/>
                         </StackPanel>

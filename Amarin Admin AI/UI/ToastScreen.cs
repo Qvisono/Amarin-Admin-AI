@@ -48,6 +48,12 @@ internal static class ToastScreen
     }
 
     /// <summary>
+    /// Рабочая область монитора того окна, что сейчас впереди, — где человек работает. Для окна
+    /// быстрого вопроса (1.37.0): его зовут поверх чужой программы, а не главного окна.
+    /// </summary>
+    public static Rect? ForegroundWorkArea() => WorkAreaOf(GetForegroundWindow());
+
+    /// <summary>
     /// Рабочая область в единицах WPF для этого окна; если её не узнать —
     /// <see cref="SystemParameters.WorkArea"/> основного монитора.
     /// </summary>
@@ -96,6 +102,9 @@ internal static class ToastScreen
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]

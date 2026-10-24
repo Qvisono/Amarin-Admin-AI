@@ -1937,6 +1937,7 @@ namespace Amarin.UI
             // до первого щелчка бывает миг, когда фокуса нет ни у кого, и ранний выход ниже отдал
             // бы эти нажатия полю ввода — вместе с Escape, который должен закрыть журнал.
             if (JournalOverlay.Visibility == Visibility.Visible || HealthOverlay.Visibility == Visibility.Visible ||
+                PaletteHost.Visibility == Visibility.Visible || WhatsNewHost.Visibility == Visibility.Visible ||
                 IsNoticeOpen)
             {
                 return true;
@@ -3175,15 +3176,6 @@ namespace Amarin.UI
             }
 
             using var timer = PerfLog.Measure("chat_open");
-            PersistCurrent();
-
-            // Набранное и прикреплённое принадлежит тому чату, где его набрали (D12): уходит в
-            // его черновик, а открытый чат получает свой.
-            StashDraft();
-
-            // Метку «ответ готов» снимаем до загрузки: RefreshChatList ниже уже нарисует строку
-            // без неё, и лишней перерисовки не будет.
-            Turns.ForgetAttention(id);
 
             // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
             // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.
@@ -3199,6 +3191,25 @@ namespace Amarin.UI
             {
                 ChatEngine.CloseInterruptedReplies(loaded);
             }
+
+            ShowChat(loaded);
+        }
+
+        /// <summary>
+        /// Показывает уже найденный объект чата. Отдельно от <see cref="OpenChat"/> ради быстрого
+        /// вопроса (1.37.0): его чат только что записан очередью и с диска может ещё не читаться.
+        /// </summary>
+        private void ShowChat(ChatSession loaded)
+        {
+            PersistCurrent();
+
+            // Набранное и прикреплённое принадлежит тому чату, где его набрали (D12): уходит в
+            // его черновик, а открытый чат получает свой.
+            StashDraft();
+
+            // Метку «ответ готов» снимаем до загрузки: RefreshChatList ниже уже нарисует строку
+            // без неё, и лишней перерисовки не будет.
+            Turns.ForgetAttention(loaded.Id);
 
             LoadSession(loaded);
             RestoreDraft(loaded);
@@ -3537,8 +3548,14 @@ namespace Amarin.UI
         {
             if (!IsVisibleTurn(turn))
             {
-                // Список всё равно обновится сохранением, а рисовать нечего.
-                MaybeStartTitle(turn.Session, user);
+                // Список всё равно обновится сохранением, а рисовать нечего. Быстрому вопросу
+                // заголовок не заказывается, пока его не открыли в чате: за вопрос, который
+                // так и уйдёт, платить за заголовок незачем (OpenQuickInChat закажет сам).
+                if (!(turn.Kind == TurnKind.QuickAsk && turn.Session.IsTemporary))
+                {
+                    MaybeStartTitle(turn.Session, user);
+                }
+
                 return;
             }
 
@@ -3666,6 +3683,13 @@ namespace Amarin.UI
             // по чату, который отвечал в фоне, человек будет наравне с остальными.
             MaybeUpdateSummary(turn.Session);
 
+            // Быстрый вопрос ждут в его окне: ни карточки «ответ готов», ни метки в списке.
+            if (turn.Kind == TurnKind.QuickAsk)
+            {
+                QuickAskCompleted(turn, assistant);
+                return;
+            }
+
             // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат. У отложенной
             // задачи своя карточка с мелодией (OnDeferredCompleted) — вторая сказала бы то же.
             if (turn.Kind != TurnKind.Deferred)
@@ -3745,6 +3769,12 @@ namespace Amarin.UI
                         ? OfferCompactionAsync(message)
                         : ShowNoticeAsync(Loc.Get("S.Turn.ErrorTitle"), message, Loc.Get("S.Common.Close"), null, NoticeTone.Danger),
                     "turn_error");
+                return;
+            }
+
+            // Ошибка быстрого вопроса — строкой в его окне: там её и ждут.
+            if (turn.Kind == TurnKind.QuickAsk && QuickAskFailed(turn, message))
+            {
                 return;
             }
 

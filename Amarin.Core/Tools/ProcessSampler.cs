@@ -39,8 +39,7 @@ internal sealed class ProcessSampler : IPerfSampler
 
     private readonly Dictionary<int, (SafeProcessHandle Handle, long Created)> _handles = [];
     private readonly PerformanceCounter? _diskIdle;
-    private long _idle;
-    private long _total;
+    private readonly CpuMeter _cpu = new();
     private bool _primed;
 
     public ProcessSampler()
@@ -63,20 +62,7 @@ internal sealed class ProcessSampler : IPerfSampler
         var first = !_primed;
         _primed = true;
 
-        double? cpu = null;
-        if (GetSystemTimes(out var idle, out var kernel, out var user))
-        {
-            // Время ядра включает простой: занятость — всё, кроме простоя.
-            var total = kernel + user;
-            var spent = total - _total;
-            if (!first && spent > 0)
-            {
-                cpu = Math.Clamp(100.0 * (spent - (idle - _idle)) / spent, 0, 100);
-            }
-
-            _idle = idle;
-            _total = total;
-        }
+        var cpu = _cpu.Next();
 
         double? disk = null;
         try
@@ -189,10 +175,6 @@ internal sealed class ProcessSampler : IPerfSampler
         public ulong WriteTransferCount;
         public ulong OtherTransferCount;
     }
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern SafeProcessHandle OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, int pid);

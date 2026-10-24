@@ -274,7 +274,8 @@
     <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Almost out of funds; image generation may fail.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Funds are running low.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Refreshed after every answer from a model.</system:String>
-    <system:String x:Key="S.Balance.Title" xml:space="preserve">Venice balance:</system:String>
+    <system:String x:Key="S.Balance.Total" xml:space="preserve">Balance</system:String>
+    <system:String x:Key="S.Balance.Tokens" xml:space="preserve">≈ {0} tokens</system:String>
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: balance not known yet</system:String>
@@ -619,10 +620,9 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Tools finished, waiting for the model's reply</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Tools finished, waiting for the model's reply (step {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Tools stopped</system:String>
-    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Agent work, web search and images are charged on top of this estimate.</system:String>
-    <system:String x:Key="S.Estimate.AutoTip" xml:space="preserve">Auto picks the model while answering, so the range runs from the cheapest candidate to the most expensive.</system:String>
+    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Agent work, search and images are charged on top.</system:String>
+    <system:String x:Key="S.Estimate.Label" xml:space="preserve">Answer cost</system:String>
     <system:String x:Key="S.Estimate.Images" xml:space="preserve">Images and PDFs are not counted: the provider decides how many tokens they take.</system:String>
-    <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Estimate for the chat model's answer: about {0} input tokens and {1} output tokens, judged by this chat's earlier answers. Prices come from the provider's catalog.</system:String>
     <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">The catalog gives no price for some models; they are left out.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Assistant</system:String>
     <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Where to export the chats</system:String>
@@ -768,7 +768,7 @@
     <system:String x:Key="S.Health.Area.Stability" xml:space="preserve">Stability</system:String>
     <system:String x:Key="S.Health.Area.System" xml:space="preserve">System</system:String>
     <system:String x:Key="S.Health.Area.Updates" xml:space="preserve">Updates</system:String>
-    <system:String x:Key="S.Health.Ask" xml:space="preserve">Look into it</system:String>
+    <system:String x:Key="S.Health.Ask" xml:space="preserve">Look into it in chat</system:String>
     <system:String x:Key="S.Health.Ask.AppCrashes" xml:space="preserve">application crashes (Application Error, 1000): {0}</system:String>
     <system:String x:Key="S.Health.Ask.DisksFailing" xml:space="preserve">Find out what's wrong with the drive, whether data is at risk, and what to do.</system:String>
     <system:String x:Key="S.Health.Ask.DisksIntro" xml:space="preserve">The disks of this PC:</system:String>
@@ -834,6 +834,13 @@
     <system:String x:Key="S.Health.Summary.Ok" xml:space="preserve">All good</system:String>
     <system:String x:Key="S.Health.Summary.Unknown" xml:space="preserve">Couldn't check everything</system:String>
     <system:String x:Key="S.Health.Title" xml:space="preserve">PC health</system:String>
+    <system:String x:Key="S.Health.Status.Ok" xml:space="preserve">fine</system:String>
+    <system:String x:Key="S.Health.Status.Attention" xml:space="preserve">needs attention</system:String>
+    <system:String x:Key="S.Health.Status.Problem" xml:space="preserve">problem</system:String>
+    <system:String x:Key="S.Health.Status.Unknown" xml:space="preserve">not checked</system:String>
+    <system:String x:Key="S.Health.Live.Cpu" xml:space="preserve">CPU</system:String>
+    <system:String x:Key="S.Health.Live.Memory" xml:space="preserve">Memory</system:String>
+    <system:String x:Key="S.Health.Live.Free" xml:space="preserve">{0} free</system:String>
     <system:String x:Key="S.Health.Updated" xml:space="preserve">checked {0}</system:String>
     <system:String x:Key="S.Health.UpdatedAt" xml:space="preserve">checked at {0}</system:String>
     <system:String x:Key="S.Health.UpdatesNone" xml:space="preserve">No pending updates</system:String>
@@ -842,6 +849,8 @@
     <system:String x:Key="S.Health.Uptime" xml:space="preserve">Uptime: {0} d</system:String>
     <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Hasn't restarted in a while</system:String>
     <system:String x:Key="S.Hotkeys.Cheatsheet" xml:space="preserve">Cheat sheet</system:String>
+    <system:String x:Key="S.Hotkeys.CommandPalette" xml:space="preserve">Command palette</system:String>
+    <system:String x:Key="S.Hotkeys.CommandPaletteDesc" xml:space="preserve">Actions, settings, recipes, commands and chats in one search</system:String>
     <system:String x:Key="S.Hotkeys.CheatsheetDesc" xml:space="preserve">All shortcuts in one list.</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswer" xml:space="preserve">Copy the last answer</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswerDesc" xml:space="preserve">Copies the open chat's last answer to the clipboard.</system:String>
@@ -1125,11 +1134,10 @@
     <system:String x:Key="S.Quote.TooMany" xml:space="preserve">You can attach at most {0} quotes.</system:String>
     <system:String x:Key="S.Quote.SuggestTitle" xml:space="preserve">Quotes</system:String>
 
-    <system:String x:Key="S.Confirm.Code" xml:space="preserve">Code · {0} lines</system:String>
-    <system:String x:Key="S.Confirm.Details" xml:space="preserve">Details</system:String>
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">{0} lines</system:String>
+    <system:String x:Key="S.Confirm.Details" xml:space="preserve">More</system:String>
     <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">No explanation came back. Read the script yourself.</system:String>
     <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">The explanation didn't arrive. Read the script yourself.</system:String>
-    <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Working out what the script does…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The site isn't on the allowlist. Without permission the file won't download.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard read this call as an attack on your computer. Read the whole command and allow it only if you understand it.</system:String>
@@ -1138,11 +1146,12 @@
     <system:String x:Key="S.Confirm.GuardUncheckedDesc" xml:space="preserve">The safety check did not finish or the model gave no answer. Read the whole command and allow it only if you understand it.</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Allow this action?</system:String>
 
-    <system:String x:Key="S.Context.Auto" xml:space="preserve">Auto: the model is chosen while answering, so the smaller of the two ceilings is shown.</system:String>
-    <system:String x:Key="S.Context.Estimate" xml:space="preserve">Approximate: Venice reports the exact figure after a model answers.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">The context is filling up. Consider a new chat for a long task.</system:String>
     <system:String x:Key="S.Context.Full" xml:space="preserve">The context is nearly full: the start of the conversation will soon drop out of the model's memory.</system:String>
-    <system:String x:Key="S.Context.Title" xml:space="preserve">Context: {0} of {1} ({2}%)</system:String>
+    <system:String x:Key="S.Context.Label" xml:space="preserve">Context</system:String>
+    <system:String x:Key="S.Context.Used" xml:space="preserve">Used</system:String>
+    <system:String x:Key="S.Context.Free" xml:space="preserve">Free</system:String>
+    <system:String x:Key="S.Context.CompactHint" xml:space="preserve">Click to compact the conversation.</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Context usage appears once the model is known.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Chat title</system:String>
     <system:String x:Key="S.Cost.Guard" xml:space="preserve">Protection</system:String>
@@ -1446,7 +1455,6 @@
     <system:String x:Key="S.Key.TokensLeft" xml:space="preserve">About {0} of {1} tokens left, as counted by the program</system:String>
     <system:String x:Key="S.Key.Balance.TokensLeft" xml:space="preserve">Left, tokens</system:String>
     <system:String x:Key="S.Tokens.Millions" xml:space="preserve">{0}M</system:String>
-    <system:String x:Key="S.Balance.TokensRow" xml:space="preserve">{0}: about {1} tokens left</system:String>
     <system:String x:Key="S.Info.Others.Title" xml:space="preserve">Other providers and your own server</system:String>
     <system:String x:Key="S.Info.Others.Text" xml:space="preserve">Keys from OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Kimi, Mistral, Z.ai, Qwen and Groq are added the same way: Keys and spending › Add key, and the provider is picked from how the key starts. For a reseller or gateway, choose Custom server and paste its address (base URL): the app finds out which protocol it speaks. If the key came as a package of tokens, set the limit in the key's menu and the app will show what's left. Images and page reading work only through Venice.</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Delete language</system:String>
@@ -2240,8 +2248,8 @@
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish, and the program will restart.</system:String>
 
     <system:String x:Key="S.Updates.WhatsNewOk" xml:space="preserve">Got it</system:String>
-    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Release notes are in English.</system:String>
-    <system:String x:Key="S.Updates.WhatsNewTitle" xml:space="preserve">What's new in v{0}</system:String>
+    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Release notes are in English</system:String>
+    <system:String x:Key="S.Updates.WhatsNewHeading" xml:space="preserve">What's new</system:String>
     <system:String x:Key="S.Variant.Busy" xml:space="preserve">Versions can be switched once the chat finishes answering.</system:String>
     <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Everything that came after it in the conversation is deleted too. The other versions stay, and the neighbouring one is shown.</system:String>
     <system:String x:Key="S.Variant.DeleteTitle" xml:space="preserve">Delete this version?</system:String>
@@ -2311,6 +2319,7 @@
     <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Ask Amarin</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">New chat with clipboard text</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">New chat with a screenshot</system:String>
+    <system:String x:Key="S.Windows.Hotkey.quick-ask" xml:space="preserve">Quick question over all windows</system:String>
     <system:String x:Key="S.Windows.Hotkey.region-screenshot" xml:space="preserve">Screenshot of an area into the open chat</system:String>
     <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Show or hide the window</system:String>
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Not a shortcut: it needs Ctrl, Alt or Win plus a key.</system:String>
@@ -2745,5 +2754,22 @@
     <system:String x:Key="S.Tool.NetQuality.NoNetwork" xml:space="preserve">There is no connection with a route to the internet, so there is nothing to measure. See the adapters with network adapters.</system:String>
     <system:String x:Key="S.Tool.NetQuality.Location" xml:space="preserve">Windows gives apps the list of nearby Wi-Fi networks only with location access: Windows Settings, Privacy and security, Location, allow desktop apps. The other measurements do not depend on it.</system:String>
     <system:String x:Key="S.Tool.Power.TimersNeedAdmin" xml:space="preserve">Windows shows wake timers only to an administrator: to see them, the program has to run as administrator.</system:String>
+    <system:String x:Key="S.Palette.Search" xml:space="preserve">Actions, settings, recipes, commands, chats</system:String>
+    <system:String x:Key="S.Palette.Empty" xml:space="preserve">Nothing found</system:String>
+    <system:String x:Key="S.Palette.Settings" xml:space="preserve">Settings</system:String>
+    <system:String x:Key="S.Palette.TemporaryChat" xml:space="preserve">New temporary chat</system:String>
+    <system:String x:Key="S.Palette.Group.Action" xml:space="preserve">Actions</system:String>
+    <system:String x:Key="S.Palette.Group.Setting" xml:space="preserve">Settings</system:String>
+    <system:String x:Key="S.Palette.Group.Command" xml:space="preserve">Commands</system:String>
+    <system:String x:Key="S.Palette.Group.Recipe" xml:space="preserve">Recipes</system:String>
+    <system:String x:Key="S.Palette.Group.Chat" xml:space="preserve">Chats</system:String>
+    <system:String x:Key="S.Palette.Group.Recent" xml:space="preserve">Recent chats</system:String>
+    <system:String x:Key="S.QuickAsk.Title" xml:space="preserve">Quick question</system:String>
+    <system:String x:Key="S.QuickAsk.Placeholder" xml:space="preserve">Quick question…</system:String>
+    <system:String x:Key="S.QuickAsk.Thinking" xml:space="preserve">Thinking…</system:String>
+    <system:String x:Key="S.QuickAsk.NeedsApproval" xml:space="preserve">Waiting for your approval in the app window</system:String>
+    <system:String x:Key="S.QuickAsk.NoKey" xml:space="preserve">An API key is needed: add one in the app settings.</system:String>
+    <system:String x:Key="S.QuickAsk.Busy" xml:space="preserve">Three answers are already running. Wait for one of them to finish.</system:String>
+    <system:String x:Key="S.QuickAsk.OpenInChat" xml:space="preserve">Open in chat</system:String>
 
 </ResourceDictionary>

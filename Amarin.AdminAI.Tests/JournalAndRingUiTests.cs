@@ -116,6 +116,51 @@ public sealed class JournalAndRingUiTests
         Assert.Same(expectedAccent, accent);
     }
 
+    [Fact]
+    public void The_ring_tooltip_gives_exact_numbers_without_repeating_the_plate_or_explaining_auto()
+    {
+        // До 1.37.0 подсказка повторяла плашку предложением («Контекст: 64 000 из 128k») и
+        // объясняла выбор модели «Авто» — к заполненности контекста это не относилось.
+        var texts = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            Ring(window).Show(new ContextUsage(64_210, 128_000, false, IsFloor: true));
+            return TipTexts(Named<Border>(window, "ContextBadge").ToolTip).ToList();
+        });
+
+        Assert.Contains("50%", texts);
+        Assert.Contains("64 210", texts);
+        Assert.Contains("63 790", texts);
+        Assert.DoesNotContain(texts, text => text.Contains("Авто", StringComparison.Ordinal));
+        Assert.DoesNotContain(texts, text => text.Contains("128k", StringComparison.Ordinal));
+    }
+
+    private static IEnumerable<string> TipTexts(object? tip)
+    {
+        var stack = new Stack<object>();
+        if (tip is ContentControl { Content: { } content })
+        {
+            stack.Push(content);
+        }
+
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            if (node is TextBlock block)
+            {
+                yield return block.Text;
+            }
+
+            if (node is DependencyObject parent)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(parent))
+                {
+                    stack.Push(child);
+                }
+            }
+        }
+    }
+
     // ───────────────────────── the remark ─────────────────────────
 
     [Fact]

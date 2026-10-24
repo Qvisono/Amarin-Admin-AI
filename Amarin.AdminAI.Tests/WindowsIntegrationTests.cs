@@ -137,11 +137,13 @@ public sealed class WindowsIntegrationTests
     }
 
     [Fact]
-    public void Only_show_hide_has_a_factory_shortcut_and_an_empty_field_turns_it_off()
+    public void Only_show_hide_and_quick_ask_have_factory_shortcuts_and_an_empty_field_turns_one_off()
     {
         var settings = new WindowsIntegrationSettings();
         Assert.Equal("Win+Shift+A", GlobalHotkeys.Effective(settings, GlobalHotkeys.ShowHide));
+        Assert.Equal("Win+Shift+Q", GlobalHotkeys.Effective(settings, GlobalHotkeys.QuickAsk));
         Assert.Null(GlobalHotkeys.Effective(settings, GlobalHotkeys.NewWithScreenshot));
+        Assert.Null(GlobalHotkeys.Effective(settings, GlobalHotkeys.RegionScreenshot));
 
         settings.Hotkeys[GlobalHotkeys.ShowHide] = "";
         Assert.Null(GlobalHotkeys.Effective(settings, GlobalHotkeys.ShowHide));

@@ -82,6 +82,9 @@ public static class HotkeyMap
     /// <summary>Шпаргалка по сочетаниям (D8).</summary>
     public const string Cheatsheet = "Cheatsheet";
 
+    /// <summary>Палитра команд (1.37.0): действия, настройки, рецепты, команды и чаты одним поиском.</summary>
+    public const string CommandPalette = "CommandPalette";
+
     /// <summary>
     /// Все действия, в порядке показа в настройках.
     /// </summary>
@@ -96,6 +99,7 @@ public static class HotkeyMap
         new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc"),
         new(FindInChat, "Ctrl+F", "S.Hotkeys.FindInChat", "S.Hotkeys.FindInChatDesc"),
         new(SearchChats, "Ctrl+K", "S.Hotkeys.SearchChats", "S.Hotkeys.SearchChatsDesc"),
+        new(CommandPalette, "Ctrl+Shift+P", "S.Hotkeys.CommandPalette", "S.Hotkeys.CommandPaletteDesc"),
         new(Regenerate, "Ctrl+Shift+R", "S.Hotkeys.Regenerate", "S.Hotkeys.RegenerateDesc"),
         new(NextChat, "Ctrl+Tab", "S.Hotkeys.NextChat", "S.Hotkeys.NextChatDesc"),
         new(PreviousChat, "Ctrl+Shift+Tab", "S.Hotkeys.PreviousChat", "S.Hotkeys.PreviousChatDesc"),

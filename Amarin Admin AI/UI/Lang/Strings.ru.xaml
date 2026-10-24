@@ -274,7 +274,8 @@
     <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Средства почти закончились, картинки могут не нарисоваться.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Средств осталось немного.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Обновляется после каждого ответа модели.</system:String>
-    <system:String x:Key="S.Balance.Title" xml:space="preserve">Остаток на счету Venice:</system:String>
+    <system:String x:Key="S.Balance.Total" xml:space="preserve">Остаток</system:String>
+    <system:String x:Key="S.Balance.Tokens" xml:space="preserve">≈ {0} ток.</system:String>
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">Ещё {0}: остаток пока неизвестен</system:String>
@@ -619,10 +620,9 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Инструменты отработали, жду ответа модели</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Инструменты отработали, жду ответа модели (шаг {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Инструменты прерваны</system:String>
-    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Работа агента, поиск и картинки оплачиваются сверх этой оценки.</system:String>
-    <system:String x:Key="S.Estimate.AutoTip" xml:space="preserve">«Авто» выбирает модель при ответе, поэтому показан разброс от самой дешёвой до самой дорогой.</system:String>
+    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Агент, поиск и картинки оплачиваются сверх.</system:String>
+    <system:String x:Key="S.Estimate.Label" xml:space="preserve">Цена ответа</system:String>
     <system:String x:Key="S.Estimate.Images" xml:space="preserve">Картинки и PDF не учтены: сколько токенов они займут, решает провайдер.</system:String>
-    <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Оценка ответа модели чата: вход ≈ {0} токенов, ответ ≈ {1}, по длине прошлых ответов этого чата. Цены взяты из каталога провайдера.</system:String>
     <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">Для части моделей в каталоге нет цены, они не учтены.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Ассистент</system:String>
     <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Куда выгрузить чаты</system:String>
@@ -768,7 +768,7 @@
     <system:String x:Key="S.Health.Area.Stability" xml:space="preserve">Стабильность</system:String>
     <system:String x:Key="S.Health.Area.System" xml:space="preserve">Система</system:String>
     <system:String x:Key="S.Health.Area.Updates" xml:space="preserve">Обновления</system:String>
-    <system:String x:Key="S.Health.Ask" xml:space="preserve">Разобраться</system:String>
+    <system:String x:Key="S.Health.Ask" xml:space="preserve">Разобраться в чате</system:String>
     <system:String x:Key="S.Health.Ask.AppCrashes" xml:space="preserve">падений программ (Application Error, 1000): {0}</system:String>
     <system:String x:Key="S.Health.Ask.DisksFailing" xml:space="preserve">Выясни, что с диском, грозит ли это данным и что делать.</system:String>
     <system:String x:Key="S.Health.Ask.DisksIntro" xml:space="preserve">Диски этого компьютера:</system:String>
@@ -834,6 +834,13 @@
     <system:String x:Key="S.Health.Summary.Ok" xml:space="preserve">Всё в порядке</system:String>
     <system:String x:Key="S.Health.Summary.Unknown" xml:space="preserve">Проверить удалось не всё</system:String>
     <system:String x:Key="S.Health.Title" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Health.Status.Ok" xml:space="preserve">в порядке</system:String>
+    <system:String x:Key="S.Health.Status.Attention" xml:space="preserve">есть замечания</system:String>
+    <system:String x:Key="S.Health.Status.Problem" xml:space="preserve">проблема</system:String>
+    <system:String x:Key="S.Health.Status.Unknown" xml:space="preserve">не проверено</system:String>
+    <system:String x:Key="S.Health.Live.Cpu" xml:space="preserve">ЦП</system:String>
+    <system:String x:Key="S.Health.Live.Memory" xml:space="preserve">Память</system:String>
+    <system:String x:Key="S.Health.Live.Free" xml:space="preserve">{0} свободно</system:String>
     <system:String x:Key="S.Health.Updated" xml:space="preserve">проверено {0}</system:String>
     <system:String x:Key="S.Health.UpdatedAt" xml:space="preserve">проверено в {0}</system:String>
     <system:String x:Key="S.Health.UpdatesNone" xml:space="preserve">Ожидающих обновлений нет</system:String>
@@ -842,6 +849,8 @@
     <system:String x:Key="S.Health.Uptime" xml:space="preserve">Без перезагрузки: {0} дн.</system:String>
     <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Давно без перезагрузки</system:String>
     <system:String x:Key="S.Hotkeys.Cheatsheet" xml:space="preserve">Шпаргалка</system:String>
+    <system:String x:Key="S.Hotkeys.CommandPalette" xml:space="preserve">Палитра команд</system:String>
+    <system:String x:Key="S.Hotkeys.CommandPaletteDesc" xml:space="preserve">Действия, настройки, рецепты, команды и чаты одним поиском</system:String>
     <system:String x:Key="S.Hotkeys.CheatsheetDesc" xml:space="preserve">Все сочетания одним списком.</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswer" xml:space="preserve">Копировать последний ответ</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswerDesc" xml:space="preserve">Копирует текст последнего ответа открытого чата в буфер обмена.</system:String>
@@ -1125,11 +1134,10 @@
     <system:String x:Key="S.Quote.TooMany" xml:space="preserve">Можно прикрепить не больше {0} цитат.</system:String>
     <system:String x:Key="S.Quote.SuggestTitle" xml:space="preserve">Цитаты</system:String>
 
-    <system:String x:Key="S.Confirm.Code" xml:space="preserve">Код · строк: {0}</system:String>
-    <system:String x:Key="S.Confirm.Details" xml:space="preserve">Подробности</system:String>
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">строк: {0}</system:String>
+    <system:String x:Key="S.Confirm.Details" xml:space="preserve">Подробнее</system:String>
     <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">Объяснения нет. Прочитайте скрипт сами.</system:String>
     <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">Объяснение не пришло. Прочитайте скрипт сами.</system:String>
-    <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Разбираю, что делает скрипт…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Сайта нет в списке разрешённых источников. Без разрешения файл не скачается.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">чат «{0}»</system:String>
     <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard счёл этот вызов атакой на компьютер. Прочитайте команду целиком и разрешайте, только если понимаете её.</system:String>
@@ -1138,11 +1146,12 @@
     <system:String x:Key="S.Confirm.GuardUncheckedDesc" xml:space="preserve">Проверка безопасности не состоялась или модель не ответила. Прочитайте команду целиком и разрешайте, только если понимаете её.</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Разрешить действие?</system:String>
 
-    <system:String x:Key="S.Context.Auto" xml:space="preserve">«Авто»: модель выбирается при ответе, поэтому показан меньший из двух потолков.</system:String>
-    <system:String x:Key="S.Context.Estimate" xml:space="preserve">Число примерное: точное Venice сообщает после ответа модели.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">Контекст заполняется. Для длинной задачи лучше начать новый чат.</system:String>
     <system:String x:Key="S.Context.Full" xml:space="preserve">Контекст почти заполнен: начало разговора скоро выпадет из памяти модели.</system:String>
-    <system:String x:Key="S.Context.Title" xml:space="preserve">Контекст: {0} из {1} ({2}%)</system:String>
+    <system:String x:Key="S.Context.Label" xml:space="preserve">Контекст</system:String>
+    <system:String x:Key="S.Context.Used" xml:space="preserve">Занято</system:String>
+    <system:String x:Key="S.Context.Free" xml:space="preserve">Свободно</system:String>
+    <system:String x:Key="S.Context.CompactHint" xml:space="preserve">Нажмите, чтобы сжать переписку.</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Заполненность контекста появится, когда станет известна модель.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Заголовок чата</system:String>
     <system:String x:Key="S.Cost.Guard" xml:space="preserve">Защита</system:String>
@@ -1446,7 +1455,6 @@
     <system:String x:Key="S.Key.TokensLeft" xml:space="preserve">Осталось ≈ {0} из {1} токенов, по счёту программы</system:String>
     <system:String x:Key="S.Key.Balance.TokensLeft" xml:space="preserve">Остаток, токены</system:String>
     <system:String x:Key="S.Tokens.Millions" xml:space="preserve">{0} млн</system:String>
-    <system:String x:Key="S.Balance.TokensRow" xml:space="preserve">{0}: осталось ≈ {1} токенов</system:String>
     <system:String x:Key="S.Info.Others.Title" xml:space="preserve">Другие провайдеры и свой сервер</system:String>
     <system:String x:Key="S.Info.Others.Text" xml:space="preserve">Ключи OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Kimi, Mistral, Z.ai, Qwen и Groq добавляются так же: «Ключи и траты» › «Добавить ключ», а провайдер выбирается сам по началу ключа. Для перепродавца или шлюза выберите «Свой сервер» и вставьте его адрес (Base URL): программа сама узнает, каким протоколом он работает. Если ключ выдан пакетом токенов, задайте лимит в меню ключа, и программа покажет остаток. Картинки и чтение страниц работают только через Venice.</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Удалить язык</system:String>
@@ -2240,8 +2248,8 @@
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов, и программа перезапустится.</system:String>
 
     <system:String x:Key="S.Updates.WhatsNewOk" xml:space="preserve">Понятно</system:String>
-    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Заметки к выпуску написаны на английском.</system:String>
-    <system:String x:Key="S.Updates.WhatsNewTitle" xml:space="preserve">Что нового в v{0}</system:String>
+    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Заметки на английском</system:String>
+    <system:String x:Key="S.Updates.WhatsNewHeading" xml:space="preserve">Что нового</system:String>
     <system:String x:Key="S.Variant.Busy" xml:space="preserve">Варианты можно листать, когда чат закончит отвечать.</system:String>
     <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Вместе с ним удалится вся переписка, которая шла после него. Остальные варианты останутся, на экране будет соседний.</system:String>
     <system:String x:Key="S.Variant.DeleteTitle" xml:space="preserve">Удалить этот вариант?</system:String>
@@ -2311,6 +2319,7 @@
     <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Спросить Amarin</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">Новый чат с текстом из буфера</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">Новый чат со снимком экрана</system:String>
+    <system:String x:Key="S.Windows.Hotkey.quick-ask" xml:space="preserve">Быстрый вопрос поверх всех окон</system:String>
     <system:String x:Key="S.Windows.Hotkey.region-screenshot" xml:space="preserve">Снимок области в открытый чат</system:String>
     <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Показать или спрятать окно</system:String>
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Не сочетание: нужен Ctrl, Alt или Win и клавиша.</system:String>
@@ -2745,5 +2754,22 @@
     <system:String x:Key="S.Tool.NetQuality.NoNetwork" xml:space="preserve">Нет подключения с маршрутом в интернет: мерить нечего. Посмотри адаптеры через network adapters.</system:String>
     <system:String x:Key="S.Tool.NetQuality.Location" xml:space="preserve">Список соседних Wi-Fi-сетей Windows отдаёт программам только при доступе к расположению: Параметры Windows, «Конфиденциальность и защита», «Расположение», разрешить классическим приложениям. Остальные замеры от этого не зависят.</system:String>
     <system:String x:Key="S.Tool.Power.TimersNeedAdmin" xml:space="preserve">Таймеры пробуждения Windows показывает только администратору: чтобы их увидеть, программу нужно запустить от администратора.</system:String>
+    <system:String x:Key="S.Palette.Search" xml:space="preserve">Действия, настройки, рецепты, команды, чаты</system:String>
+    <system:String x:Key="S.Palette.Empty" xml:space="preserve">Ничего не найдено</system:String>
+    <system:String x:Key="S.Palette.Settings" xml:space="preserve">Настройки</system:String>
+    <system:String x:Key="S.Palette.TemporaryChat" xml:space="preserve">Новый временный чат</system:String>
+    <system:String x:Key="S.Palette.Group.Action" xml:space="preserve">Действия</system:String>
+    <system:String x:Key="S.Palette.Group.Setting" xml:space="preserve">Настройки</system:String>
+    <system:String x:Key="S.Palette.Group.Command" xml:space="preserve">Команды</system:String>
+    <system:String x:Key="S.Palette.Group.Recipe" xml:space="preserve">Рецепты</system:String>
+    <system:String x:Key="S.Palette.Group.Chat" xml:space="preserve">Чаты</system:String>
+    <system:String x:Key="S.Palette.Group.Recent" xml:space="preserve">Недавние чаты</system:String>
+    <system:String x:Key="S.QuickAsk.Title" xml:space="preserve">Быстрый вопрос</system:String>
+    <system:String x:Key="S.QuickAsk.Placeholder" xml:space="preserve">Быстрый вопрос…</system:String>
+    <system:String x:Key="S.QuickAsk.Thinking" xml:space="preserve">Думаю…</system:String>
+    <system:String x:Key="S.QuickAsk.NeedsApproval" xml:space="preserve">Ждёт вашего разрешения в окне программы</system:String>
+    <system:String x:Key="S.QuickAsk.NoKey" xml:space="preserve">Нужен ключ API: добавьте его в настройках программы.</system:String>
+    <system:String x:Key="S.QuickAsk.Busy" xml:space="preserve">Сейчас идут три ответа. Дождитесь, пока закончится один из них.</system:String>
+    <system:String x:Key="S.QuickAsk.OpenInChat" xml:space="preserve">Открыть в чате</system:String>
 
 </ResourceDictionary>

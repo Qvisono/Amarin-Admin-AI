@@ -191,7 +191,7 @@ public sealed class ChatSearchUiTests
 
             var result = (
                 tab.IsChecked == true,
-                Named<StackPanel>(window, "JournalScopePanel").Visibility);
+                Named<FrameworkElement>(window, "JournalScopePanel").Visibility);
 
             Named<ToggleButton>(window, "JournalActionsTab")
                 .RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));

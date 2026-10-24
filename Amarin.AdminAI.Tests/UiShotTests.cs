@@ -274,6 +274,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootDialogs(window, services, folder);
             }
 
+            if (Wanted(only, "section-e"))
+            {
+                await ShootSectionE(window, folder, language == "ru");
+            }
+
             if (Wanted(only, "picker"))
             {
                 await ShootPicker(window, folder);
@@ -655,7 +660,12 @@ public sealed class UiShotTests : IDisposable
             _ => slow.Task
         ];
 
+        // Живые плитки — постоянными числами: снимок не должен зависеть от загрузки машины.
+        panel.LiveSource = () => new SystemLoad(12, 64, new DriveHealth("C:", 499_000_000_000, 120_000_000_000));
         panel.Visibility = Visibility.Visible;
+        panel.UpdateLayout();
+        Call(window, "PlaceHealth");
+        Call(panel, "ShowLive");
         Call(panel, "Refresh");
         await Settle(400);
         Save((FrameworkElement)window.Content, Path.Combine(folder, "00-health-checking.png"), null);
@@ -665,6 +675,75 @@ public sealed class UiShotTests : IDisposable
         Save((FrameworkElement)window.Content, Path.Combine(folder, "00-health.png"), null);
         panel.Cancel();
         panel.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Раздел E и H 1.37.0: палитра команд (пустая и с запросом), журнал, «Что нового», подсказки
+    /// поля ввода и окно быстрого вопроса с готовым ответом.
+    /// </summary>
+    private async Task ShootSectionE(MainWindow window, string folder, bool russian)
+    {
+        window.OpenCommandPalette();
+        await Settle(300);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "e-palette.png"), null);
+        var palette = ((Grid)window.FindSetting("PaletteHost")).Children.OfType<CommandPalette>().Single();
+        ((TextBox)palette.FindName("Search")).Text = russian ? "шифр" : "encr";
+        await Settle(300);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "e-palette-query.png"), null);
+        palette.Close();
+
+        Call(window, "OpenJournal");
+        await Settle(600);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "e-journal.png"), null);
+        Call(window, "CloseJournal");
+
+        if (WhatsNew.Embedded() is { } notes)
+        {
+            window.ShowWhatsNew(RuntimeContext.AppRelease, notes);
+            await Settle(400);
+            Save((FrameworkElement)window.Content, Path.Combine(folder, "e-whatsnew.png"), null);
+            ((Grid)window.FindSetting("WhatsNewHost")).Children.OfType<WhatsNewSheet>().Single().Close();
+        }
+
+        // Подсказки поля ввода — их содержимым: открытая подсказка живёт в своём окне.
+        var balance = (BalanceBadge)typeof(MainWindow).GetField("_balance", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+        balance.ShowForShot(37.5m);
+        var ring = (ContextRing)typeof(MainWindow).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+        ring.Show(new ContextUsage(104_210, 128_000, false));
+        var estimate = CostBreakdownTooltip.CreateEmpty();
+        CostBreakdownTooltip.Fill(estimate, new TipRow(Loc.Get("S.Estimate.Label"), "≈ $0,03"), [], [new TipNote(Loc.Get("S.Estimate.Agent"))]);
+        foreach (var (tip, file) in new[]
+                 {
+                     (((FrameworkElement)window.FindSetting("BalanceBadge")).ToolTip, "e-tip-balance.png"),
+                     (((FrameworkElement)window.FindSetting("ContextBadge")).ToolTip, "e-tip-context.png"),
+                     ((object)estimate, "e-tip-estimate.png")
+                 })
+        {
+            if (tip is ToolTip { Content: FrameworkElement content })
+            {
+                content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                content.Arrange(new Rect(content.DesiredSize));
+                content.UpdateLayout();
+                Save(content, Path.Combine(folder, file), (Brush)window.FindResource("Bg.Window"));
+            }
+        }
+
+        // Быстрый вопрос: своё окно — показывается за краем экрана, как и главное в этих снимках.
+        Call(window, "EnsureQuickAsk");
+        var quick = window.QuickAsk!;
+        quick.Left = -32000;
+        quick.Top = 0;
+        quick.ShowActivated = false;
+        ((TextBox)quick.FindName("Input")).Text = russian ? "Как узнать, какой процесс держит порт 8080?" : "How do I find which process holds port 8080?";
+        quick.Show();
+        quick.ShowFinal(
+            russian
+                ? "Откройте PowerShell и выполните:\n\n```powershell\nGet-NetTCPConnection -LocalPort 8080 | Select OwningProcess\n```"
+                : "Open PowerShell and run:\n\n```powershell\nGet-NetTCPConnection -LocalPort 8080 | Select OwningProcess\n```",
+            "Claude Sonnet 5 · $0,004");
+        await Settle(400);
+        Save((FrameworkElement)quick.Content, Path.Combine(folder, "e-quick-ask.png"), null);
+        quick.Reset();
     }
 
     /// <summary>

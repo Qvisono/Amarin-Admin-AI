@@ -590,6 +590,9 @@ namespace Amarin.UI
                 case GlobalHotkeys.RegionScreenshot:
                     Detached.Run(SnipRegionAsync(), "region_snip");
                     break;
+                case GlobalHotkeys.QuickAsk:
+                    OpenQuickAsk();
+                    break;
             }
         }
 

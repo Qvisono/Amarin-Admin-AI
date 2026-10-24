@@ -9,6 +9,10 @@
          отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
          это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
     <SolidColorBrush x:Key="Bg.Glass"    Color="#FF161616"/>
+    <!-- Подложка диалогов, подсказок и плашек поверх окна (1.37.0): темнее Bg.Panel, на треть
+         пути от Bg.Window к нему. На Bg.Panel плашки читались светлыми пятнами поверх ленты;
+         меню и выпадашки остаются на Bg.Panel. «Стекло» её не трогает. -->
+    <SolidColorBrush x:Key="Bg.Sheet"    Color="#FF111111"/>
     <SolidColorBrush x:Key="Bg.Card"     Color="#FF1B1B1B"/>
     <SolidColorBrush x:Key="Bg.Raised"   Color="#FF1F1F1F"/>
     <SolidColorBrush x:Key="Bg.Hover"    Color="#FF242424"/>

@@ -18,6 +18,7 @@
          отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
          это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
     <SolidColorBrush x:Key="Bg.Glass"    Color="#FF242426"/>
+    <SolidColorBrush x:Key="Bg.Sheet"    Color="#FF1F1F21"/>
     <SolidColorBrush x:Key="Bg.Card"     Color="#FF2C2C2E"/>
     <SolidColorBrush x:Key="Bg.Raised"   Color="#FF323234"/>
     <SolidColorBrush x:Key="Bg.Hover"    Color="#FF3A3A3C"/>

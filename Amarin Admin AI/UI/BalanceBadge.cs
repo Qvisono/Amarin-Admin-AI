@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -204,14 +203,18 @@ internal sealed class BalanceBadge
             // «$0.00» читалось бы как «деньги кончились». У человека с одними пакетами токенов
             // долларов нет вовсе — тогда подсказка говорит о токенах.
             _amount.Text = FormatUsd(null);
-            _plate.ToolTip = tokens.Count > 0 ? string.Join("\n", tokens) : Loc.Get("S.Balance.Unknown");
+            ShowTooltip(
+                new TipRow(Loc.Get("S.Balance.Total"), FormatUsd(null)),
+                tokens,
+                tokens.Count > 0 ? [] : [new TipNote(Loc.Get("S.Balance.Unknown"))]);
             return;
         }
 
         var rows = _forced is null && book is not null ? book.Breakdown(keys) : [];
         var thresholds = _thresholds() ?? new BalanceThresholds();
         _amount.Text = FormatUsd(total.Usd);
-        _plate.ToolTip = BuildTooltip(total, rows, thresholds, tokens);
+        var (lines, notes) = BuildTooltip(total, rows, thresholds, tokens);
+        ShowTooltip(new TipRow(Loc.Get("S.Balance.Total"), FormatUsd(total.Usd)), lines, notes);
 
         if (_forced is null)
         {
@@ -251,64 +254,75 @@ internal sealed class BalanceBadge
     /// Итог, а под ним — кто сколько. Разбивка нужна ровно потому, что сумма её прячет: увидев
     /// «$4.86», человек не знает, лежат ли они на том ключе, которым идёт разговор.
     /// </summary>
-    private List<string> TokenRows(IReadOnlyList<ApiKeyEntry> keys) =>
+    private List<TipRow> TokenRows(IReadOnlyList<ApiKeyEntry> keys) =>
     [
         .. keys
             .Where(key => key.TokenLimit is not null && !key.IsBroken)
-            .Select(key => Loc.Format(
-                "S.Balance.TokensRow",
+            .Select(key => new TipRow(
                 key.Label,
-                TokenCount.Format(Math.Max(0, (key.TokenLimit ?? 0) - _tokensUsed(key.Secret)))))
+                Loc.Format(
+                    "S.Balance.Tokens",
+                    TokenCount.Format(Math.Max(0, (key.TokenLimit ?? 0) - _tokensUsed(key.Secret))))))
     ];
 
-    private static string BuildTooltip(
+    /// <summary>
+    /// Подсказка — таблица (1.37.0): итог сверху, ключи столбцом справа, пояснения тусклыми
+    /// строками под чертой. Одна на плашку и только перезаполняется: подсказку, которую человек
+    /// держит открытой, пересоздание закрывало бы под курсором.
+    /// </summary>
+    private void ShowTooltip(TipRow total, IReadOnlyList<TipRow> rows, IReadOnlyList<TipNote> notes)
+    {
+        _tip ??= CostBreakdownTooltip.CreateEmpty();
+        CostBreakdownTooltip.Fill(_tip, total, rows, notes);
+        _plate.ToolTip = _tip;
+    }
+
+    private ToolTip? _tip;
+
+    private static (List<TipRow> Rows, List<TipNote> Notes) BuildTooltip(
         BalanceTotal total,
         IReadOnlyList<BalanceRow> rows,
         BalanceThresholds thresholds,
-        IReadOnlyList<string> tokens)
+        IReadOnlyList<TipRow> tokens)
     {
-        // Переносы строк собираются здесь, а не внутри самих подписей: вёрстка подсказки —
-        // не то, что переводчик обязан беречь, да и XAML обрезал бы ведущий перенос.
-        var text = new StringBuilder();
-        text.Append(Loc.Get("S.Balance.Title")).Append(' ').Append(FormatUsd(total.Usd));
-
+        var lines = new List<TipRow>();
         if (total.Diem is { } diem and > 0)
         {
-            text.Append('\n').Append(Loc.Format(
-                "S.Key.Balance.Diem", diem.ToString("0.##", CultureInfo.InvariantCulture)));
+            // DIEM бывают только у Venice: строка называет провайдера, число — в своей единице.
+            lines.Add(new TipRow(
+                ProviderSpec.For(LlmProvider.Venice).Name,
+                Loc.Format("S.Key.Balance.Diem", diem.ToString("0.##", CultureInfo.InvariantCulture))));
         }
 
+        // Разбивка нужна ровно потому, что сумма её прячет: увидев «$4.86», человек не знает,
+        // лежат ли они на том ключе, которым идёт разговор. У одного ключа она повторила бы итог.
         if (rows.Count > 1)
         {
-            foreach (var row in rows)
-            {
-                text.Append('\n').Append(row.Label).Append(": ").Append(FormatUsd(row.Usd));
-            }
+            lines.AddRange(rows.Select(row => new TipRow(row.Label, FormatUsd(row.Usd))));
+        }
+
+        lines.AddRange(tokens);
+
+        var notes = new List<TipNote>();
+        switch (BalanceWatch.Level(total.Usd, thresholds.LowUsd, thresholds.CriticalUsd))
+        {
+            case BalanceLevel.Critical:
+                notes.Add(new TipNote(Loc.Get("S.Balance.AlmostOut"), TipNoteTone.Danger));
+                break;
+            case BalanceLevel.Low:
+                notes.Add(new TipNote(Loc.Get("S.Balance.Low"), TipNoteTone.Warning));
+                break;
         }
 
         if (total.Unknown > 0)
         {
-            text.Append('\n').Append(Loc.Format(
+            notes.Add(new TipNote(Loc.Format(
                 "S.Balance.Unknown.Some",
-                total.Unknown.ToString(CultureInfo.InvariantCulture)));
+                total.Unknown.ToString(CultureInfo.InvariantCulture))));
         }
 
-        foreach (var line in tokens)
-        {
-            text.Append('\n').Append(line);
-        }
-
-        switch (BalanceWatch.Level(total.Usd, thresholds.LowUsd, thresholds.CriticalUsd))
-        {
-            case BalanceLevel.Critical:
-                text.Append('\n').Append(Loc.Get("S.Balance.AlmostOut"));
-                break;
-            case BalanceLevel.Low:
-                text.Append('\n').Append(Loc.Get("S.Balance.Low"));
-                break;
-        }
-
-        return text.Append('\n').Append(Loc.Get("S.Balance.Refresh")).ToString();
+        notes.Add(new TipNote(Loc.Get("S.Balance.Refresh")));
+        return (lines, notes);
     }
 
     private static SolidColorBrush Frozen(Color colour)

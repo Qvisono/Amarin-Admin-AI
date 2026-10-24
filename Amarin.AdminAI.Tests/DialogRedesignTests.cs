@@ -162,19 +162,24 @@ public sealed class DialogRedesignTests : IDisposable
 
     /// <summary>
     /// Сводка PowerShell в окне подтверждения — без эха команды: та стоит ниже целиком. «Меняет
-    /// систему: …» остаётся, а у сводки без кода (путь, служба) ничего не режется.
+    /// систему: …» уходит в плашки (1.37.0), если разбор их дал, а у сводки без кода (путь, служба)
+    /// ничего не режется.
     /// </summary>
     [Fact]
     public void The_confirmation_summary_does_not_echo_the_script()
     {
         using var json = JsonDocument.Parse("""{"command":"Get-Service -Name Spooler | Restart-Service -Force"}""");
         var info = DangerousActionGuard.DescribeDetailed("run_powershell", json.RootElement.Clone());
-        var plain = info with { CodeText = "", ChangeSummary = "Остановка службы: Spooler" };
+        var plain = info with { CodeText = "", ChangeSummary = "Остановка службы: Spooler", Reasons = null };
 
         var summary = MainWindow.ConfirmationSummary(info);
 
         Assert.DoesNotContain("Get-Service", summary, StringComparison.Ordinal);
-        Assert.Contains("Restart-Service", summary, StringComparison.Ordinal);
+        Assert.Contains(info.Reasons!, reason => reason.Contains("Restart-Service", StringComparison.Ordinal));
+        Assert.DoesNotContain("Restart-Service", summary, StringComparison.Ordinal);
+
+        // Без плашек строка разбора остаётся в сводке: аудит и окна без разбора читают её.
+        Assert.Contains("Restart-Service", MainWindow.ConfirmationSummary(info with { Reasons = null }), StringComparison.Ordinal);
         Assert.Equal("Остановка службы: Spooler", MainWindow.ConfirmationSummary(plain));
     }
 

@@ -128,11 +128,58 @@ public sealed class BalanceBadgeTests
     [Fact]
     public void A_balance_that_is_running_out_still_says_so_in_the_tooltip()
     {
-        var tooltip = Under(AppTheme.Dark, Usd(0.05m), (plate, _) => plate.ToolTip as string);
+        var tooltip = Under(AppTheme.Dark, Usd(0.05m), (plate, _) => string.Join("\n", TipTexts(plate.ToolTip)));
 
-        Assert.NotNull(tooltip);
         Assert.Contains("почти закончились", tooltip, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_tooltip_puts_the_amount_in_its_own_right_column_and_dims_the_explanations()
+    {
+        // До 1.37.0 доллары шли сразу за подписью, а пояснение — тем же цветом, что цифры:
+        // глазу не за что было зацепиться. Теперь сумма — столбцом справа, как у цены чата.
+        var (amount, refresh) = Under(AppTheme.Dark, Usd(7.5m), (plate, _) =>
+        {
+            var blocks = TipBlocks(plate.ToolTip).ToList();
+            var money = blocks.Single(block => block.Text == BalanceBadge.FormatUsd(7.5m));
+            var note = blocks.Single(block => block.Text == Amarin.Core.Loc.Get("S.Balance.Refresh"));
+            return (
+                (Grid.GetColumn(money), money.HorizontalAlignment),
+                (note.Foreground as SolidColorBrush)?.Color ==
+                    ((SolidColorBrush)Application.Current.FindResource("Text.Faint")).Color);
+        });
+
+        Assert.Equal((1, HorizontalAlignment.Right), amount);
+        Assert.True(refresh, "пояснение не приглушено");
+    }
+
+    private static IEnumerable<TextBlock> TipBlocks(object? tip)
+    {
+        var stack = new Stack<object>();
+        if (tip is ContentControl { Content: { } content })
+        {
+            stack.Push(content);
+        }
+
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            if (node is TextBlock block)
+            {
+                yield return block;
+            }
+
+            if (node is DependencyObject parent)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(parent))
+                {
+                    stack.Push(child);
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> TipTexts(object? tip) => TipBlocks(tip).Select(block => block.Text);
 
     [Fact]
     public void The_plate_shows_a_dash_rather_than_hiding_when_no_balance_arrived()

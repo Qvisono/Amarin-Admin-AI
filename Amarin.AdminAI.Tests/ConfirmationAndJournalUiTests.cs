@@ -49,15 +49,41 @@ public sealed class ConfirmationAndJournalUiTests
             window.UpdateLayout();
 
             var host = Named<ContentControl>(window, "ConfirmationCodeHost");
-            var expander = (Expander)host.Content;
-            return (host.Visibility, expander.IsExpanded, Text(expander));
+            var content = (FrameworkElement)host.Content;
+            return (host.Visibility, Folded: content is Expander || content.Visibility != Visibility.Visible, Text(content));
         });
 
         Assert.Equal(Visibility.Visible, shown.Visibility);
 
-        // Open on arrival: the point of the block is that nobody approves a script unseen.
-        Assert.True(shown.IsExpanded);
+        // Open on arrival and never folded away: the point of the block is that nobody approves
+        // a script unseen. Since 1.37.0 there is no expander around it at all.
+        Assert.False(shown.Folded);
         Assert.Contains("echo line 39", shown.Item3, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_script_parts_that_change_the_system_are_plates_not_a_line_in_the_summary()
+    {
+        using var json = System.Text.Json.JsonDocument.Parse(
+            """{"command":"Get-Service -Name Spooler | Restart-Service -Force"}""");
+        var info = DangerousActionGuard.DescribeDetailed("run_powershell", json.RootElement.Clone());
+
+        var (summary, plates) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            Fill(window, info);
+            var reasons = Named<WrapPanel>(window, "ConfirmationReasons");
+            var texts = reasons.Children.OfType<Border>()
+                .Select(border => ((TextBlock)border.Child).Text)
+                .ToList();
+            return (MainWindow.ConfirmationSummary(info), (reasons.Visibility, texts));
+        });
+
+        Assert.Equal(Visibility.Visible, plates.Visibility);
+        Assert.Contains(plates.texts, text => text.Contains("Restart-Service", StringComparison.Ordinal));
+
+        // Строкой «Меняет систему: …» в сводке они повторились бы под плашками.
+        Assert.DoesNotContain("Restart-Service", summary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -117,8 +143,8 @@ public sealed class ConfirmationAndJournalUiTests
             return card.DesiredSize;
         });
 
-        Assert.True(size.Height <= 580, $"карточка выросла до {size.Height}");
-        Assert.True(size.Width <= 480, $"карточка расширилась до {size.Width}");
+        Assert.True(size.Height <= 560, $"карточка выросла до {size.Height}");
+        Assert.True(size.Width <= 460, $"карточка расширилась до {size.Width}");
     }
 
     [Fact]
@@ -140,14 +166,10 @@ public sealed class ConfirmationAndJournalUiTests
 
             Fill(window, info);
 
-            // Оба экспандера раскрыты — худший случай, с которого и началась правка.
-            foreach (var name in new[] { "ConfirmationCodeHost", "ConfirmationDetailsHost" })
-            {
-                if (Named<ContentControl>(window, name).Content is Expander expander)
-                {
-                    expander.IsExpanded = true;
-                }
-            }
+            // Подробности раскрыты — худший случай, с которого и началась правка.
+            var details = Named<System.Windows.Controls.Primitives.ToggleButton>(window, "ConfirmationDetailsToggle");
+            details.IsChecked = true;
+            Named<ContentControl>(window, "ConfirmationDetailsHost").Visibility = Visibility.Visible;
 
             var shell = Named<Border>(window, "ConfirmationCard");
             shell.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -196,19 +218,77 @@ public sealed class ConfirmationAndJournalUiTests
     }
 
     [Fact]
+    public void Only_one_lead_sentence_is_on_screen()
+    {
+        // Сводка, слова модели и разъяснение ИИ стояли тремя абзацами подряд, и человек
+        // разбирался, какой из них главный. Теперь видна ровно одна фраза: ИИ, иначе модель,
+        // иначе сводка.
+        var (summaryOnly, spoken, explained) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            int Shown() => new[] { "ConfirmationSummaryText", "ConfirmationExplanationText", "ConfirmationAiText" }
+                .Count(name => Named<TextBlock>(window, name).Visibility == Visibility.Visible);
+
+            Fill(window, Info());
+            var first = (Shown(), Named<TextBlock>(window, "ConfirmationSummaryText").Visibility);
+
+            Fill(window, Info(explanation: "Создаю bat для проверки импортов."));
+            var second = (Shown(), Named<TextBlock>(window, "ConfirmationExplanationText").Visibility);
+
+            Named<TextBlock>(window, "ConfirmationAiText").Text = "Удалит папку Temp.";
+            typeof(MainWindow).GetMethod("ShowConfirmationLead", Hidden)!.Invoke(window, null);
+            var third = (Shown(), Named<TextBlock>(window, "ConfirmationAiText").Visibility);
+            return (first, second, third);
+        });
+
+        Assert.Equal((1, Visibility.Visible), summaryOnly);
+        Assert.Equal((1, Visibility.Visible), spoken);
+        Assert.Equal((1, Visibility.Visible), explained);
+    }
+
+    [Fact]
     public void The_technical_breakdown_moves_into_its_own_folded_block()
     {
-        var (visible, expanded) = _wpf.Ui.Invoke(() =>
+        var (toggle, folded, opened) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
             Fill(window, Info());
             window.UpdateLayout();
             var host = Named<ContentControl>(window, "ConfirmationDetailsHost");
-            return (host.Visibility, ((Expander)host.Content).IsExpanded);
+            var details = Named<System.Windows.Controls.Primitives.ToggleButton>(window, "ConfirmationDetailsToggle");
+            var before = host.Visibility;
+
+            details.IsChecked = true;
+            details.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            return (details.Visibility, before, host.Visibility);
         });
 
-        Assert.Equal(Visibility.Visible, visible);
-        Assert.False(expanded);
+        // «Подробнее» — строка под кодом, а не в подвале среди ответов; разбор свёрнут, пока её не нажмут.
+        Assert.Equal(Visibility.Visible, toggle);
+        Assert.Equal(Visibility.Collapsed, folded);
+        Assert.Equal(Visibility.Visible, opened);
+    }
+
+    [Fact]
+    public void The_more_line_sits_under_the_code_and_not_in_the_footer()
+    {
+        var (under, outsideFooter) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            Fill(window, Info("Remove-Item C:/Temp", "powershell"));
+            var card = Named<Border>(window, "ConfirmationCard");
+            card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            card.Arrange(new Rect(new Point(0, 0), card.DesiredSize));
+            card.UpdateLayout();
+
+            var more = Bounds(Named<System.Windows.Controls.Primitives.ToggleButton>(window, "ConfirmationDetailsToggle"), card);
+            var code = Bounds(Named<ContentControl>(window, "ConfirmationCodeHost"), card);
+            var yes = Bounds(Named<Button>(window, "ConfirmationYesButton"), card);
+            return (more.Top >= code.Bottom - 0.5, more.Bottom < yes.Top);
+        });
+
+        Assert.True(under, "«Подробнее» стоит не под кодом");
+        Assert.True(outsideFooter, "«Подробнее» оказалась в ряду кнопок");
     }
 
     // ───────────────────────── the journal ─────────────────────────

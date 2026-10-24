@@ -73,7 +73,8 @@ namespace Amarin.UI
                 return;
             }
 
-            ChatMarkdown.Write(UpdateConfirmNotes, this, notes, 12.5, 19, fillAvailableWidth: false);
+            // Тот же вид, что у «Что нового» (1.37.0): без повтора версии и крупных разделов.
+            ChatMarkdown.Write(UpdateConfirmNotes, this, ReleaseNotesText.Compact(notes), 12.5, 19, fillAvailableWidth: false);
             UpdateConfirmNotesPanel.Visibility = Visibility.Visible;
         }
 
@@ -235,44 +236,37 @@ namespace Amarin.UI
                 return;
             }
 
-            // Поверх чужого вопроса не встаём: новый вопрос снял бы прежний ответом «нет».
+            // Поверх чужого вопроса не встаём: заметки заслонили бы вопрос, который ждёт ответа.
             if (NoticeOverlay.Visibility == Visibility.Visible)
             {
                 return;
             }
 
-            var box = new RichTextBox
-            {
-                IsReadOnly = true,
-                IsDocumentEnabled = true,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(0, 0, 8, 0),
-                MaxHeight = 300,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                ContextMenu = null
-            };
-            box.SetResourceReference(Control.BackgroundProperty, "Bg.Card");
-            box.SetResourceReference(Control.ForegroundProperty, "Text.Secondary");
-            box.SetResourceReference(System.Windows.Automation.AutomationProperties.NameProperty, "S.Updates.NotesTitle");
-            ChatMarkdown.Write(box, this, notes, 12.5, 19, fillAvailableWidth: false);
-
-            var frame = new Border
-            {
-                CornerRadius = new CornerRadius(6),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(10, 8, 2, 8),
-                Child = box
-            };
-            frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
-            frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
-
-            await ShowNoticeAsync(
-                Loc.Format("S.Updates.WhatsNewTitle", version),
-                Loc.Get("S.Updates.WhatsNewText"),
-                Loc.Get("S.Updates.WhatsNewOk"),
-                null,
-                NoticeTone.Info,
-                frame);
+            ShowWhatsNew(version, notes);
         }
+
+        /// <summary>
+        /// Карточка «Что нового» (1.37.0) — своя, а не общее уведомление. Создаётся при первом
+        /// показе: раз на версию её и видно.
+        /// </summary>
+        internal void ShowWhatsNew(ReleaseVersion version, string notes)
+        {
+            if (_whatsNew is null)
+            {
+                _whatsNew = new WhatsNewSheet();
+                _whatsNew.Closed += () =>
+                {
+                    WhatsNewHost.Visibility = Visibility.Collapsed;
+                    FocusMessageInput();
+                };
+                WhatsNewHost.Children.Add(_whatsNew);
+            }
+
+            WhatsNewHost.Visibility = Visibility.Visible;
+            _whatsNew.Show(this, version, notes,
+                englishInterface: string.Equals(LanguageManager.Current, "en", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private WhatsNewSheet? _whatsNew;
     }
 }

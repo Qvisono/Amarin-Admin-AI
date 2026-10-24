@@ -42,6 +42,7 @@ public sealed class AppThemeJsonConverterTests : IDisposable
     [InlineData("\"Nord\"", AppTheme.Nord)]
     [InlineData("\"matteLight\"", AppTheme.MatteLight)]
     [InlineData("55", AppTheme.Carbon)]
+    [InlineData("56", AppTheme.GlueGray)]
     [InlineData("\"themeFromTheFuture\"", AppTheme.Dark)]
     public void Reading_takes_names_and_numbers_and_never_throws(string stored, AppTheme expected)
     {

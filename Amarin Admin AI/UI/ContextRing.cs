@@ -71,17 +71,20 @@ internal sealed class ContextRing
     {
         Paint();
 
+        _tip ??= CostBreakdownTooltip.CreateEmpty();
+        _plate.ToolTip = _tip;
         if (!_usage.HasScale)
         {
             _amount.Text = "-";
             _progress.Visibility = Visibility.Collapsed;
-            _plate.ToolTip = Loc.Get("S.Context.Unknown");
+            CostBreakdownTooltip.Fill(_tip, new TipRow(Loc.Get("S.Context.Label"), "-"), [],
+                [new TipNote(Loc.Get("S.Context.Unknown"))]);
             return;
         }
 
         _amount.Text = VeniceModelCatalog.FormatContext(_usage.Used) + " / " +
                        VeniceModelCatalog.FormatContext(_usage.Max);
-        _plate.ToolTip = BuildTooltip(_usage);
+        FillTooltip(_tip, _usage);
 
         // У нуля дуга вырождается в точку, где ArcSegment не определён, а меньше градуса её и
         // так не видно — не рисуем.
@@ -117,33 +120,41 @@ internal sealed class ContextRing
         _ => "Accent.Fill"
     };
 
-    private static string BuildTooltip(ContextUsage usage)
+    private ToolTip? _tip;
+
+    /// <summary>
+    /// Доля сверху, под ней точные числа «занято» и «свободно» столбцом (1.37.0). Прежде подсказка
+    /// повторяла плашку предложением и объясняла выбор модели «Авто» — к заполненности контекста
+    /// это отношения не имело. Примерное число помечено «≈», а не абзацем; слова — только когда
+    /// контекст кончается и пора действовать.
+    /// </summary>
+    private static void FillTooltip(ToolTip tip, ContextUsage usage)
     {
-        var percent = (usage.Fraction * 100).ToString("0", CultureInfo.InvariantCulture);
-        var text = Loc.Format("S.Context.Title", usage.Used.ToString("#,0", CultureInfo.InvariantCulture)
-            .Replace(",", " "), VeniceModelCatalog.FormatContext(usage.Max), percent);
-
-        if (usage.IsFloor)
+        var mark = usage.IsEstimate ? "≈ " : "";
+        var percent = (usage.Fraction * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
+        var rows = new List<TipRow>
         {
-            text += "\n" + Loc.Get("S.Context.Auto");
-        }
+            new(Loc.Get("S.Context.Used"), mark + Tokens(usage.Used)),
+            new(Loc.Get("S.Context.Free"), mark + Tokens(Math.Max(0, usage.Max - usage.Used)))
+        };
 
-        if (usage.IsEstimate)
-        {
-            text += "\n" + Loc.Get("S.Context.Estimate");
-        }
-
+        var notes = new List<TipNote>();
         if (usage.Fraction >= CriticalFraction)
         {
-            text += "\n" + Loc.Get("S.Context.Full");
+            notes.Add(new TipNote(Loc.Get("S.Context.Full"), TipNoteTone.Danger));
+            notes.Add(new TipNote(Loc.Get("S.Context.CompactHint")));
         }
         else if (usage.Fraction >= WarnFraction)
         {
-            text += "\n" + Loc.Get("S.Context.Filling");
+            notes.Add(new TipNote(Loc.Get("S.Context.Filling"), TipNoteTone.Warning));
+            notes.Add(new TipNote(Loc.Get("S.Context.CompactHint")));
         }
 
-        return text;
+        CostBreakdownTooltip.Fill(tip, new TipRow(Loc.Get("S.Context.Label"), percent), rows, notes);
     }
+
+    private static string Tokens(long count) =>
+        count.ToString("#,0", CultureInfo.InvariantCulture).Replace(",", " ");
 
     /// <summary>Дуга от двенадцати часов по часовой стрелке, в градусах.</summary>
     internal static Geometry BuildArc(double fromAngle, double toAngle)

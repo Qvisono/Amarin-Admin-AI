@@ -61,6 +61,9 @@ public sealed partial class SettingsView : UserControl
     /// <summary>Пункт навигации, с которого настройки открываются впервые.</summary>
     internal RadioButton DefaultNav => NavGeneral;
 
+    /// <summary>Пункты навигации в их порядке — палитре команд (1.37.0) нужны и несозданные страницы.</summary>
+    internal IEnumerable<RadioButton> Navs => _registry.Select(entry => entry.Nav);
+
     /// <summary>Уже созданные страницы, в порядке навигации.</summary>
     internal IEnumerable<FrameworkElement> BuiltPages =>
         _registry.Where(entry => _pages.ContainsKey(entry.Type)).Select(entry => _pages[entry.Type]);

@@ -371,7 +371,7 @@ namespace Amarin.UI
         /// <remarks>
         /// <para>
         /// Колонка не прыгает ни в начале, ни в конце: раскрытая папка — заголовок «верх карточки»
-        /// (35 + поле 3) и строки, свёрнутая — карточка в одну строку (38 + поля 3 и 3). Разницу
+        /// (31 + поле 1) и строки, свёрнутая — карточка в одну строку (32 + поля 1 и 1). Разницу
         /// в начале раскрытия держит последняя строка, начиная не с нуля, а с неё; в конце
         /// свёртывания — так же, и только потом заголовок становится карточкой в одну строку.
         /// </para>
@@ -439,12 +439,12 @@ namespace Amarin.UI
 
         /// <summary>
         /// Высота свёрнутой карточки папки вместе с полями — из сеттеров стиля <c>FolderHeader</c>
-        /// (38 + 3 + 3), а не числом здесь: поменяют стиль — не разойдётся.
+        /// (32 + 2 + 2), а не числом здесь: поменяют стиль — не разойдётся.
         /// </summary>
         private double CollapsedHeaderOuter()
         {
-            var height = 38.0;
-            var margin = new Thickness(6, 3, 6, 3);
+            var height = 32.0;
+            var margin = new Thickness(6, 2, 6, 2);
             if (ChatListPanel.TryFindResource("FolderHeader") is Style style)
             {
                 foreach (var setter in style.Setters.OfType<Setter>())
@@ -659,8 +659,14 @@ namespace Amarin.UI
 
         // Значки в точках, без растяжения: открытая и закрытая папка обязаны совпадать по
         // размеру и месту, иначе при раскрытии имя папки дёргалось бы вбок.
-        private const string FolderGlyph = "M1.5,2.5 L5.5,2.5 L7,4 L13.5,4 L13.5,11.5 L1.5,11.5 Z";
-        private const string FolderOpenGlyph = "M1.5,11.5 L1.5,2.5 L5.5,2.5 L7,4 L12.5,4 L12.5,6 M1.5,11.5 L3.5,6 L14.5,6 L12.5,11.5 Z";
+        // Углы скруглены, как у значков концепта: острые углы при той же толщине читались жирнее.
+        private const string FolderGlyph =
+            "M3,2 L5.6,2 L7.3,3.7 L12,3.7 A1.2,1.2 0 0 1 13.2,4.9 L13.2,10.3 A1.2,1.2 0 0 1 12,11.5 " +
+            "L3,11.5 A1.2,1.2 0 0 1 1.8,10.3 L1.8,3.2 A1.2,1.2 0 0 1 3,2 Z";
+        private const string FolderOpenGlyph =
+            "M3,11.5 L4.8,7.3 A0.8,0.8 0 0 1 5.5,6.8 L13.2,6.8 A0.6,0.6 0 0 1 13.8,7.5 L13.1,10.5 " +
+            "A1.2,1.2 0 0 1 11.9,11.5 L3,11.5 A1.2,1.2 0 0 1 1.8,10.3 L1.8,3.2 A1.2,1.2 0 0 1 3,2 " +
+            "L5.6,2 L7.3,3.7 L11,3.7 A1.2,1.2 0 0 1 12.2,4.9 L12.2,6.8";
         private const string ArchiveGlyph = "M1.5,2 L13.5,2 L13.5,5 L1.5,5 Z M2.5,5 L2.5,11.5 L12.5,11.5 L12.5,5 M5.5,8 L9.5,8";
 
         /// <summary>
@@ -676,24 +682,25 @@ namespace Amarin.UI
                 Width = 15,
                 Height = 13,
                 Stretch = Stretch.None,
-                StrokeThickness = 1.2,
+                StrokeThickness = 1.1,
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
                 Margin = new Thickness(0, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            icon.SetResourceReference(Shape.StrokeProperty, open ? "Text.Muted" : "Text.Dim");
+            icon.SetResourceReference(Shape.StrokeProperty, "Text.Dim");
 
+            // Имя — тем же начертанием и цветом, что названия чатов (1.37.0): полужирное светлое
+            // имя делало папку заметнее её содержимого.
             var label = new TextBlock
             {
                 Text = name,
                 FontSize = 12.5,
-                FontWeight = FontWeights.SemiBold,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
+            label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Tertiary");
 
             // Число — только у свёрнутой: у раскрытой чаты и так перед глазами.
             var number = new TextBlock
@@ -708,18 +715,19 @@ namespace Amarin.UI
 
             var chevron = new Path
             {
-                Data = Glyphs.Get("M1,1 L5,5 L9,1"),
-                Width = 10,
-                Height = 6,
+                // Вправо у свёрнутой, вниз у раскрытой — как в концепте.
+                Data = Glyphs.Get("M1,1 L5,5 L1,9"),
+                Width = 4.5,
+                Height = 8,
                 Stretch = Stretch.Uniform,
-                StrokeThickness = 1.4,
+                StrokeThickness = 1.3,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
                 StrokeLineJoin = PenLineJoin.Round,
                 Margin = new Thickness(8, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 RenderTransformOrigin = new Point(0.5, 0.5),
-                RenderTransform = new RotateTransform(open ? 180 : 0)
+                RenderTransform = new RotateTransform(open ? 90 : 0)
             };
             chevron.SetResourceReference(Shape.StrokeProperty, "Text.Faint");
 
@@ -761,11 +769,10 @@ namespace Amarin.UI
             }
 
             icon.Data = Glyphs.Get(open ? openGlyph : closedGlyph);
-            icon.SetResourceReference(Shape.StrokeProperty, open ? "Text.Muted" : "Text.Dim");
             number.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
             if (chevron.RenderTransform is RotateTransform turn)
             {
-                UiMotion.Turn(turn, open ? 180 : 0, animate);
+                UiMotion.Turn(turn, open ? 90 : 0, animate);
             }
 
             System.Windows.Automation.AutomationProperties.SetHelpText(

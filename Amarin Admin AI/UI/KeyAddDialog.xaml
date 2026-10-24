@@ -18,7 +18,7 @@
                     Click="CancelButton_Click"/>
         </Border>
         <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border x:Name="Card" Style="{DynamicResource DialogCard}" Width="420">
+            <Border x:Name="Card" Style="{DynamicResource DialogCard}" Width="400">
                 <StackPanel>
                     <TextBlock Style="{DynamicResource DialogTitle}" Text="{DynamicResource S.Key.AddTitle}"/>
 
@@ -66,7 +66,7 @@
                         <TextBlock x:Name="Status" Style="{DynamicResource DialogStatus}"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <Button Content="{DynamicResource S.Common.Cancel}" Style="{DynamicResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="CancelButton_Click"/>
+                                    Margin="0,0,6,0" Click="CancelButton_Click"/>
                             <Button x:Name="SaveButton" Content="{DynamicResource S.Common.Add}"
                                     Style="{DynamicResource DialogPrimaryButton}"
                                     Click="SaveButton_Click"/>

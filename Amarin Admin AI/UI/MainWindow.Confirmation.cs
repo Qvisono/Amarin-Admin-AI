@@ -19,7 +19,7 @@ namespace Amarin.UI
         /// Скрипт в окне читают, а не листают минутами; выше этого он перерастает кнопки под ним, и
         /// карточка начинает спорить со своим Viewbox.
         /// </summary>
-        private const double ConfirmationCodeMaxHeight = 220;
+        private const double ConfirmationCodeMaxHeight = 200;
 
         /// <summary>
         /// Раскладка тела диалога. Нарочно синхронная и без сети: запрос к модели за разъяснением
@@ -35,11 +35,77 @@ namespace Amarin.UI
             var hasExplanation = explanation.Length > 0 &&
                                  !explanation.Equals(info.ChangeSummary?.Trim(), StringComparison.Ordinal);
             ConfirmationExplanationText.Text = hasExplanation ? explanation : "";
-            ConfirmationExplanationText.Visibility = hasExplanation ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationAiText.Text = "";
+            ShowConfirmationLead();
 
+            FillConfirmationReasons(info);
             FillCodeHost(info);
             FillDetailsHost(info);
         }
+
+        /// <summary>
+        /// Главная фраза окна — одна (1.37.0-beta.5): разъяснение ИИ, пока его нет — слова модели,
+        /// нет и их — сводка. Три абзаца разного цвета подряд заставляли разбираться, какой главный.
+        /// </summary>
+        private void ShowConfirmationLead()
+        {
+            var ai = ConfirmationAiText.Text.Length > 0;
+            var spoken = !ai && ConfirmationExplanationText.Text.Length > 0;
+            ConfirmationAiText.Visibility = ai ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationExplanationText.Visibility = spoken ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationSummaryText.Visibility = ai || spoken ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Пункты разбора PowerShell плашками: «Меняет систему:» и по плашке на команду. Подпись —
+        /// начало той же строки, что идёт в сводку и аудит, чтобы перевод был один.
+        /// </summary>
+        private void FillConfirmationReasons(DangerousActionInfo info)
+        {
+            ConfirmationReasons.Children.Clear();
+            if (info.Reasons is not { Count: > 0 } reasons)
+            {
+                ConfirmationReasons.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var label = new TextBlock
+            {
+                Text = ChangesPrefix().TrimEnd(),
+                FontSize = 11.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 6, 3)
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+            ConfirmationReasons.Children.Add(label);
+
+            foreach (var reason in reasons)
+            {
+                var text = new TextBlock
+                {
+                    Text = reason,
+                    FontSize = 11,
+                    FontFamily = ChatFonts.Mono,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                text.SetResourceReference(TextBlock.ForegroundProperty, "Status.Warning");
+                var chip = new Border
+                {
+                    Child = text,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(6, 1, 6, 1),
+                    Margin = new Thickness(0, 0, 4, 3)
+                };
+                chip.SetResourceReference(Border.BackgroundProperty, "Status.WarningSurface");
+                chip.SetResourceReference(Border.BorderBrushProperty, "Status.WarningBorder");
+                ConfirmationReasons.Children.Add(chip);
+            }
+
+            ConfirmationReasons.Visibility = Visibility.Visible;
+        }
+
+        private static string ChangesPrefix() => Loc.Get("S.Confirm.ScriptChanges").Split("{0}")[0];
 
         /// <summary>
         /// Заказывает у модели разъяснение к скрипту и дописывает его в уже открытое окно.
@@ -56,7 +122,7 @@ namespace Amarin.UI
             CancelConfirmationExplain();
 
             ConfirmationAiText.Text = "";
-            ConfirmationAiText.Visibility = Visibility.Collapsed;
+            ShowConfirmationLead();
 
             if (_services is null || !ActionExplainer.IsWorthExplaining(request.Info))
             {
@@ -67,9 +133,8 @@ namespace Amarin.UI
             _confirmExplain = cancellation;
             _confirmExplainFor = request;
 
-            ConfirmationAiText.Text = Loc.Get("S.Confirm.Explaining");
-            ConfirmationAiText.Visibility = Visibility.Visible;
-
+            // Пока ответ идёт, на месте главной фразы остаётся сводка: строка «Разбираю…» была бы
+            // ещё одним абзацем, который приходится прочесть и отбросить.
             string answer;
             try
             {
@@ -95,7 +160,15 @@ namespace Amarin.UI
                 return;
             }
 
+            // Неудача — не главная фраза: «объяснение не пришло» вытеснило бы сводку, которая
+            // говорит хоть что-то. Остаётся то, что было.
+            if (answer == Loc.Get("S.Confirm.ExplainFailed") || answer == Loc.Get("S.Confirm.ExplainEmpty"))
+            {
+                return;
+            }
+
             ConfirmationAiText.Text = answer;
+            ShowConfirmationLead();
         }
 
         private void CancelConfirmationExplain()
@@ -130,7 +203,7 @@ namespace Amarin.UI
         {
             CancelConfirmationWhatIf();
             ConfirmationWhatIfHost.Content = null;
-            ConfirmationWhatIfHost.Visibility = Visibility.Collapsed;
+            ShowConfirmationMore();
 
             var info = request.Info;
             // Пробный прогон идёт на этом ПК — для удалённой машины он показал бы чужое.
@@ -142,10 +215,10 @@ namespace Amarin.UI
 
             var cancellation = new CancellationTokenSource();
             _confirmWhatIf = cancellation;
-            var body = new TextBlock { Text = Loc.Get("S.Confirm.WhatIfRunning"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
-            body.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
-            ConfirmationWhatIfHost.Content = BuildConfirmationExpander(Loc.Get("S.Confirm.WhatIf"), body, expanded: true);
-            ConfirmationWhatIfHost.Visibility = Visibility.Visible;
+
+            // Пока прогон идёт, под «Подробнее» стоит строка об этом: показывать ещё нечего.
+            ConfirmationWhatIfHost.Content = WhatIfCaption(Loc.Get("S.Confirm.WhatIfRunning"));
+            ShowConfirmationMore();
 
             WhatIfOutcome? outcome;
             try
@@ -166,12 +239,38 @@ namespace Amarin.UI
             if (outcome is not { Supported: true } shown)
             {
                 ConfirmationWhatIfHost.Content = null;
-                ConfirmationWhatIfHost.Visibility = Visibility.Collapsed;
+                ShowConfirmationMore();
                 return;
             }
 
-            var code = CodeBlockView.Create(this, shown.Text, null);
-            ConfirmationWhatIfHost.Content = BuildConfirmationExpander(Loc.Get("S.Confirm.WhatIf"), code, expanded: true);
+            var block = new StackPanel();
+            block.Children.Add(WhatIfCaption(Loc.Get("S.Confirm.WhatIf")));
+            var code = Scrolled(CodeBlockView.Create(this, shown.Text, null, copyOnly: true));
+            code.Margin = new Thickness(0, 4, 0, 0);
+            block.Children.Add(code);
+            ConfirmationWhatIfHost.Content = block;
+            ShowConfirmationMore();
+        }
+
+        private static TextBlock WhatIfCaption(string text)
+        {
+            var caption = new TextBlock { Text = text, FontSize = 11.5 };
+            caption.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+            return caption;
+        }
+
+        /// <summary>
+        /// «Подробнее» под кодом: видна, если есть что раскрыть (разбор или пробный прогон), и
+        /// раскрывает оба сразу. Отдельная строка на каждый блок снова дала бы окну лишние ручки.
+        /// </summary>
+        private void ShowConfirmationMore()
+        {
+            var hasDetails = ConfirmationDetailsHost.Content is not null;
+            var hasWhatIf = ConfirmationWhatIfHost.Content is not null;
+            var open = ConfirmationDetailsToggle.IsChecked == true;
+            ConfirmationDetailsToggle.Visibility = hasDetails || hasWhatIf ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationDetailsHost.Visibility = open && hasDetails ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationWhatIfHost.Visibility = open && hasWhatIf ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void CancelConfirmationWhatIf()
@@ -198,44 +297,60 @@ namespace Amarin.UI
                 return;
             }
 
-            // Раскрыто сразу: смысл в том, чтобы скрипт не одобряли не глядя.
-            ConfirmationCodeHost.Content = BuildConfirmationExpander(
-                Loc.Format("S.Confirm.Code", CountLines(code)),
-                CodeBlockView.Create(this, code, string.IsNullOrWhiteSpace(info.CodeLanguage) ? null : info.CodeLanguage),
-                expanded: true);
+            // Открыто всегда и без экспандера вокруг: смысл в том, чтобы скрипт не одобряли не
+            // глядя, а вторая рамка с заголовком над шапкой самого блока только утяжеляла окно.
+            var language = string.IsNullOrWhiteSpace(info.CodeLanguage) ? null : info.CodeLanguage;
+            var caption = (language ?? "text").Trim().ToLowerInvariant() + " · " +
+                          Loc.Format("S.Confirm.Code", CountLines(code));
+            ConfirmationCodeHost.Content = Scrolled(CodeBlockView.Create(this, code, language, caption: caption, copyOnly: true));
             ConfirmationCodeHost.Visibility = Visibility.Visible;
         }
 
+        /// <summary>
+        /// Технический разбор вызова. Свёрнут: раскрывает его строка «Подробнее» под кодом —
+        /// решающий читает его последним, если главной фразы и кода не хватило.
+        /// </summary>
         private void FillDetailsHost(DangerousActionInfo info)
         {
+            ConfirmationDetailsToggle.IsChecked = false;
+
             var details = info.Details?.Trim() ?? "";
             if (details.Length == 0)
             {
                 ConfirmationDetailsHost.Content = null;
-                ConfirmationDetailsHost.Visibility = Visibility.Collapsed;
+                ShowConfirmationMore();
                 return;
             }
 
             var text = new TextBlock
             {
                 Text = details,
-                FontSize = 12,
+                FontSize = 11.5,
+                LineHeight = 17,
                 TextWrapping = TextWrapping.Wrap
             };
             text.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
 
-            ConfirmationDetailsHost.Content = BuildConfirmationExpander(
-                Loc.Get("S.Confirm.Details"), text, expanded: false);
-            ConfirmationDetailsHost.Visibility = Visibility.Visible;
+            ConfirmationDetailsHost.Content = text;
+            ShowConfirmationMore();
         }
 
-        private Expander BuildConfirmationExpander(string header, FrameworkElement body, bool expanded)
+        private void ConfirmationDetailsToggle_Click(object sender, RoutedEventArgs e)
         {
-            var headerText = new TextBlock { Text = header };
-            headerText.SetResourceReference(StyleProperty, "ExpanderHeaderText");
+            ShowConfirmationMore();
+            if (ConfirmationDetailsToggle.IsChecked == true)
+            {
+                // Подробности встают в конец тела — без прокрутки к ним нажатие казалось бы пустым.
+                ConfirmationDetailsHost.BringIntoView();
+            }
+        }
 
-            // CodeBlockView берёт ширину по самой длинной строке, и длинная команда вылезла бы за
-            // карточку; прокрутка держит окно той формы, под которую разложены кнопки.
+        /// <summary>
+        /// CodeBlockView берёт ширину по самой длинной строке, и длинная команда вылезла бы за
+        /// карточку; прокрутка держит окно той формы, под которую разложены кнопки.
+        /// </summary>
+        private static ScrollViewer Scrolled(FrameworkElement body)
+        {
             var scroller = new ScrollViewer
             {
                 Content = body,
@@ -247,17 +362,7 @@ namespace Amarin.UI
             // Тем же плавным колесом, что и вся программа. Заодно это и есть уговор с внешней
             // прокруткой карточки: докрутив блок кода до края, колесо уходит наружу само.
             SmoothScroll.SetIsEnabled(scroller, true);
-
-            return new Expander
-            {
-                Style = (Style)FindResource("ToolsExpander"),
-                Header = headerText,
-                Content = scroller,
-                IsExpanded = expanded,
-                Margin = new Thickness(0),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                MinWidth = 0
-            };
+            return scroller;
         }
 
         /// <summary>
@@ -270,12 +375,19 @@ namespace Amarin.UI
         {
             var summary = string.IsNullOrWhiteSpace(info.ChangeSummary) ? info.ToolName : info.ChangeSummary.Trim();
             var code = info.CodeText?.Trim() ?? "";
-            var lines = summary.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+            var changesPrefix = ChangesPrefix();
+
+            // Пункты разбора окно показывает плашками (FillConfirmationReasons) — строкой в сводке
+            // они повторились бы.
+            var plates = info.Reasons is { Count: > 0 };
+            var lines = summary.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
+                .Where(line => !plates || !line.StartsWith(changesPrefix, StringComparison.Ordinal))
+                .ToList();
             var head = lines[0];
             var colon = head.IndexOf(": ", StringComparison.Ordinal);
             if (code.Length == 0 || colon <= 0)
             {
-                return summary;
+                return string.Join("\n", lines);
             }
 
             var echoed = head[(colon + 2)..].TrimStart();
@@ -283,10 +395,9 @@ namespace Amarin.UI
             start = start[..Math.Min(start.Length, 24)];
             if (start.Length == 0 || !echoed.StartsWith(start, StringComparison.Ordinal))
             {
-                return summary;
+                return string.Join("\n", lines);
             }
 
-            var changesPrefix = Loc.Get("S.Confirm.ScriptChanges").Split("{0}")[0];
             var changes = lines.Skip(1).Where(line => line.StartsWith(changesPrefix, StringComparison.Ordinal));
             return string.Join("\n", new[] { head[..colon] }.Concat(changes));
         }

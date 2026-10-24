@@ -896,7 +896,7 @@ internal sealed class AssistantMessageView
         {
             inner.Children.Add(BuildPlanBlock(plan, agent.PlanVerdict));
         }
-
+        
         foreach (var round in agent.ToolRounds)
         {
             if (!string.IsNullOrWhiteSpace(round.ModelNote))

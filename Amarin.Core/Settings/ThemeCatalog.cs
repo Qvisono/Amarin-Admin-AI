@@ -14,7 +14,7 @@ namespace Amarin.Core;
 /// <param name="Grain">
 /// Сколько матового зерна просит тема, 0..1. Его хотят только две «матовые» темы; остальные вышли
 /// раньше слоя зерна и должны выглядеть как прежде. Палитра сама нести это не может — в ней только
-/// 48 кистей, — поэтому пожелание живёт здесь, а <c>AppearanceSettings.Grain</c> его перекрывает,
+/// 49 кистей, — поэтому пожелание живёт здесь, а <c>AppearanceSettings.Grain</c> его перекрывает,
 /// как только человек тронет ползунок.
 /// </param>
 public readonly record struct ThemePresetInfo(
@@ -55,6 +55,7 @@ public static class ThemeCatalog
         new(AppTheme.Dark, "Dark", "Dark", false, "#0E0E0E", "#1F1F1F", "#EAEAEA"),
         new(AppTheme.Obsidian, "Obsidian", "Obsidian", false, "#000000", "#151515", "#F2F2F2"),
         new(AppTheme.Carbon, "Carbon", "Carbon", false, "#161617", "#262628", "#ECECEC"),
+        new(AppTheme.GlueGray, "GlueGray", "GlueGray", false, "#111113", "#202023", "#E8E9EC"),
         new(AppTheme.Graphite, "Graphite", "Graphite", false, "#1C1C1E", "#323234", "#0A72E6"),
         new(AppTheme.Matte, "Matte", "Matte", false, "#17181A", "#26282C", "#6E8FB4", 0.55),
         new(AppTheme.Onyx, "Onyx", "Onyx", false, "#131518", "#22262B", "#A9BCD3"),

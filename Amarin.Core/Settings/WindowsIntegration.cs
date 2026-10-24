@@ -46,13 +46,22 @@ internal static class GlobalHotkeys
     /// <summary>Снимок выделенной области в открытый чат (1.37.0).</summary>
     public const string RegionScreenshot = "region-screenshot";
 
-    public static readonly string[] All = [ShowHide, NewFromClipboard, NewWithScreenshot, RegionScreenshot];
+    /// <summary>Быстрый вопрос — маленькое окно поверх всех (1.37.0).</summary>
+    public const string QuickAsk = "quick-ask";
+
+    public static readonly string[] All = [ShowHide, NewFromClipboard, NewWithScreenshot, RegionScreenshot, QuickAsk];
 
     /// <summary>
-    /// Заводское — только у «показать или спрятать». Предположение, что Windows это сочетание не
-    /// занимает, проверяется при регистрации: занятое называется человеку как конфликт.
+    /// Заводское — у «показать или спрятать» и у быстрого вопроса: ради него вопрос и задают из
+    /// любой программы, без назначенной клавиши его нет. Предположение, что Windows это сочетание
+    /// не занимает, проверяется при регистрации: занятое называется человеку как конфликт.
     /// </summary>
-    public static string? Default(string action) => action == ShowHide ? "Win+Shift+A" : null;
+    public static string? Default(string action) => action switch
+    {
+        ShowHide => "Win+Shift+A",
+        QuickAsk => "Win+Shift+Q",
+        _ => null
+    };
 
     public static string? Effective(WindowsIntegrationSettings settings, string action) =>
         settings.Hotkeys.TryGetValue(action, out var gesture) ? (string.IsNullOrWhiteSpace(gesture) ? null : gesture) : Default(action);

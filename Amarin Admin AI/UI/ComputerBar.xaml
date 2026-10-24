@@ -36,9 +36,9 @@
 
     <!-- Поля под тень, как у карточек в углу: тень видна внутри своего окна. -->
     <Border x:Name="Card" Width="440" Margin="18,12,18,22"
-            Background="{DynamicResource Bg.Panel}"
+            Background="{DynamicResource Bg.Sheet}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-            CornerRadius="12" Padding="14,10,10,10">
+            CornerRadius="10" Padding="14,10,10,10">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45"/>
         </Border.Effect>

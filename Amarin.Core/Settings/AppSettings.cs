@@ -126,7 +126,8 @@ public enum AppTheme
     // Значения ниже 1.35 и раньше не знают: в settings.json они пишутся числом (AppThemeJsonConverter).
     // Перечисление только дописывается в конец — число в файле и есть тема.
     Onyx,
-    Carbon
+    Carbon,
+    GlueGray
 }
 
 public sealed class AppSettings : IJsonOnDeserializing

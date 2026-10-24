@@ -54,18 +54,25 @@ internal static class CodeBlockView
     /// доходит до ленты, которая открывает своё — с «Ответить». В журнале и окне подтверждения
     /// ленты нет, и там остаётся штатное меню.
     /// </param>
+    /// <param name="caption">Подпись в шапке вместо имени языка.</param>
+    /// <param name="copyOnly">
+    /// Только «Копировать»: в окне подтверждения код читают перед решением, и «запустить через
+    /// агента», «сохранить» и перенос там лишние — а запуск из вопроса «запускать ли» и опасен.
+    /// </param>
     public static FrameworkElement Create(
         FrameworkElement host,
         string code,
         string? language,
         bool cache = true,
-        bool chatMenu = false)
+        bool chatMenu = false,
+        string? caption = null,
+        bool copyOnly = false)
     {
         code = code.Replace("\r\n", "\n").TrimEnd('\n');
 
         var label = new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(language) ? "text" : language.Trim().ToLowerInvariant(),
+            Text = caption ?? (string.IsNullOrWhiteSpace(language) ? "text" : language.Trim().ToLowerInvariant()),
             FontSize = 11,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(2, 0, 0, 0)
@@ -84,15 +91,19 @@ internal static class CodeBlockView
         var wrap = GlyphButton(host, "M1,2 L13,2 M1,6 L11,6 A2.5,2.5 0 0 1 11,11 L7,11 M8.5,9 L6.5,11 L8.5,13 M1,10 L4,10", Loc.Get("S.Code.Wrap"));
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        if (CodeLanguages.IsRunnableScript(language))
+        if (!copyOnly && CodeLanguages.IsRunnableScript(language))
         {
             var run = GlyphButton(host, "M3,1.5 L12,7 L3,12.5 Z", Loc.Get("S.Code.RunViaAgent"));
             run.Click += (_, _) => run.RaiseEvent(new RunScriptEventArgs(RunScriptEvent, run, code, CodeLanguages.Normalize(language)));
             buttons.Children.Add(run);
         }
 
-        buttons.Children.Add(wrap);
-        buttons.Children.Add(save);
+        if (!copyOnly)
+        {
+            buttons.Children.Add(wrap);
+            buttons.Children.Add(save);
+        }
+
         buttons.Children.Add(copy);
 
         var header = new Grid { Margin = new Thickness(10, 3, 4, 3) };

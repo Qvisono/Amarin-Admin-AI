@@ -15,7 +15,7 @@
     <Grid>
         <Border Background="{DynamicResource Overlay.Scrim}"/>
         <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border x:Name="Card" Style="{StaticResource DialogCard}" Width="500" MinHeight="200" MaxHeight="600">
+            <Border x:Name="Card" Style="{StaticResource DialogCard}" Width="480" MinHeight="180" MaxHeight="600">
                 <!-- Grid, а не StackPanel: длинный план уходит в прокрутку строки «*», а кнопки
                      в строке Auto остаются на карточке (см. памятку про модалки). -->
                 <Grid>
@@ -110,7 +110,7 @@
                                     Style="{StaticResource DialogSecondaryButton}" Click="CancelButton_Click"/>
                             <StackPanel Grid.Column="2" Orientation="Horizontal">
                                 <Button x:Name="AmendButton" Content="{DynamicResource S.Plan.Amend}"
-                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,6,0"
                                         Click="AmendButton_Click"/>
                                 <Button x:Name="ExecuteButton" Content="{DynamicResource S.Plan.Execute}"
                                         Style="{StaticResource DialogPrimaryButton}" Click="ExecuteButton_Click"/>

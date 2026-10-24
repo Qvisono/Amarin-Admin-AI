@@ -1,7 +1,11 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Amarin.Core;
+using Amarin.Tools;
 
 namespace Amarin.UI;
 
@@ -24,11 +28,23 @@ public partial class HealthPanel : UserControl
     private Dictionary<HealthArea, HealthCard?> _cards = [];
     private bool _refreshing;
 
+    /// <summary>
+    /// Шаг живых плиток. Чаще — дёргалось бы число, реже — плитка переставала бы казаться живой.
+    /// </summary>
+    internal static readonly TimeSpan LiveStep = TimeSpan.FromSeconds(2);
+
+    private readonly DispatcherTimer _live = new() { Interval = LiveStep };
+    private SystemLoadMeter? _meter;
+
     public HealthPanel()
     {
         InitializeComponent();
         SmoothScroll.SetIsEnabled(CardsScroll, true);
+        _live.Tick += (_, _) => ShowLive();
     }
+
+    /// <summary>Источник живых плиток; null — настоящий замер. Тесты дают свой.</summary>
+    internal Func<SystemLoad>? LiveSource { get; set; }
 
     /// <summary>«Разобраться»: хозяин открывает новый чат с контекстом карточки в поле.</summary>
     internal event Action<string>? AskRequested;
@@ -60,7 +76,83 @@ public partial class HealthPanel : UserControl
             Refresh();
         }
 
+        // Первый замер ЦП — только точка отсчёта, поэтому плитки снимаются сразу и потом по шагу:
+        // через две секунды число уже настоящее.
+        ShowLive();
+        _live.Start();
         Focus();
+    }
+
+    /// <summary>
+    /// Ставит плашку под её кнопку: правый край — по правому краю кнопки, верх — под ней.
+    /// Координаты — в системе самой панели, она лежит во весь слой окна.
+    /// </summary>
+    internal void Place(Rect button)
+    {
+        var right = Math.Max(8, ActualWidth - button.Right);
+        var top = button.Bottom + 4;
+        Card.Margin = new Thickness(0, top, right, 0);
+        Card.MaxHeight = Math.Max(200, Math.Min(560, ActualHeight - top - 12));
+    }
+
+    private void ShowLive()
+    {
+        SystemLoad load;
+        try
+        {
+            load = LiveSource?.Invoke() ?? (_meter ??= new SystemLoadMeter()).Take();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // Счётчик Windows недоступен — плитки остаются с прочерком, как до первого замера.
+            return;
+        }
+
+        ShowTile(CpuValue, CpuBar, load.CpuPercent, HealthStatus.Ok);
+        ShowTile(MemoryValue, MemoryBar, load.MemoryPercent,
+            load.MemoryPercent >= HealthRules.MemoryAttentionLoad ? HealthStatus.Attention : HealthStatus.Ok);
+
+        if (load.SystemDrive is { } drive)
+        {
+            DiskLabel.Text = Loc.Format("S.Health.Live.Free", drive.Name);
+            DiskValue.Text = HealthRules.Size(drive.FreeBytes);
+            Tone(DiskValue, DiskBar, HealthRules.DriveStatus(drive));
+            Fill(DiskBar, 1 - drive.FreePercent / 100);
+        }
+        else
+        {
+            DiskLabel.Text = Loc.Format("S.Health.Live.Free", "");
+            DiskValue.Text = "-";
+            Fill(DiskBar, 0);
+        }
+    }
+
+    private static void ShowTile(TextBlock value, Border bar, double? percent, HealthStatus status)
+    {
+        value.Text = percent is { } shown ? Math.Round(shown).ToString(CultureInfo.InvariantCulture) + "%" : "-";
+        Tone(value, bar, status);
+        Fill(bar, (percent ?? 0) / 100);
+    }
+
+    /// <summary>Цвет — только у того, что требует внимания, как и у строк разделов.</summary>
+    private static void Tone(TextBlock value, Border bar, HealthStatus status)
+    {
+        var key = status switch
+        {
+            HealthStatus.Problem => "Status.Danger",
+            HealthStatus.Attention => "Status.Warning",
+            _ => null
+        };
+        value.SetResourceReference(TextBlock.ForegroundProperty, key ?? "Text.Primary");
+        bar.SetResourceReference(Border.BackgroundProperty, key ?? "Text.Dim");
+    }
+
+    private static void Fill(Border bar, double fraction)
+    {
+        if (bar.RenderTransform is ScaleTransform scale && !scale.IsFrozen)
+        {
+            scale.ScaleX = Math.Clamp(fraction, 0, 1);
+        }
     }
 
     /// <summary>
@@ -157,7 +249,17 @@ public partial class HealthPanel : UserControl
     {
         Cards.ItemsSource = Rows(_cards);
         Summary.DataContext = _refreshing ? new HealthSummary("Loading", Loc.Get("S.Health.Checking")) : Summarize(_cards);
-        UpdatedText.Text = at is { } time ? " · " + Updated(time, DateTime.Now, _format()) : "";
+
+        // Итог словами — подсказкой у точки: строки разделов и так говорят, где замечание, а
+        // повтор их фразой под заголовком только удлинял шапку.
+        if (_refreshing)
+        {
+            UpdatedText.Text = Loc.Get("S.Health.Checking");
+        }
+        else if (at is { } time)
+        {
+            UpdatedText.Text = Updated(time, DateTime.Now, _format());
+        }
     }
 
     /// <summary>«проверено в 01:12» сегодня, полная дата — раньше: дата у свежей проверки только удлиняла строку итога.</summary>
@@ -189,9 +291,10 @@ public partial class HealthPanel : UserControl
         }
     }
 
-    /// <summary>Снимает идущий сбор — панель закрыли.</summary>
+    /// <summary>Снимает идущий сбор и живые плитки — панель закрыли.</summary>
     internal void Cancel()
     {
+        _live.Stop();
         var cancel = _collect;
         _collect = null;
         _refreshing = false;
@@ -224,6 +327,22 @@ internal sealed class HealthCardRow(HealthArea area, HealthCard? card, bool firs
 
     /// <summary>Имя значения <see cref="HealthStatus"/>; «Loading», пока идёт проверка.</summary>
     public string Tone { get; } = card is null ? "Loading" : card.Status.ToString();
+
+    /// <summary>
+    /// Итог раздела справа от имени. Пока идёт проверка — пусто: «Проверяю…» уже стоит строкой
+    /// под именем.
+    /// </summary>
+    public string Status { get; } = card is null ? "" : Loc.Get("S.Health.Status." + card.Status);
+
+    /// <summary>Значок раздела, сетка 16: диск, микросхема, щит, пульс, стрелка в лоток.</summary>
+    public Geometry Glyph { get; } = Glyphs.Get(area switch
+    {
+        HealthArea.Disks => "M2.5,4 L13.5,4 L13.5,12 L2.5,12 Z M2.5,8.5 L13.5,8.5 M11,10.3 L11.01,10.3",
+        HealthArea.System => "M4.5,4.5 L11.5,4.5 L11.5,11.5 L4.5,11.5 Z M6.5,2 L6.5,4.5 M9.5,2 L9.5,4.5 M6.5,11.5 L6.5,14 M9.5,11.5 L9.5,14 M2,6.5 L4.5,6.5 M2,9.5 L4.5,9.5 M11.5,6.5 L14,6.5 M11.5,9.5 L14,9.5",
+        HealthArea.Security => "M8,1.8 L13,3.6 L13,7.6 C13,10.7 10.9,13.1 8,14.2 C5.1,13.1 3,10.7 3,7.6 L3,3.6 Z",
+        HealthArea.Stability => "M1.5,8 L4.5,8 L6,4.5 L8.5,12 L10,8 L14.5,8",
+        _ => "M8,2 L8,10 M4.8,7 L8,10.2 L11.2,7 M2.5,11.5 L2.5,13.5 L13.5,13.5 L13.5,11.5"
+    });
 
     /// <summary>
     /// Строки раздела. Пока проверка идёт — одна «Проверяю…»; у снимка прежней версии строк нет,

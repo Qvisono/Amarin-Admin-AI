@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
@@ -433,6 +434,73 @@ public sealed class HealthPanelUiTests
 
             Assert.All(Enum.GetValues<HealthArea>(), area => Assert.Contains("old " + area, labels));
             Assert.Equal("Loading", summary);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// С 1.37.0 «Состояние ПК» — плашка под своей кнопкой, а не окно на весь экран: правый край
+    /// по кнопке, верх под ней, окно под ней не темнеет. Наверху — живые ЦП, память и диск.
+    /// </summary>
+    [Fact]
+    public void The_panel_hangs_under_its_button_without_darkening_the_window_and_shows_live_load()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "amarin-health-place-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var state = _wpf.Ui.Invoke(() =>
+            {
+                var cache = new HealthCache(root);
+                cache.Store(new HealthReport
+                {
+                    At = DateTime.Now,
+                    Cards = Enum.GetValues<HealthArea>().Select(area => new HealthCard { Area = area, Status = HealthStatus.Ok }).ToList()
+                });
+
+                var panel = new HealthPanel
+                {
+                    Width = 1000,
+                    Height = 700,
+                    LiveSource = () => new Amarin.Tools.SystemLoad(12, 93, new Amarin.Tools.DriveHealth("C:", 200L << 30, 5L << 30))
+                };
+                panel.Attach(cache, () => DateFormat.DayMonthShort);
+                panel.Measure(new Size(1000, 700));
+                panel.Arrange(new Rect(0, 0, 1000, 700));
+                panel.Place(new Rect(880, 4, 30, 30));
+                panel.Open();
+                panel.UpdateLayout();
+
+                var card = (FrameworkElement)panel.FindName("Card");
+                var catcher = (Border)panel.FindName("Catcher");
+                var box = card.TransformToAncestor(panel).TransformBounds(new Rect(card.RenderSize));
+                var cpu = ((TextBlock)panel.FindName("CpuValue")).Text;
+                var memory = (TextBlock)panel.FindName("MemoryValue");
+                var disk = ((TextBlock)panel.FindName("DiskValue")).Text;
+                var warning = ((SolidColorBrush)Application.Current.FindResource("Status.Warning")).Color;
+                var danger = ((SolidColorBrush)Application.Current.FindResource("Status.Danger")).Color;
+                var diskText = (TextBlock)panel.FindName("DiskValue");
+                panel.Cancel();
+                return (
+                    box,
+                    Transparent: catcher.Background is SolidColorBrush { Color.A: 0 },
+                    cpu,
+                    MemoryWarns: ((SolidColorBrush)memory.Foreground).Color == warning,
+                    disk,
+                    DiskAlarms: ((SolidColorBrush)diskText.Foreground).Color == danger);
+            });
+
+            Assert.Equal(910, state.box.Right, 1);
+            Assert.Equal(38, state.box.Top, 1);
+            Assert.True(state.box.Height < 700, "плашка растянулась на всё окно");
+            Assert.True(state.Transparent, "окно под плашкой затемняется");
+            Assert.Equal("12%", state.cpu);
+            Assert.True(state.MemoryWarns, "занятая на 93% память не выделена");
+            Assert.NotEqual("-", state.disk);
+            Assert.True(state.DiskAlarms, "5 ГБ свободных на системном диске не выделены");
         }
         finally
         {

@@ -1,0 +1,64 @@
+<UserControl x:Class="Amarin.UI.CommandPalette"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI"
+             KeyboardNavigation.TabNavigation="Cycle"
+             PreviewKeyDown="Palette_PreviewKeyDown">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        Палитра команд (1.37.0, Ctrl+Shift+P): действия, настройки, рецепты, команды «/» и чаты
+        одним поиском. Сверху по центру, как у редакторов кода: под ней видно, где человек
+        был, а список растёт вниз, не сдвигая поле поиска под пальцами.
+    -->
+    <Grid>
+        <Border Background="{DynamicResource Overlay.Scrim}" MouseLeftButtonDown="Scrim_MouseLeftButtonDown"/>
+        <Border x:Name="Card" Width="520" Margin="0,56,0,24" HorizontalAlignment="Center" VerticalAlignment="Top"
+                Background="{DynamicResource Bg.Sheet}" BorderBrush="{DynamicResource Border.Default}"
+                BorderThickness="1" CornerRadius="10" MouseLeftButtonDown="Card_MouseLeftButtonDown">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Height="40" Margin="14,0,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Path Data="M6.5,1.5 A5,5 0 1 1 6.49,1.5 Z M10.2,10.2 L14,14" Stroke="{DynamicResource Text.Dim}"
+                          StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Width="15" Height="15" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <TextBox x:Name="Search" Grid.Column="1" Style="{StaticResource DialogInput}" FontSize="13.5"
+                             Tag="{DynamicResource S.Palette.Search}"
+                             AutomationProperties.Name="{DynamicResource S.Hotkeys.CommandPalette}"
+                             TextChanged="Search_TextChanged"/>
+                    <Border Grid.Column="2" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="4" Padding="5,0" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Esc" FontSize="11" Foreground="{DynamicResource Text.Muted}"/>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Row="1" Height="1" Background="{DynamicResource Border.Subtle}"/>
+
+                <Grid Grid.Row="2">
+                    <ScrollViewer x:Name="ListScroll" MaxHeight="360" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled" local:SmoothScroll.IsEnabled="True">
+                        <StackPanel x:Name="Rows" Margin="6,2,6,6"/>
+                    </ScrollViewer>
+                    <TextBlock x:Name="EmptyText" Text="{DynamicResource S.Palette.Empty}" FontSize="12"
+                               Foreground="{DynamicResource Text.Faint}" Margin="20,12,20,14" Visibility="Collapsed"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

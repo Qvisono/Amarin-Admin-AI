@@ -17,6 +17,21 @@ internal sealed class JournalRow
     /// <summary>Status mark. The template colours it from <see cref="IsFailure"/>/<see cref="IsPending"/>.</summary>
     public required string Glyph { get; init; }
 
+    /// <summary>
+    /// Значок того же смысла, нарисованный пером (1.37.0): символы ✓ ✕ ↺ ◷ ≡ ⊘ разных шрифтов
+    /// стояли в строке разной высоты и толщины. Сетка 12, обводка, без заливки.
+    /// </summary>
+    public System.Windows.Media.Geometry Icon => Glyphs.Get(Glyph switch
+    {
+        "✓" => "M2,6.5 L5,9.5 L10.5,3",
+        "✕" => "M3,3 L9,9 M9,3 L3,9",
+        "↺" => "M3.2,7.5 A3.6,3.6 0 1 0 3.6,4 M2.6,1.8 L3.6,4.2 L6,3.4",
+        "◷" => "M10.5,6 A4.5,4.5 0 1 1 1.5,6 A4.5,4.5 0 1 1 10.5,6 Z M6,3.5 L6,6 L7.8,7.2",
+        "≡" => "M2,3.5 L10,3.5 M2,6 L10,6 M2,8.5 L7,8.5",
+        "⊘" => "M10.5,6 A4.5,4.5 0 1 1 1.5,6 A4.5,4.5 0 1 1 10.5,6 Z M2.9,9.1 L9.1,2.9",
+        _ => "M2.5,6 L2.6,6 M6,6 L6.1,6 M9.5,6 L9.6,6"
+    });
+
     public required bool IsFailure { get; init; }
 
     public required bool IsPending { get; init; }

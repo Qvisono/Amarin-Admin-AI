@@ -41,7 +41,13 @@ public sealed record DangerousActionInfo(
     /// Удалённая машина, на которой исполнится вызов; null — этот ПК. Окно подтверждения
     /// называет её, а пробный прогон не запускается: он прошёл бы здесь, а не там.
     /// </summary>
-    string? Target = null)
+    string? Target = null,
+    /// <summary>
+    /// Что в скрипте сочтено записью (<see cref="PowerShellAnalysis"/>), по команде на пункт. Та же
+    /// строка лежит и в <see cref="ChangeSummary"/> — её читают аудит и окна без разбора; окно
+    /// подтверждения показывает пункты плашками и строку из сводки снимает.
+    /// </summary>
+    IReadOnlyList<string>? Reasons = null)
 {
     /// <summary>
     /// Согласие на будущее, а не на сейчас: отложенная команда выполнится без человека, поэтому
@@ -211,9 +217,11 @@ internal static partial class DangerousActionGuard
 
         // Что именно в скрипте сочтено записью: человек решает про эти команды, а не про весь
         // текст, в котором их ещё надо найти.
+        IReadOnlyList<string>? reasons = null;
         if (toolName.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
             PowerShellAnalysis.Analyze(arguments) is { IsWrite: true, Reasons.Count: > 0 } verdict)
         {
+            reasons = [.. verdict.Reasons];
             var changes = Amarin.Core.Loc.Format("S.Confirm.ScriptChanges", string.Join(", ", verdict.Reasons));
             changeSummary += "\n" + changes;
             sb.AppendLine(changes);
@@ -312,7 +320,8 @@ internal static partial class DangerousActionGuard
             explanation,
             codeText,
             codeLanguage,
-            Arguments: arguments.ValueKind == JsonValueKind.Undefined ? null : arguments.Clone());
+            Arguments: arguments.ValueKind == JsonValueKind.Undefined ? null : arguments.Clone(),
+            Reasons: reasons);
     }
 
     /// <summary>Что человеку важно знать про новые действия, кроме сводки: перезагрузка, отката нет.</summary>

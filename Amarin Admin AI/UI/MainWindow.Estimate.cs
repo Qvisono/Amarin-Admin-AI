@@ -58,26 +58,29 @@ namespace Amarin.UI
             }
 
             CostEstimateText.Text = CostEstimator.Format(shown);
-            var tip = Loc.Format("S.Estimate.Tip", input.ToString("N0"), output.ToString("N0"));
-            if (shown.IsRange)
-            {
-                tip += "\n" + Loc.Get("S.Estimate.AutoTip");
-            }
 
+            // Подсказка (1.37.0) — цена и оговорки тусклыми строками. Как считали (токены, каталог
+            // цен) и почему у «Авто» разброс, человеку не нужно: это загружало подсказку текстом,
+            // которого никто не читал. Оговорки о неучтённом остаются — они меняют смысл числа.
+            var notes = new List<TipNote>();
             if (prices.Any(price => price is null))
             {
-                tip += "\n" + Loc.Get("S.Estimate.Unpriced");
+                notes.Add(new TipNote(Loc.Get("S.Estimate.Unpriced")));
             }
 
             if (_pendingImages.Count > 0 || _pendingFiles.Any(file => !IsTextDocument(file.MimeType)))
             {
-                tip += "\n" + Loc.Get("S.Estimate.Images");
+                notes.Add(new TipNote(Loc.Get("S.Estimate.Images")));
             }
 
-            tip += "\n" + Loc.Get("S.Estimate.Agent");
-            CostEstimateText.ToolTip = tip;
+            notes.Add(new TipNote(Loc.Get("S.Estimate.Agent")));
+            _estimateTip ??= CostBreakdownTooltip.CreateEmpty();
+            CostBreakdownTooltip.Fill(_estimateTip, new TipRow(Loc.Get("S.Estimate.Label"), CostEstimateText.Text), [], notes);
+            CostEstimateText.ToolTip = _estimateTip;
             CostEstimateText.Visibility = Visibility.Visible;
         }
+
+        private System.Windows.Controls.ToolTip? _estimateTip;
 
         /// <summary>
         /// Токены прикреплённых текстовых документов — по размеру файла. PDF и прочие двоичные

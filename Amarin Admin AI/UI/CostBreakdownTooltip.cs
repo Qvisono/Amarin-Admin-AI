@@ -27,6 +27,20 @@ namespace Amarin.UI;
 /// полям и наличию стрелки.
 /// </para>
 /// </remarks>
+/// <summary>Строка таблицы подсказки: подпись слева, значение столбцом справа.</summary>
+internal readonly record struct TipRow(string Label, string Value, bool Bold = false);
+
+/// <summary>Цвет заметки под таблицей подсказки.</summary>
+internal enum TipNoteTone
+{
+    Dim,
+    Warning,
+    Danger
+}
+
+/// <summary>Заметка под таблицей подсказки: пояснение тусклым или предупреждение цветом.</summary>
+internal readonly record struct TipNote(string Text, TipNoteTone Tone = TipNoteTone.Dim);
+
 internal static class CostBreakdownTooltip
 {
     /// <summary>
@@ -95,6 +109,65 @@ internal static class CostBreakdownTooltip
         }
 
         card.Card.Child = rows;
+    }
+
+    /// <summary>
+    /// Таблица у плашек поля ввода (1.37.0): остаток, контекст, цена ответа. Сверху — итог, под
+    /// чертой — строки с числами столбцом справа, ниже — заметки. Числа справа, а пояснения
+    /// тусклые и отдельно: прежде доллары шли сразу за подписью, а объяснения — тем же цветом,
+    /// что цифры, и глазу не за что было зацепиться.
+    /// </summary>
+    public static void Fill(ToolTip tip, TipRow total, IReadOnlyList<TipRow> rows, IReadOnlyList<TipNote> notes)
+    {
+        ArgumentNullException.ThrowIfNull(tip);
+        if (tip is not CostTip card)
+        {
+            return;
+        }
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var line = 0;
+        AddRow(grid, ref line, total.Label, total.Value, bold: true);
+        if (rows.Count > 0)
+        {
+            AddRule(grid, ref line);
+            foreach (var row in rows)
+            {
+                AddRow(grid, ref line, row.Label, row.Value, row.Bold);
+            }
+        }
+
+        if (notes.Count > 0)
+        {
+            AddRule(grid, ref line);
+            foreach (var note in notes)
+            {
+                var text = new TextBlock
+                {
+                    Text = note.Text,
+                    FontSize = 11,
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 15,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    Margin = new Thickness(0, 1, 0, 1)
+                };
+                text.SetResourceReference(TextBlock.ForegroundProperty, note.Tone switch
+                {
+                    TipNoteTone.Warning => "Status.Warning",
+                    TipNoteTone.Danger => "Status.Danger",
+                    _ => "Text.Faint"
+                });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                Grid.SetRow(text, line);
+                Grid.SetColumnSpan(text, 2);
+                grid.Children.Add(text);
+                line++;
+            }
+        }
+
+        card.Card.Child = grid;
     }
 
     private static void AddRule(Grid rows, ref int line)
@@ -193,7 +266,12 @@ internal static class CostBreakdownTooltip
         return rows;
     }
 
-    private static void AddRow(Grid rows, ref int line, string label, VeniceCost? cost, bool bold)
+    private static void AddRow(Grid rows, ref int line, string label, VeniceCost? cost, bool bold) =>
+        // Нулевая цена — тоже строка: инструмент работал и ничего не взял, а это не то же,
+        // что «не работал».
+        AddRow(rows, ref line, label, ChatFormat.Cost(cost) is { Length: > 0 } value ? value : "$0", bold);
+
+    private static void AddRow(Grid rows, ref int line, string label, string value, bool bold)
     {
         var name = new TextBlock
         {
@@ -208,9 +286,7 @@ internal static class CostBreakdownTooltip
 
         var price = new TextBlock
         {
-            // Нулевая цена — тоже строка: инструмент работал и ничего не взял, а это не то же,
-            // что «не работал».
-            Text = ChatFormat.Cost(cost) is { Length: > 0 } value ? value : "$0",
+            Text = value,
             FontSize = 11.5,
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 1, 0, 1),
@@ -246,7 +322,7 @@ internal static class CostBreakdownTooltip
             Padding = new Thickness(10, 8, 10, 8),
             Child = content
         };
-        card.SetResourceReference(Border.BackgroundProperty, "Bg.Panel");
+        card.SetResourceReference(Border.BackgroundProperty, "Bg.Sheet");
         card.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
 
         // По центру, как и у подсказок из неявного стиля: карточка встаёт по центру под своей
@@ -259,7 +335,7 @@ internal static class CostBreakdownTooltip
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 0, 0, -1)
         };
-        arrow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Bg.Panel");
+        arrow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Bg.Sheet");
         arrow.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Border.Default");
 
         var stack = new Grid();
