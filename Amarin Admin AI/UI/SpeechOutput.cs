@@ -171,7 +171,9 @@ internal sealed class SpeechOutput : IDisposable
         }
         finally
         {
-            // Озвученная наперёд часть, которую уже не сыграют: её сбой никто не ждёт.
+            // Озвученная наперёд часть, которую уже не сыграют: после сбоя её запрос обрывается, а не
+            // доходит до конца и не списывает деньги; её отказ никто не ждёт.
+            cancel.Cancel();
             _ = pending.ContinueWith(task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
             cancel.Dispose();
         }

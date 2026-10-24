@@ -2224,7 +2224,6 @@ internal static class StringsRu
             ["S.Speech.EngineWindows"] = "Windows на этом ПК",
             ["S.Speech.Failed"] = "Прочитать вслух не удалось: {0}",
             ["S.Speech.Voice"] = "Голос",
-            ["S.Speech.VoiceHint"] = "Голоса, установленные в Windows",
             ["S.Speech.VoiceAuto"] = "Авто",
             ["S.Speech.Rate"] = "Скорость",
             ["S.Speech.RateSlow"] = "Медленно",

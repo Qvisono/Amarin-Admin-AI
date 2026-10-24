@@ -2091,7 +2091,7 @@ namespace Amarin.UI
             }
 
             // Esc во время записи голоса (D14) отменяет запись — раньше всего остального.
-            if (e.Key == Key.Escape && ((IsRecording && CancelRecording()) || CancelTranscription()))
+            if (e.Key == Key.Escape && IsRecording && CancelRecording())
             {
                 e.Handled = true;
                 return;
@@ -2107,6 +2107,15 @@ namespace Amarin.UI
 
             // Esc останавливает ответ (D8) — после лупы: пока лента приближена, Esc снимает её.
             if (TryStopByEscape(e))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // Расшифровка записи идёт минутами: Esc отменяет её, только если не нужен ни ответу,
+            // ни выбору, ни слою поверх чата, ни поиску — иначе он молча рвал бы её вместо своего дела.
+            if (e.Key == Key.Escape && !ChatCoveredByOverlay() && !FindBar.IsKeyboardFocusWithin &&
+                !SearchBox.IsKeyboardFocusWithin && CancelTranscription())
             {
                 e.Handled = true;
                 return;
@@ -2293,6 +2302,9 @@ namespace Amarin.UI
         {
             _stickToBottom = true;
             LeaveTemporary(_session);
+
+            // Ответ ушедшего чата больше не читается: кнопки, которой его остановить, на экране нет.
+            _speech?.Stop();
             _session = _services?.ChatStore.CreateNew(CurrentModelId()) ?? new ChatSession
             {
                 Id = Guid.NewGuid().ToString("N"),
@@ -2327,6 +2339,7 @@ namespace Amarin.UI
             if (!ReferenceEquals(_session, session))
             {
                 LeaveTemporary(_session);
+                _speech?.Stop();
             }
 
             _session = session;

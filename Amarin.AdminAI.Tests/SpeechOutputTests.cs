@@ -37,6 +37,14 @@ public sealed class SpeechOutputTests
     }
 
     [Fact]
+    public void Text_between_two_dollar_prices_is_read_and_a_formula_still_is_not()
+    {
+        // До правки «$5 … $10» принималось за формулу и выпадало вместе со словами между ценами.
+        Assert.Equal("Было $5, а стало $10 за месяц.", SpeechText.From("Было $5, а стало $10 за месяц."));
+        Assert.Equal("Площадь равна квадратных метров.", SpeechText.From("Площадь равна $x^2 + 1$ квадратных метров."));
+    }
+
+    [Fact]
     public void Empty_text_reads_as_nothing() =>
         Assert.Equal("", SpeechText.From("   "));
 }

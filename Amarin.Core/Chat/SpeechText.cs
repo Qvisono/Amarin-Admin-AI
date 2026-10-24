@@ -21,7 +21,9 @@ internal static partial class SpeechText
 
         var text = new StringBuilder();
         Append(text, MarkdownBlocks.Parse(DisplayMath().Replace(markdown, " ")));
-        return Spaces().Replace(InlineMath().Replace(text.ToString(), " "), " ").Trim();
+        // Формулой считается то же, что в ленте: между двумя ценами в долларах — слова, и их читают.
+        var spoken = InlineMath().Replace(text.ToString(), match => MathDetection.LooksLikeMath(match.Value[1..^1]) ? " " : match.Value);
+        return Spaces().Replace(spoken, " ").Trim();
     }
 
     /// <summary>

@@ -149,6 +149,7 @@ namespace Amarin.UI
         {
             _attachmentNotes.Clear();
             var before = _pendingImages.Count + _pendingFiles.Count;
+            var media = new List<string>();
             foreach (var path in paths)
             {
                 if (ImageHelpers.IsImageFile(path))
@@ -166,7 +167,7 @@ namespace Amarin.UI
                 // Запись и видео (1.37.0) расшифровываются и прикрепляются текстом, когда готово.
                 if (MediaAudio.IsMedia(path))
                 {
-                    Detached.Run(TranscribeMediaAsync(path), "transcribe_media");
+                    media.Add(path);
                     continue;
                 }
 
@@ -174,6 +175,12 @@ namespace Amarin.UI
                     "S.Attach.UnsupportedFormat",
                     Path.GetFileName(path),
                     AttachmentTypes.DescribeExtension(path)));
+            }
+
+            // Одной очередью: каждая запись своим вызовом отменяла бы предыдущую.
+            if (media.Count > 0)
+            {
+                Detached.Run(TranscribeMediaAsync(media), "transcribe_media");
             }
 
             RefreshAttachments();

@@ -2257,7 +2257,6 @@
     <system:String x:Key="S.Speech.EngineWindows" xml:space="preserve">Windows on this PC</system:String>
     <system:String x:Key="S.Speech.Failed" xml:space="preserve">Could not read aloud: {0}</system:String>
     <system:String x:Key="S.Speech.Voice" xml:space="preserve">Voice</system:String>
-    <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Voices installed in Windows</system:String>
     <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Speech.Rate" xml:space="preserve">Speed</system:String>
     <system:String x:Key="S.Speech.RateSlow" xml:space="preserve">Slow</system:String>

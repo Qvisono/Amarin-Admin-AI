@@ -2257,7 +2257,6 @@
     <system:String x:Key="S.Speech.EngineWindows" xml:space="preserve">Windows на этом ПК</system:String>
     <system:String x:Key="S.Speech.Failed" xml:space="preserve">Прочитать вслух не удалось: {0}</system:String>
     <system:String x:Key="S.Speech.Voice" xml:space="preserve">Голос</system:String>
-    <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Голоса, установленные в Windows</system:String>
     <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Speech.Rate" xml:space="preserve">Скорость</system:String>
     <system:String x:Key="S.Speech.RateSlow" xml:space="preserve">Медленно</system:String>

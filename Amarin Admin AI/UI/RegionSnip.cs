@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Amarin.Computer;
 using Amarin.Core;
 using Amarin.Tools;
@@ -57,20 +58,28 @@ internal static class RegionSnip
                 var windows = WindowsComputer.AllMonitors()
                     .Select(monitor => new SnipWindow(owner, source, monitor.Bounds, bounds, done))
                     .ToList();
-                foreach (var window in windows)
+                Drawing.Rectangle? area;
+                try
                 {
-                    window.Show();
-                    window.Place();
+                    foreach (var window in windows)
+                    {
+                        window.Show();
+                        window.Place();
+                    }
+
+                    // Клавиатура — окну под курсором: там человек и начнёт выделять, и туда же нажмёт Esc.
+                    _ = GetCursorPos(out var cursor);
+                    (windows.FirstOrDefault(window => window.Contains(cursor.X, cursor.Y)) ?? windows.FirstOrDefault())?.Activate();
+
+                    area = await done.Task;
                 }
-
-                // Клавиатура — окну под курсором: там человек и начнёт выделять, и туда же нажмёт Esc.
-                _ = GetCursorPos(out var cursor);
-                (windows.FirstOrDefault(window => window.Contains(cursor.X, cursor.Y)) ?? windows.FirstOrDefault())?.Activate();
-
-                var area = await done.Task;
-                foreach (var window in windows)
+                finally
                 {
-                    window.Close();
+                    // И при сбое: окно поверх всего экрана, которое некому закрыть, заперло бы монитор.
+                    foreach (var window in windows)
+                    {
+                        window.Close();
+                    }
                 }
 
                 return area is { } chosen ? ScreenshotTool.CropPng(desktop, chosen) : null;
@@ -211,11 +220,16 @@ internal static class RegionSnip
             Deactivated += (_, _) =>
             {
                 // Человек ушёл в другую программу (Alt+Tab, всплывшее окно) — выделение отменяется,
-                // а не висит поверх всего экрана.
-                if (!_done.Task.IsCompleted && !Application.Current.Windows.OfType<SnipWindow>().Any(window => window.IsActive))
+                // а не висит поверх всего экрана. Проверка — после очереди сообщений: при переходе
+                // на окно соседнего монитора Windows сперва гасит это окно и лишь потом активирует
+                // соседнее, и сразу здесь «ни одно не активно» отменяло выделение на втором мониторе.
+                _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
                 {
-                    _done.TrySetResult(null);
-                }
+                    if (!_done.Task.IsCompleted && !Application.Current.Windows.OfType<SnipWindow>().Any(window => window.IsActive))
+                    {
+                        _done.TrySetResult(null);
+                    }
+                });
             };
         }
 

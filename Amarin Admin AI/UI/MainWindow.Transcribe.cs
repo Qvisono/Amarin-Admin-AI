@@ -41,17 +41,11 @@ namespace Amarin.UI
             return true;
         }
 
-        private async Task TranscribeMediaAsync(string path)
+        /// <summary>Расшифровывает записи одного вложения по очереди; отмена или смена чата останавливает всю очередь.</summary>
+        private async Task TranscribeMediaAsync(IReadOnlyList<string> paths)
         {
             if (_services is null || !OperatingSystem.IsWindows())
             {
-                return;
-            }
-
-            var name = Path.GetFileName(path);
-            if (_pendingFiles.Count >= MaxAttachedFiles)
-            {
-                ShowTransientNotice(_session.Id, Loc.Format("S.Attach.TooManyFiles", MaxAttachedFiles));
                 return;
             }
 
@@ -64,6 +58,37 @@ namespace Amarin.UI
             _transcribeCancel?.Cancel();
             var cancel = _transcribeCancel = new CancellationTokenSource();
             var sessionId = _session.Id;
+            try
+            {
+                foreach (var path in paths)
+                {
+                    if (!await TranscribeOneAsync(path, cancel, sessionId))
+                    {
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                if (ReferenceEquals(_transcribeCancel, cancel))
+                {
+                    _transcribeCancel = null;
+                }
+
+                cancel.Dispose();
+            }
+        }
+
+        /// <returns>Идти ли к следующей записи: после отмены и при ненастроенном голосе — нет.</returns>
+        private async Task<bool> TranscribeOneAsync(string path, CancellationTokenSource cancel, string sessionId)
+        {
+            var name = Path.GetFileName(path);
+            if (_pendingFiles.Count >= MaxAttachedFiles)
+            {
+                ShowTransientNotice(sessionId, Loc.Format("S.Attach.TooManyFiles", MaxAttachedFiles));
+                return false;
+            }
+
             string? wav = null;
 
             // Итог — строкой под полем после того, как снята строка хода расшифровки.
@@ -76,7 +101,7 @@ namespace Amarin.UI
                 if (length > MaxMediaLength)
                 {
                     outcome = Loc.Format("S.Transcribe.TooLong", name);
-                    return;
+                    return true;
                 }
 
                 var parts = Math.Max(1, (int)Math.Ceiling(length / WavFile.MaxLength));
@@ -104,13 +129,13 @@ namespace Amarin.UI
 
                 if (_session.Id != sessionId || cancel.IsCancellationRequested)
                 {
-                    return;
+                    return false;
                 }
 
                 if (text.Length == 0)
                 {
                     outcome = Loc.Format("S.Transcribe.Nothing", name);
-                    return;
+                    return true;
                 }
 
                 var bytes = Encoding.UTF8.GetBytes(text.ToString().TrimEnd());
@@ -123,23 +148,28 @@ namespace Amarin.UI
                 WarmPendingDocuments();
                 RefreshAttachments();
                 _fox?.AttachmentAdded();
+                return true;
             }
             catch (OperationCanceledException)
             {
                 outcome = Loc.Get("S.Transcribe.Cancelled");
+                return false;
             }
             catch (InvalidDataException)
             {
                 outcome = Loc.Format("S.Transcribe.CannotRead", name);
+                return true;
             }
             catch (VoiceUnavailableException ex)
             {
                 ClearComposerNotice(sessionId);
                 await ShowNoticeAsync(Loc.Get("S.Voice.UnavailableTitle"), ex.Message, Loc.Get("S.Common.Close"), null, NoticeTone.Info);
+                return false;
             }
             catch (Exception ex) when (ex is HttpRequestException or VeniceApiException or TimeoutException or InvalidOperationException or IOException or UnauthorizedAccessException)
             {
                 outcome = Loc.Format("S.Transcribe.Failed", name, ex.Message);
+                return true;
             }
             finally
             {
@@ -148,12 +178,6 @@ namespace Amarin.UI
                     MediaAudio.TryDelete(wav);
                 }
 
-                if (ReferenceEquals(_transcribeCancel, cancel))
-                {
-                    _transcribeCancel = null;
-                }
-
-                cancel.Dispose();
                 ClearComposerNotice(sessionId);
                 if (outcome is not null)
                 {
