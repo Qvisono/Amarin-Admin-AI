@@ -214,8 +214,6 @@ namespace Amarin.UI
                     return true;
                 case HotkeyMap.Microphone:
                     return ToggleRecording();
-                case HotkeyMap.Conversation:
-                    return ToggleConversation();
                 case HotkeyMap.Cheatsheet:
                     HotkeySheet.Show(_services?.Settings.Hotkeys);
                     return true;

@@ -2091,8 +2091,7 @@ namespace Amarin.UI
             }
 
             // Esc во время записи голоса (D14) отменяет запись — раньше всего остального.
-            // Разговорный режим Esc выключает целиком — и запись, и чтение ответа вслух.
-            if (e.Key == Key.Escape && (InConversation ? StopConversation() : (IsRecording && CancelRecording()) || CancelTranscription()))
+            if (e.Key == Key.Escape && ((IsRecording && CancelRecording()) || CancelTranscription()))
             {
                 e.Handled = true;
                 return;

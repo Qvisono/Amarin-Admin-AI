@@ -854,8 +854,6 @@
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Recall the last sent message (empty field)</system:String>
     <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Voice input</system:String>
     <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Start or stop recording from the microphone.</system:String>
-    <system:String x:Key="S.Hotkeys.Conversation" xml:space="preserve">Voice conversation</system:String>
-    <system:String x:Key="S.Hotkeys.ConversationDesc" xml:space="preserve">Turn voice conversation on or off: answers are read aloud.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">New line in the message</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Next chat</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">The chat below in the list, in the order shown.</system:String>
@@ -2253,8 +2251,6 @@
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Save image</system:String>
     <system:String x:Key="S.Voice.Button" xml:space="preserve">Voice input: click to start and stop, or hold while you speak</system:String>
-    <system:String x:Key="S.Conversation.Start" xml:space="preserve">Voice conversation: speak, and the answer is read aloud</system:String>
-    <system:String x:Key="S.Conversation.Stop" xml:space="preserve">End the conversation (Esc)</system:String>
     <system:String x:Key="S.Speech.Group" xml:space="preserve">Reading aloud</system:String>
     <system:String x:Key="S.Speech.Engine" xml:space="preserve">Read with</system:String>
     <system:String x:Key="S.Speech.EngineHint" xml:space="preserve">Windows reads for free; provider models are paid</system:String>

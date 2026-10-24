@@ -64,7 +64,6 @@ public sealed class VoiceButtonTests
             {
                 ServicesField.SetValue(window, previous);
                 window.MicHost.Visibility = Visibility.Collapsed;
-                window.ConversationButton.Visibility = Visibility.Collapsed;
             }
         });
 

@@ -1635,34 +1635,6 @@
                                                VerticalAlignment="Center" Margin="0,0,6,0"
                                                Foreground="{DynamicResource Status.Danger}"
                                                AutomationProperties.LiveSetting="Polite"/>
-                                    <!--
-                                        Разговорный режим (1.37.0): включён — слушает, фраза кончается
-                                        паузой и уходит сама, ответ читается вслух, и снова слушает.
-                                        Виден вместе с микрофоном: без распознавания разговаривать нечем.
-                                    -->
-                                    <Button x:Name="ConversationButton" Width="32" Height="32" Margin="0,0,6,0" Cursor="Hand"
-                                            VerticalAlignment="Center"
-                                            ToolTip="{DynamicResource S.Conversation.Start}"
-                                            AutomationProperties.Name="{DynamicResource S.Conversation.Start}"
-                                            Click="ConversationButton_Click">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8"
-                                                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                                                    <Path Data="M1,6.5 L1,8.5 M4.5,4 L4.5,11 M8,1 L8,14 M11.5,4 L11.5,11 M15,6.5 L15,8.5"
-                                                          Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"
-                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                          Width="14" Height="13" Stretch="Uniform"
-                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bg" Property="Opacity" Value="0.85"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
                                     <Grid x:Name="MicHost" Width="32" Height="32" Margin="0,0,8,0" VerticalAlignment="Center">
                                         <Ellipse x:Name="VoiceLevel" Fill="{DynamicResource Status.Danger}" Opacity="0"
                                                  IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">

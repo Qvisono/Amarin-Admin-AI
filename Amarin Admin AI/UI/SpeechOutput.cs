@@ -39,9 +39,6 @@ internal sealed class SpeechOutput : IDisposable
     private CancellationTokenSource? _cloud;
     private string? _playing;
 
-    /// <summary>Чтение закончилось само (true) или его остановили или оно сорвалось (false).</summary>
-    public event Action<bool>? Finished;
-
     /// <summary>Модель провайдера не смогла озвучить: текст для человека.</summary>
     public event Action<string>? Failed;
 
@@ -72,7 +69,6 @@ internal sealed class SpeechOutput : IDisposable
         Stop();
         if (string.IsNullOrWhiteSpace(text))
         {
-            Finished?.Invoke(true);
             return;
         }
 
@@ -90,7 +86,6 @@ internal sealed class SpeechOutput : IDisposable
         var chunks = SpeechText.Chunks(text, CloudChunk);
         if (chunks.Count == 0)
         {
-            Finished?.Invoke(true);
             return;
         }
 
@@ -108,7 +103,6 @@ internal sealed class SpeechOutput : IDisposable
             _player?.Stop();
             Forget();
             Speaking = null;
-            Finished?.Invoke(false);
             return;
         }
 
@@ -159,12 +153,11 @@ internal sealed class SpeechOutput : IDisposable
                 _cloud = null;
                 Speaking = null;
                 Forget();
-                Finished?.Invoke(true);
             }
         }
         catch (OperationCanceledException)
         {
-            // Остановили: Stop уже сообщил об этом.
+            // Остановили: Stop уже всё убрал.
         }
         catch (Exception ex) when (ex is HttpRequestException or VeniceApiException or TimeoutException or IOException or InvalidOperationException)
         {
@@ -174,7 +167,6 @@ internal sealed class SpeechOutput : IDisposable
                 Speaking = null;
                 Forget();
                 Failed?.Invoke(ex.Message);
-                Finished?.Invoke(false);
             }
         }
         finally
@@ -267,10 +259,8 @@ internal sealed class SpeechOutput : IDisposable
                 return;
             }
 
-            var completed = !e.Cancelled && e.Error is null && _current is not null;
             _current = null;
             Speaking = null;
-            Finished?.Invoke(completed);
         };
         return synthesizer;
     }

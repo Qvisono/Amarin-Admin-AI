@@ -854,8 +854,6 @@
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Вернуть последнее отправленное (поле пустое)</system:String>
     <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Голосовой ввод</system:String>
     <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Начать или закончить запись с микрофона.</system:String>
-    <system:String x:Key="S.Hotkeys.Conversation" xml:space="preserve">Разговор голосом</system:String>
-    <system:String x:Key="S.Hotkeys.ConversationDesc" xml:space="preserve">Включить или выключить разговорный режим: ответы читаются вслух.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">Новая строка в сообщении</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Следующий чат</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">Чат ниже в списке, в том порядке, как на экране.</system:String>
@@ -2253,8 +2251,6 @@
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Сохранить изображение</system:String>
     <system:String x:Key="S.Voice.Button" xml:space="preserve">Голосовой ввод: нажмите, чтобы начать и закончить, или удерживайте, пока говорите</system:String>
-    <system:String x:Key="S.Conversation.Start" xml:space="preserve">Разговор голосом: говорите, ответ прозвучит вслух</system:String>
-    <system:String x:Key="S.Conversation.Stop" xml:space="preserve">Закончить разговор (Esc)</system:String>
     <system:String x:Key="S.Speech.Group" xml:space="preserve">Чтение вслух</system:String>
     <system:String x:Key="S.Speech.Engine" xml:space="preserve">Чем читать</system:String>
     <system:String x:Key="S.Speech.EngineHint" xml:space="preserve">Windows читает бесплатно, модели провайдеров платные</system:String>
