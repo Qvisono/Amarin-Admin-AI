@@ -21,6 +21,52 @@ public sealed class VoiceButtonTests
     private static readonly FieldInfo ServicesField =
         typeof(MainWindow).GetField("_services", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
+    /// <summary>
+    /// Названия языков собирает рабочий поток: на потоке окна ICU держал прогрев настроек около
+    /// 0,2 с сразу за первым кадром, и колонка чатов в это время не листалась (1.37.0-beta.4/5).
+    /// Список при этом заполняется весь, а выбор пункта при заполнении не считается правкой.
+    /// </summary>
+    [Fact]
+    public async Task Language_names_are_built_off_the_window_thread_and_fill_the_list_without_a_save()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "amarin-voice-" + Guid.NewGuid().ToString("N"));
+        var result = await _wpf.Ui.Invoke(async () =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var previous = ServicesField.GetValue(window);
+            using var services = UiServices.Build(root, "k", new HttpClientHandler());
+            services.Settings.VoiceLanguage = "de-DE";
+            ServicesField.SetValue(window, services);
+            var block = (VoiceSettingsBlock)window.FindSetting("VoiceSettings");
+            var saves = 0;
+            void OnChanged() => saves++;
+            block.Changed += OnChanged;
+            try
+            {
+                block.Load(services);
+                await VoiceSettingsBlock.NativeNamesReady;
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                var combo = (ComboBox)block.FindName("LanguageCombo");
+                return (
+                    Count: combo.Items.Count,
+                    Selected: (combo.SelectedItem as ComboBoxItem)?.Tag as string,
+                    Saves: saves,
+                    Builder: VoiceSettingsBlock.NativeNamesThread,
+                    Window: Environment.CurrentManagedThreadId);
+            }
+            finally
+            {
+                block.Changed -= OnChanged;
+                ServicesField.SetValue(window, previous);
+            }
+        });
+
+        Assert.NotEqual(result.Window, result.Builder);
+        Assert.Equal(15, result.Count);
+        Assert.Equal("de-DE", result.Selected);
+        Assert.Equal(0, result.Saves);
+    }
+
     [Fact]
     public void Saving_a_usable_voice_setting_shows_the_microphone_without_reopening_settings()
     {

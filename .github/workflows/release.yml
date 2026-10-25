@@ -206,3 +206,109 @@ jobs:
             gh release create $env:TAG $env:ASSET $env:SUMS $env:POLICIES --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES @pre
           }
           exit $LASTEXITCODE
+
+      # Заплатки к прошлым выпускам (1.37.0): программа качает заплатку вместо всего exe и собирает
+      # новый из установленного. Две базы: последний выпуск перед этим (бета-канал) и последний
+      # финальный (обычный канал). Делает и сверяет заплатку сам новый exe (--make-update-patch) —
+      # тем же кодом, что потом её ставит. Шаг после выкладки и не валит выпуск: без заплатки
+      # программа просто качает весь файл. В SHA256SUMS заплатки не входят: результат сверяется
+      # с суммой exe. Срок — потому что программа оконная: неожиданная авария показала бы окно и
+      # держала шаг до срока задания, а шаги winget тогда не выполнились бы.
+      - name: Update patches
+        continue-on-error: true
+        timeout-minutes: 15
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ steps.version.outputs.version }}
+          ASSET: ${{ steps.publish.outputs.asset }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $others = @(gh release list --limit 50 --json tagName,isDraft,isPrerelease | ConvertFrom-Json |
+            Where-Object { -not $_.isDraft -and $_.tagName -ne $env:TAG })
+          $bases = @($others | Select-Object -First 1) + @($others | Where-Object { -not $_.isPrerelease } | Select-Object -First 1) |
+            ForEach-Object tagName | Select-Object -Unique
+          $exe = (Resolve-Path $env:ASSET).Path
+          $prefix = (Split-Path $exe -Leaf) -replace '-win-x64\.exe$', ''
+          $made = @()
+          foreach ($base in $bases) {
+            $dir = Join-Path $env:RUNNER_TEMP "base-$base"
+            # Недокачанная база прошла бы самопроверку заплатки (собирается из неё же), но ни к чьему
+            # exe не подошла бы — поэтому важен код выхода, а не только найденный файл.
+            gh release download $base --pattern '*win-x64.exe' --dir $dir --clobber
+            $downloaded = $LASTEXITCODE -eq 0
+            $old = Get-ChildItem $dir -Filter *.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $downloaded -or -not $old) { "::warning title=Update patch::No Windows build of $base was downloaded."; continue }
+            $patch = Join-Path (Split-Path $exe) "$prefix-from-$base-win-x64.patch"
+            $process = Start-Process -FilePath $exe -ArgumentList @('--make-update-patch', $old.FullName, $patch) -Wait -PassThru
+            if ($process.ExitCode -ne 0 -or -not (Test-Path $patch)) { "::warning title=Update patch::No patch from $base."; continue }
+            if ((Get-Item $patch).Length -ge (Get-Item $exe).Length) { Remove-Item $patch; "::warning title=Update patch::The patch from $base is not smaller."; continue }
+            "Patch from ${base}: $([math]::Round((Get-Item $patch).Length / 1MB, 1)) MB"
+            $made += $patch
+          }
+          if ($made.Count -gt 0) {
+            gh release upload $env:TAG @made --clobber
+            exit $LASTEXITCODE
+          }
+
+      # Пакет winget (1.37.0): манифесты из packaging/winget с версией, ссылкой и суммой этого
+      # выпуска. Собираются при каждом выпуске и лежат артефактом winget-manifests — их можно
+      # отправить и руками. Пояснения шаблонов остаются здесь: в winget-pkgs едет только строка схемы.
+      - name: Winget manifests
+        id: winget
+        continue-on-error: true
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ASSET: ${{ steps.publish.outputs.asset }}
+          SUMS: ${{ steps.sums.outputs.sums }}
+        run: |
+          $name = Split-Path $env:ASSET -Leaf
+          $values = @{
+            Version = $env:VERSION
+            InstallerUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$env:VERSION/$name"
+            InstallerSha256 = ((Get-Content -Raw $env:SUMS) -split '\s+')[0].ToUpperInvariant()
+            ReleaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+            ReleaseNotesUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/tag/v$env:VERSION"
+          }
+          $out = "release/winget/manifests/q/Qvisono/AmarinAdminAI/$env:VERSION"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          foreach ($template in Get-ChildItem packaging/winget -Filter *.yaml) {
+            $lines = (Get-Content -Raw -Encoding utf8 $template.FullName) -split "`r?`n" |
+              Where-Object { $_ -notmatch '^#' -or $_ -match '^# yaml-language-server' }
+            $text = $lines -join "`n"
+            foreach ($key in $values.Keys) { $text = $text.Replace("{{$key}}", $values[$key]) }
+            if ($text -match '\{\{') { throw "Unfilled placeholder in $($template.Name)" }
+            [IO.File]::WriteAllText((Join-Path $out $template.Name), $text, [Text.UTF8Encoding]::new($false))
+          }
+          "dir=$out" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        if: steps.winget.outcome == 'success'
+        with:
+          name: winget-manifests
+          path: release/winget
+
+      # В microsoft/winget-pkgs уходят сами только финальные версии и только при секрете
+      # WINGET_TOKEN (классический токен GitHub с правом public_repo): беты в winget не нужны.
+      # Первую отправку тоже делает этот шаг — submit открывает PR и для нового пакета.
+      # Токен — в окружении только этого шага, а не задания, как у подписи (и наличие его проверяет
+      # скрипт): он долгоживущий и пишет во все публичные репозитории владельца, а до сюда задание
+      # запускает тесты, пакеты NuGet и свежий exe. wingetcreate получает этот токен, поэтому
+      # закреплён версией и суммой (digest вложения v1.12.13.0 в API GitHub).
+      - name: Winget submit
+        if: steps.winget.outcome == 'success' && !contains(steps.version.outputs.version, '-')
+        continue-on-error: true
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          MANIFESTS: ${{ steps.winget.outputs.dir }}
+        run: |
+          if (-not $env:WINGET_TOKEN) { 'No WINGET_TOKEN secret: the manifests stay in the winget-manifests artifact.'; exit 0 }
+          $tool = Join-Path $env:RUNNER_TEMP 'wingetcreate.exe'
+          Invoke-WebRequest https://github.com/microsoft/winget-create/releases/download/v1.12.13.0/wingetcreate.exe -OutFile $tool
+          if ((Get-FileHash -Algorithm SHA256 $tool).Hash -ne '24042bd37915805615e6cf969ac57c6439124c3fe85823327f5f3fb24bd9ffea') {
+            throw 'wingetcreate.exe does not match its pinned checksum.'
+          }
+          & $tool submit $env:MANIFESTS --token $env:WINGET_TOKEN
+          exit $LASTEXITCODE

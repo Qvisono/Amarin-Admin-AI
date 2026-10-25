@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+# Программа — один exe без установщика, поэтому portable: winget кладёт файл в свою папку и
+# заводит команду. Метки {{…}} подставляет шаг «Winget manifests» в release.yml.
+PackageIdentifier: Qvisono.AmarinAdminAI
+PackageVersion: {{Version}}
+InstallerType: portable
+Commands:
+- amarin-admin-ai
+ReleaseDate: {{ReleaseDate}}
+Installers:
+- Architecture: x64
+  InstallerUrl: {{InstallerUrl}}
+  InstallerSha256: {{InstallerSha256}}
+ManifestType: installer
+ManifestVersion: 1.10.0

@@ -134,6 +134,22 @@ public sealed record ReleaseInfo(
             asset.Name.Contains("win-x64", StringComparison.OrdinalIgnoreCase))
         ?? Assets.FirstOrDefault(asset =>
             asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Заплатка от установленной версии к этой (<see cref="UpdatePatch"/>); null — её нет.
+    /// </summary>
+    /// <remarks>
+    /// Имя вложения — контракт с release.yml: <c>…-from-v&lt;версия&gt;-win-x64.patch</c>, где версия —
+    /// тег прошлого выпуска. Узнаётся только по списку файлов API: запасной путь без API знает лишь
+    /// exe, и тогда качается он целиком, как до 1.37.0.
+    /// </remarks>
+    public ReleaseAsset? PatchFrom(ReleaseVersion installed)
+    {
+        var suffix = "-from-v" + installed + "-win-x64" + UpdatePatch.Extension;
+        return Assets.FirstOrDefault(asset =>
+            asset.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+            UpdateInstaller.IsTrustedUrl(asset.Url));
+    }
 }
 
 /// <summary>Итог проверки. Ошибка сети — это не исключение, а обычный ответ с текстом.</summary>

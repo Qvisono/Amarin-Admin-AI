@@ -8,6 +8,9 @@ internal enum StartupRoute
     /// <summary>Подмена exe от имени администратора (обновление или откат): сделать и выйти, окна не поднимая.</summary>
     ApplyUpdate,
 
+    /// <summary>Заплатка обновления для выпуска (<c>--make-update-patch</c>): сделать и выйти, окна не поднимая.</summary>
+    MakeUpdatePatch,
+
     /// <summary>Программа уже работает: запрос отдан ей, этот процесс больше не нужен.</summary>
     HandedOff,
 
@@ -42,6 +45,12 @@ internal static class StartupRouter
         if (startup.ApplyUpdateFrom is not null || startup.RollbackUpdate)
         {
             return StartupRoute.ApplyUpdate;
+        }
+
+        // Тоже до замка: выпуск делает заплатку файлом и к программе человека не обращается.
+        if (startup.MakePatchBase is not null && startup.MakePatchOutput is not null)
+        {
+            return StartupRoute.MakeUpdatePatch;
         }
 
         return tryBecomePrimary() ? StartupRoute.Run : StartupRoute.HandedOff;

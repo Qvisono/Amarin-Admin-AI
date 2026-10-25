@@ -5,7 +5,7 @@ namespace Amarin.UI;
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
 /// <c>--send</c>, <c>--smoke-tools</c>, <c>--smoke-report</c>, <c>--await-exit</c>, <c>--apply-update</c>,
-/// <c>--rollback-update</c>, <c>--wipe</c>,
+/// <c>--rollback-update</c>, <c>--make-update-patch</c>, <c>--wipe</c>,
 /// <c>--open-chat</c> и действия интеграции с Windows (G): <c>--new-chat</c>, <c>--health</c>,
 /// <c>--tray</c>, <c>--ask-path</c>; <c>--wake</c> — запуск Планировщиком к сроку отложенной задачи.
 /// </summary>
@@ -78,6 +78,16 @@ internal sealed class StartupArgs
     public bool RollbackUpdate { get; private set; }
 
     /// <summary>
+    /// Прошлый выпуск, от которого сделать заплатку к этому exe (<c>--make-update-patch &lt;база&gt;
+    /// &lt;файл&gt;</c>, 1.37.0). Нужен только выпуску: release.yml зовёт им свежесобранный exe,
+    /// поэтому заплатку делает и сверяет тот же код, что её потом ставит.
+    /// </summary>
+    public string? MakePatchBase { get; private set; }
+
+    /// <summary>Куда записать заплатку для <see cref="MakePatchBase"/>.</summary>
+    public string? MakePatchOutput { get; private set; }
+
+    /// <summary>
     /// Метка просьбы стереть профиль, оставленной прежним запуском (<see cref="PendingWipe"/>).
     /// Сама по себе ничего не стирает: без файла просьбы с той же меткой это пустой звук.
     /// </summary>
@@ -128,6 +138,19 @@ internal sealed class StartupArgs
                     result.SmokeTools = true;
                 }
 
+                continue;
+            }
+
+            if (a.Equals("--make-update-patch", StringComparison.OrdinalIgnoreCase))
+            {
+                // Два значения подряд; без обоих ключ ничего не делает.
+                if (i + 2 < args.Length && !string.IsNullOrWhiteSpace(args[i + 1]) && !string.IsNullOrWhiteSpace(args[i + 2]))
+                {
+                    result.MakePatchBase = args[i + 1];
+                    result.MakePatchOutput = args[i + 2];
+                }
+
+                i = Math.Min(i + 2, args.Length - 1);
                 continue;
             }
 

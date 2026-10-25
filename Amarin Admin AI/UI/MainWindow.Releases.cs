@@ -35,7 +35,7 @@ namespace Amarin.UI
 
         private void ShowRollbackButton()
         {
-            var previous = UpdateInstaller.PreviousVersionPath(Environment.ProcessPath);
+            var previous = UpdateInstaller.PreviousVersionPath(UpdateInstaller.RealPath(Environment.ProcessPath));
             if (previous is null || !OperatingSystem.IsWindows())
             {
                 AboutPage.RollbackButton.Visibility = Visibility.Collapsed;
@@ -80,7 +80,7 @@ namespace Amarin.UI
 
         private void RollbackButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_services is null || Environment.ProcessPath is not { } exe)
+            if (_services is null || UpdateInstaller.RealPath(Environment.ProcessPath) is not { } exe)
             {
                 return;
             }

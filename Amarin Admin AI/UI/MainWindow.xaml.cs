@@ -339,7 +339,7 @@ namespace Amarin.UI
             Detached.Run(_services.ChatStore.EnsureFormat(), "chat_reformat");
 
             // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
-            UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
+            UpdateInstaller.CleanupLeftovers(UpdateInstaller.RealPath(Environment.ProcessPath));
 
             // До 1.33.0 вложения разворачивались копиями во %TEMP% открытым текстом — убираем.
             Detached.Run(Task.Run(DocumentDigest.DeleteLegacyCopies), "legacy_attachment_copies");

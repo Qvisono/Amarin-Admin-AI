@@ -34,7 +34,7 @@ namespace Amarin.UI
         /// <summary>Выход с обновлением.</summary>
         internal UpdateExit Exit => _exit ??= new UpdateExit(Updates, UpdateFiles, new WindowExitHost(this));
 
-        private IUpdateFiles UpdateFiles => _updateFiles ??= new InstallerUpdateFiles(() => _services?.DownloadHttp, Environment.ProcessPath);
+        private IUpdateFiles UpdateFiles => _updateFiles ??= new InstallerUpdateFiles(() => _services?.DownloadHttp, UpdateInstaller.RealPath(Environment.ProcessPath));
 
         private static ReleaseVersion CurrentRelease => RuntimeContext.AppRelease;
 
@@ -311,7 +311,7 @@ namespace Amarin.UI
                 "S.Updates.ConfirmText",
                 RuntimeContext.AppVersion,
                 release.Release,
-                DownloadSize(plan.Asset.Size));
+                DownloadSize(plan.DownloadSize));
             ShowConfirmNotes(release.Notes);
             UpdateConfirmFile.Text = Path.GetFileName(plan.ExePath);
             UpdateConfirmFolder.Text = plan.Folder;

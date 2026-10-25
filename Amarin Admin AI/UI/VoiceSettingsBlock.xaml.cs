@@ -135,17 +135,69 @@ public partial class VoiceSettingsBlock : UserControl
         Select(ModelCombo, chosen);
     }
 
+    /// <summary>
+    /// Названия языков списка на самих языках — один раз за процесс и на рабочем потоке.
+    /// </summary>
+    /// <remarks>
+    /// ICU при первом обращении грузит данные каждого языка: на четырнадцать языков это около
+    /// 0,2 с. «Общие» заполняются в прогреве настроек на потоке окна сразу за первым кадром, и в
+    /// 1.37.0-beta.4/5 эти 0,2 с стояли там одним куском: колонка чатов в первую секунду после
+    /// запуска не листалась, хотя подстраница «Голосовой ввод» свёрнута и списка не видно.
+    /// </remarks>
+    private static readonly Lazy<Task<Dictionary<string, string>>> NativeNames = new(() => Task.Run(BuildNativeNames));
+
+    /// <summary>Поток, на котором собраны названия, — для теста: поток окна собирать их не должен.</summary>
+    internal static int NativeNamesThread { get; private set; }
+
+    /// <summary>Названия готовы — тесту, чтобы дождаться заполнения списка.</summary>
+    internal static Task NativeNamesReady => NativeNames.Value;
+
+    private static Dictionary<string, string> BuildNativeNames()
+    {
+        NativeNamesThread = Environment.CurrentManagedThreadId;
+        return Languages.ToDictionary(name => name, Culture, StringComparer.OrdinalIgnoreCase);
+    }
+
     private void FillLanguages()
     {
+        var names = NativeNames.Value;
+        if (!names.IsCompleted)
+        {
+            // Список лежит на свёрнутой подстранице: заполнится, когда названия будут готовы.
+            Detached.Run(FillLanguagesWhenReady(names), "voice_languages");
+            return;
+        }
+
+        // Не собрались (такого не ждём) — посчитаются на месте, как до выноса на рабочий поток.
+        var known = names.IsCompletedSuccessfully ? names.Result : null;
         var chosen = _services?.Settings.VoiceLanguage?.Trim() ?? "";
         LanguageCombo.Items.Clear();
         LanguageCombo.Items.Add(Item("", Loc.Get("S.Voice.LanguageEmpty")));
         foreach (var name in chosen.Length > 0 && !Languages.Contains(chosen, StringComparer.OrdinalIgnoreCase) ? [.. Languages, chosen] : Languages)
         {
-            LanguageCombo.Items.Add(Item(name, Culture(name)));
+            LanguageCombo.Items.Add(Item(name, known is not null && known.TryGetValue(name, out var shown) ? shown : Culture(name)));
         }
 
         Select(LanguageCombo, chosen);
+    }
+
+    /// <summary>
+    /// Заполняет список, когда названия собраны. Под <c>_loading</c>: выбор пункта при заполнении —
+    /// не выбор человека, и настройка не должна перезаписаться.
+    /// </summary>
+    private async Task FillLanguagesWhenReady(Task names)
+    {
+        await names.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.SuppressThrowing);
+        var loading = _loading;
+        _loading = true;
+        try
+        {
+            FillLanguages();
+        }
+        finally
+        {
+            _loading = loading;
+        }
     }
 
     private static string Culture(string name)

@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+# Метки {{…}} подставляет шаг «Winget manifests» в release.yml.
+PackageIdentifier: Qvisono.AmarinAdminAI
+PackageVersion: {{Version}}
+PackageLocale: en-US
+Publisher: Qvisono
+PublisherUrl: https://github.com/Qvisono
+PublisherSupportUrl: https://github.com/Qvisono/Amarin-Admin-AI/issues
+PackageName: Amarin Admin AI
+PackageUrl: https://github.com/Qvisono/Amarin-Admin-AI
+License: GPL-3.0
+LicenseUrl: https://github.com/Qvisono/Amarin-Admin-AI/blob/main/LICENSE.txt
+ShortDescription: A chat with an AI model that manages this computer.
+Description: Ask in plain words, and the program does the work. It reads the Windows logs, edits the registry, fixes services and disks, installs and updates software. Before anything that can't be undone, it asks you and waits for your answer.
+Moniker: amarin-admin-ai
+Tags:
+- admin
+- ai
+- assistant
+- chat
+- windows
+ReleaseNotesUrl: {{ReleaseNotesUrl}}
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

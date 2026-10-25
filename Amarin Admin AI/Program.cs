@@ -39,6 +39,17 @@ internal static class Program
             return applied.Ok ? 0 : 1;
         }
 
+        if (route == StartupRoute.MakeUpdatePatch)
+        {
+            // Цель — сам этот exe: release.yml зовёт свежесобранный, и заплатку к нему делает и
+            // сверяет тот же код, что её потом ставит.
+            return startup is { MakePatchBase: { } basePath, MakePatchOutput: { } output } &&
+                   Environment.ProcessPath is { } self &&
+                   UpdatePatch.MakeFile(basePath, self, output) is null
+                ? 0
+                : 1;
+        }
+
         if (route == StartupRoute.HandedOff)
         {
             // --model намеренно не передаём: он пишет модель в настройки всей программы, и

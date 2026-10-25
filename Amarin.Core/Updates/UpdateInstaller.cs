@@ -8,13 +8,21 @@ namespace Amarin.Core;
 /// Папку программы правит только администратор: скачать и сверить файл процесс может сам, а
 /// подмену придётся просить через UAC.
 /// </param>
+/// <param name="Patch">
+/// Заплатка от установленного exe к новому (<see cref="ReleaseInfo.PatchFrom"/>); null — качается
+/// весь файл. Есть только у сборки с суммой: результат заплатки проверяет сумма exe.
+/// </param>
 public sealed record UpdatePlan(
     ReleaseAsset Asset,
     string ExePath,
     string WorkDirectory,
-    bool NeedsElevation = false)
+    bool NeedsElevation = false,
+    ReleaseAsset? Patch = null)
 {
     public string Folder => Path.GetDirectoryName(ExePath) ?? WorkDirectory;
+
+    /// <summary>Сколько придётся скачать: заплатку, если она есть, иначе весь exe.</summary>
+    public long DownloadSize => Patch?.Size ?? Asset.Size;
 
     /// <summary>
     /// Есть ли чем сверить файл. Без суммы обновление не ставится само — только по отдельному
@@ -131,10 +139,17 @@ public static class UpdateInstaller
             return false;
         }
 
+        // Заплатка — по версии самого файла на диске, а не по сборке, которая работает: собрать
+        // новый exe можно только из того, что лежит по пути. Без суммы exe её результат нечем
+        // проверить, и тогда качается весь файл.
+        var patch = asset.Sha256 is { Length: 64 } && FileVersionOf(path) is { } installed
+            ? release.PatchFrom(installed)
+            : null;
+
         var near = Path.Combine(folder, WorkFolderName);
         if (TryEnsureWritable(near, out _))
         {
-            plan = new UpdatePlan(asset, path, near);
+            plan = new UpdatePlan(asset, path, near, Patch: patch);
             return true;
         }
 
@@ -146,7 +161,7 @@ public static class UpdateInstaller
             return false;
         }
 
-        plan = new UpdatePlan(asset, path, TempWorkDirectory, NeedsElevation: true);
+        plan = new UpdatePlan(asset, path, TempWorkDirectory, NeedsElevation: true, Patch: patch);
         return true;
     }
 
@@ -184,6 +199,12 @@ public static class UpdateInstaller
 
         var target = Path.Combine(plan.WorkDirectory, plan.Asset.Name);
         var partial = target + ".part";
+
+        if (plan.Patch is not null &&
+            await TryPatchAsync(plan, http, target, progress, policy ?? DownloadPolicy.Default, cancellationToken).ConfigureAwait(false))
+        {
+            return (UpdateStepResult.Success, target);
+        }
 
         try
         {
@@ -238,6 +259,87 @@ public static class UpdateInstaller
         {
             TryDelete(partial);
             return (UpdateStepResult.Failed(ex.Message), null);
+        }
+    }
+
+    /// <summary>
+    /// Новый exe из заплатки и установленного: скачать заплатку, собрать, сверить размер и сумму
+    /// с самим exe релиза. True — проверенный файл лежит в <paramref name="target"/>.
+    /// </summary>
+    /// <remarks>
+    /// Любая неудача здесь — не отказ обновления, а повод скачать весь файл, как до 1.37.0: битая
+    /// загрузка, заплатка к другому файлу (exe собран не в CI или подписан иначе) и несошедшаяся
+    /// сумма видны человеку только тем, что загрузка вышла дольше. Наружу уходит лишь отмена
+    /// человеком. Установленный exe читается, пока работает: поэтому открывается с общим доступом.
+    /// </remarks>
+    private static async Task<bool> TryPatchAsync(
+        UpdatePlan plan,
+        HttpClient http,
+        string target,
+        IProgress<double>? progress,
+        DownloadPolicy policy,
+        CancellationToken cancellationToken)
+    {
+        if (plan.Patch is not { } patch ||
+            plan.Asset.Sha256 is not { Length: 64 } expectedHash ||
+            patch.Size > MaxBytes ||
+            !IsTrustedUrl(patch.Url))
+        {
+            return false;
+        }
+
+        var patchFile = Path.Combine(plan.WorkDirectory, patch.Name + ".part");
+        var built = target + ".part";
+        try
+        {
+            Directory.CreateDirectory(plan.WorkDirectory);
+            File.Delete(patchFile);
+
+            var download = new ResumableDownload(http, patch.Url, patchFile, patch.Size, MaxBytes, progress, policy);
+            await using (download.ConfigureAwait(false))
+            {
+                _ = await download.RunAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            if (patch.Size > 0 && new FileInfo(patchFile).Length != patch.Size)
+            {
+                return false;
+            }
+
+            var hash = await Task.Run(
+                () =>
+                {
+                    using var source = new FileStream(plan.ExePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                    using var patchStream = File.OpenRead(patchFile);
+                    using var output = new FileStream(built, FileMode.Create, FileAccess.Write, FileShare.None);
+                    return UpdatePatch.Apply(source, patchStream, output, MaxBytes, cancellationToken);
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (!hash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase) ||
+                (plan.Asset.Size > 0 && new FileInfo(built).Length != plan.Asset.Size))
+            {
+                return false;
+            }
+
+            File.Move(built, target, overwrite: true);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or UnauthorizedAccessException or
+                                       InvalidDataException or OperationCanceledException)
+        {
+            // InvalidDataException — битая заплатка или заплатка к другому файлу. Она не IOException,
+            // и без неё в списке такая заплатка роняла бы обновление вместо полной загрузки.
+            return false;
+        }
+        finally
+        {
+            TryDelete(patchFile);
+            TryDelete(built);
         }
     }
 
@@ -433,6 +535,31 @@ public static class UpdateInstaller
         TryDeleteFolder(TempWorkDirectory);
     }
 
+    /// <summary>
+    /// Путь к самому файлу программы, а не к ссылке на него; не ссылка — путь как есть.
+    /// </summary>
+    /// <remarks>
+    /// Портативный пакет winget (1.37.0) запускают через символьную ссылку в папке Links, и
+    /// Windows называет процессу путь ссылки. Подмена по нему переставила бы ссылку, а не exe:
+    /// ссылка ушла бы в <c>.old</c>, новый файл встал бы в Links, а пакет остался прежним.
+    /// </remarks>
+    public static string? RealPath(string? exePath)
+    {
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            return exePath;
+        }
+
+        try
+        {
+            return File.ResolveLinkTarget(exePath, returnFinalTarget: true)?.FullName ?? exePath;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return exePath;
+        }
+    }
+
     /// <summary>Сбережённая прошлая версия рядом с программой; <c>null</c> — её нет.</summary>
     public static string? PreviousVersionPath(string? exePath)
     {
@@ -569,7 +696,7 @@ public static class UpdateInstaller
         }
     }
 
-    private static void TryDelete(string path)
+    internal static void TryDelete(string path)
     {
         try
         {
