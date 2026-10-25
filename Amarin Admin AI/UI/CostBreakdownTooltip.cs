@@ -5,6 +5,20 @@ using Amarin.Core;
 
 namespace Amarin.UI;
 
+/// <summary>Строка таблицы подсказки: подпись слева, значение столбцом справа.</summary>
+internal readonly record struct TipRow(string Label, string Value);
+
+/// <summary>Цвет заметки под таблицей подсказки.</summary>
+internal enum TipNoteTone
+{
+    Dim,
+    Warning,
+    Danger
+}
+
+/// <summary>Заметка под таблицей подсказки: пояснение тусклым или предупреждение цветом.</summary>
+internal readonly record struct TipNote(string Text, TipNoteTone Tone = TipNoteTone.Dim);
+
 /// <summary>
 /// Подробный счёт за единственной ценой в строке сведений сообщения.
 /// </summary>
@@ -27,20 +41,6 @@ namespace Amarin.UI;
 /// полям и наличию стрелки.
 /// </para>
 /// </remarks>
-/// <summary>Строка таблицы подсказки: подпись слева, значение столбцом справа.</summary>
-internal readonly record struct TipRow(string Label, string Value, bool Bold = false);
-
-/// <summary>Цвет заметки под таблицей подсказки.</summary>
-internal enum TipNoteTone
-{
-    Dim,
-    Warning,
-    Danger
-}
-
-/// <summary>Заметка под таблицей подсказки: пояснение тусклым или предупреждение цветом.</summary>
-internal readonly record struct TipNote(string Text, TipNoteTone Tone = TipNoteTone.Dim);
-
 internal static class CostBreakdownTooltip
 {
     /// <summary>
@@ -135,7 +135,7 @@ internal static class CostBreakdownTooltip
             AddRule(grid, ref line);
             foreach (var row in rows)
             {
-                AddRow(grid, ref line, row.Label, row.Value, row.Bold);
+                AddRow(grid, ref line, row.Label, row.Value, bold: false);
             }
         }
 

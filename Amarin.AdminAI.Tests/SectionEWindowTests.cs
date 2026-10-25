@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,7 +36,8 @@ public sealed class SectionEWindowTests : IDisposable
 
     private T WithWindow<T>(Func<MainWindow, AppServices, T> body) => _wpf.Ui.Invoke(() =>
     {
-        var services = UiServices.Build(_root, "k", new HttpClientHandler());
+        // Без сети: «Открыть в чате» заказывает заголовок, и тест ушёл бы с ключом «k» к провайдеру.
+        var services = UiServices.Build(_root, "k", new NoNetwork());
         var window = new MainWindow();
         window.AttachServices(services);
         try
@@ -191,6 +193,42 @@ public sealed class SectionEWindowTests : IDisposable
 
         Assert.Null(left);
         Assert.False(listed);
+    }
+
+    [Fact]
+    public void A_quick_question_opened_in_chat_and_left_in_the_background_gets_the_usual_mark()
+    {
+        // Открытый в чате быстрый вопрос — уже обычный чат: ответ, законченный, пока человек в
+        // другом чате, оставляет метку, как у всех. Прежде ветка быстрого вопроса глушила её.
+        var marked = WithWindow((window, services) =>
+        {
+            // Карточка «ответ готов» вылезла бы в угол настоящего экрана.
+            services.Settings.NotifyOnResponseComplete = false;
+            var session = services.ChatStore.CreateNew();
+            session.IsTemporary = true;
+            session.Messages.Add(new ChatDisplayMessage { Id = "u1", Role = "user", Text = "Как узнать порт?", CreatedAt = DateTime.Now });
+            var assistant = new ChatDisplayMessage { Id = "a1", Role = "assistant", Text = "Командой netstat.", CreatedAt = DateTime.Now };
+            session.Messages.Add(assistant);
+            typeof(MainWindow).GetMethod("EnsureQuickAsk", Hidden)!.Invoke(window, null);
+            typeof(MainWindow).GetField("_quickSession", Hidden)!.SetValue(window, session);
+            var turn = window.Turns.TryStart(session, TurnKind.QuickAsk, DateTime.Now).Turn!;
+
+            window.OpenQuickInChat();
+            window.StartNewChatFromUi();
+            ((IChatTurnUi)window).TurnAssistantCompleted(turn, assistant);
+            Pump();
+            var result = window.Turns.NeedsAttention(session.Id);
+            window.FinishTurn(turn);
+            return result;
+        });
+
+        Assert.True(marked, "ответ открытого в чате быстрого вопроса не оставил метки");
+    }
+
+    private sealed class NoNetwork : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
     }
 
     private sealed class FakeSource : PresentationSource

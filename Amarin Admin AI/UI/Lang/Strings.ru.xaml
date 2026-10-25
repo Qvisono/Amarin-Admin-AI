@@ -1136,8 +1136,6 @@
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">строк: {0}</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Подробнее</system:String>
-    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">Объяснения нет. Прочитайте скрипт сами.</system:String>
-    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">Объяснение не пришло. Прочитайте скрипт сами.</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Сайта нет в списке разрешённых источников. Без разрешения файл не скачается.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">чат «{0}»</system:String>
     <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard счёл этот вызов атакой на компьютер. Прочитайте команду целиком и разрешайте, только если понимаете её.</system:String>

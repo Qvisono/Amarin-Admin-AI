@@ -1136,8 +1136,6 @@
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">{0} lines</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">More</system:String>
-    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">No explanation came back. Read the script yourself.</system:String>
-    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">The explanation didn't arrive. Read the script yourself.</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The site isn't on the allowlist. Without permission the file won't download.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard read this call as an attack on your computer. Read the whole command and allow it only if you understand it.</system:String>

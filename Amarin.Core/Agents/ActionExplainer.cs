@@ -32,9 +32,12 @@ internal static class ActionExplainer
     /// </summary>
     private const int MaxQuoted = 2_000;
 
-    /// <summary>Есть ли что объяснять. Без кода сводки достаточно, и запрос не нужен.</summary>
+    /// <summary>
+    /// Есть ли что объяснять. Без кода сводки достаточно, и запрос не нужен. У вопроса SynGuard
+    /// главная фраза — его предупреждение (<see cref="DangerousActionInfo.GuardWarning"/>).
+    /// </summary>
     public static bool IsWorthExplaining(DangerousActionInfo info) =>
-        info is not null && !string.IsNullOrWhiteSpace(info.CodeText);
+        info is not null && !info.GuardWarning && !string.IsNullOrWhiteSpace(info.CodeText);
 
     /// <summary>Вопрос со скриптом внутри. Открыт для тестов.</summary>
     internal static string BuildPrompt(DangerousActionInfo info)
@@ -79,11 +82,11 @@ internal static class ActionExplainer
     }
 
     /// <summary>
-    /// Спрашивает модель. Возвращает ответ или строку, которую человеку не стыдно показать:
-    /// неудавшееся разъяснение — обычный исход, а не авария, и кнопки «Да» и «Нет» от него
-    /// не зависят.
+    /// Спрашивает модель. Возвращает ответ или null, если его нет: неудавшееся разъяснение —
+    /// обычный исход, а не авария, кнопки «Да» и «Нет» от него не зависят, и окно оставляет на
+    /// месте главной фразы то, что там уже стояло.
     /// </summary>
-    public static async Task<string> ExplainAsync(
+    public static async Task<string?> ExplainAsync(
         VeniceClient client,
         string modelId,
         DangerousActionInfo info,
@@ -107,8 +110,8 @@ internal static class ActionExplainer
                     credential)
                 .ConfigureAwait(false);
 
-            var answer = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "";
-            return string.IsNullOrWhiteSpace(answer) ? Loc.Get("S.Confirm.ExplainEmpty") : answer.Trim();
+            var answer = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content);
+            return string.IsNullOrWhiteSpace(answer) ? null : answer.Trim();
         }
         catch (OperationCanceledException)
         {
@@ -118,7 +121,7 @@ internal static class ActionExplainer
         {
             // Ловится целиком намеренно: зовётся из обработчика окна, и всё, что отсюда вылетит,
             // унесёт с собой окно — а «объяснить не вышло» это всего лишь ответ удалённой модели.
-            return Loc.Get("S.Confirm.ExplainFailed");
+            return null;
         }
     }
 

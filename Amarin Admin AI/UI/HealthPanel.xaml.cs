@@ -97,16 +97,8 @@ public partial class HealthPanel : UserControl
 
     private void ShowLive()
     {
-        SystemLoad load;
-        try
-        {
-            load = LiveSource?.Invoke() ?? (_meter ??= new SystemLoadMeter()).Take();
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            // Счётчик Windows недоступен — плитки остаются с прочерком, как до первого замера.
-            return;
-        }
+        // Замер не бросает: чего прочесть не удалось, приходит null, и плитка показывает прочерк.
+        var load = LiveSource?.Invoke() ?? (_meter ??= new SystemLoadMeter()).Take();
 
         ShowTile(CpuValue, CpuBar, load.CpuPercent, HealthStatus.Ok);
         ShowTile(MemoryValue, MemoryBar, load.MemoryPercent,
@@ -149,7 +141,7 @@ public partial class HealthPanel : UserControl
 
     private static void Fill(Border bar, double fraction)
     {
-        if (bar.RenderTransform is ScaleTransform scale && !scale.IsFrozen)
+        if (bar.RenderTransform is ScaleTransform scale)
         {
             scale.ScaleX = Math.Clamp(fraction, 0, 1);
         }

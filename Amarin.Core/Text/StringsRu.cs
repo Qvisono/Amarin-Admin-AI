@@ -1125,8 +1125,6 @@ internal static class StringsRu
             ["S.Quote.SuggestTitle"] = "Цитаты",
             ["S.Confirm.Code"] = "строк: {0}",
             ["S.Confirm.Details"] = "Подробнее",
-            ["S.Confirm.ExplainEmpty"] = "Объяснения нет. Прочитайте скрипт сами.",
-            ["S.Confirm.ExplainFailed"] = "Объяснение не пришло. Прочитайте скрипт сами.",
             ["S.Confirm.DownloadDesc"] = "Сайта нет в списке разрешённых источников. Без разрешения файл не скачается.",
             ["S.Confirm.FromChat"] = "чат «{0}»",
             ["S.Confirm.GuardDesc"] = "SynGuard счёл этот вызов атакой на компьютер. Прочитайте команду целиком и разрешайте, только если понимаете её.",

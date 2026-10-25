@@ -135,7 +135,7 @@ namespace Amarin.UI
 
             // Пока ответ идёт, на месте главной фразы остаётся сводка: строка «Разбираю…» была бы
             // ещё одним абзацем, который приходится прочесть и отбросить.
-            string answer;
+            string? answer;
             try
             {
                 answer = await ActionExplainer.ExplainAsync(
@@ -160,9 +160,9 @@ namespace Amarin.UI
                 return;
             }
 
-            // Неудача — не главная фраза: «объяснение не пришло» вытеснило бы сводку, которая
-            // говорит хоть что-то. Остаётся то, что было.
-            if (answer == Loc.Get("S.Confirm.ExplainFailed") || answer == Loc.Get("S.Confirm.ExplainEmpty"))
+            // Ответа нет — главной фразой остаётся то, что было: строка «объяснение не пришло»
+            // вытеснила бы сводку, которая говорит хоть что-то.
+            if (answer is null)
             {
                 return;
             }

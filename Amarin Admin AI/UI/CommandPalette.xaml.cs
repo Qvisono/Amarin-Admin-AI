@@ -24,7 +24,10 @@ internal sealed record PaletteEntry(PaletteItem Item, Geometry Icon, Action Run,
 public partial class CommandPalette : UserControl
 {
     private readonly List<(Border Row, PaletteEntry Entry)> _rows = [];
-    private IReadOnlyList<PaletteEntry> _entries = [];
+    private PaletteItem[] _items = [];
+
+    // По ссылке, а не по значению записи: две одноимённые строки одной страницы равны как записи.
+    private Dictionary<PaletteItem, PaletteEntry> _byItem = new(ReferenceEqualityComparer.Instance);
     private int _selected = -1;
 
     public CommandPalette() => InitializeComponent();
@@ -40,7 +43,7 @@ public partial class CommandPalette : UserControl
 
     internal void Open(IReadOnlyList<PaletteEntry> entries)
     {
-        _entries = entries;
+        Use(entries);
         Search.Text = "";
         Render();
         Visibility = Visibility.Visible;
@@ -50,8 +53,19 @@ public partial class CommandPalette : UserControl
     /// <summary>Пункты пополнились (достроились страницы настроек) — выдача обновляется, запрос остаётся.</summary>
     internal void Refresh(IReadOnlyList<PaletteEntry> entries)
     {
-        _entries = entries;
+        Use(entries);
         Render();
+    }
+
+    /// <summary>Пункты и их поиск по найденному — раз на набор, а не на каждое нажатие клавиши.</summary>
+    private void Use(IReadOnlyList<PaletteEntry> entries)
+    {
+        _items = [.. entries.Select(entry => entry.Item)];
+        _byItem = new Dictionary<PaletteItem, PaletteEntry>(entries.Count, ReferenceEqualityComparer.Instance);
+        foreach (var entry in entries)
+        {
+            _byItem[entry.Item] = entry;
+        }
     }
 
     internal void Close()
@@ -79,14 +93,8 @@ public partial class CommandPalette : UserControl
 
     private void Render()
     {
-        var byItem = new Dictionary<PaletteItem, PaletteEntry>(ReferenceEqualityComparer.Instance);
-        foreach (var entry in _entries)
-        {
-            byItem[entry.Item] = entry;
-        }
-
         var query = Search.Text.Trim();
-        var matches = PaletteSearch.Find([.. _entries.Select(entry => entry.Item)], query);
+        var matches = PaletteSearch.Find(_items, query);
 
         Rows.Children.Clear();
         _rows.Clear();
@@ -99,7 +107,7 @@ public partial class CommandPalette : UserControl
                 Rows.Children.Add(GroupHeader(group.Value, query.Length == 0, Rows.Children.Count == 0));
             }
 
-            var entry = byItem[match.Item];
+            var entry = _byItem[match.Item];
             var row = BuildRow(entry, match);
             _rows.Add((row, entry));
             Rows.Children.Add(row);

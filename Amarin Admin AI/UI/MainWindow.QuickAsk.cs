@@ -94,10 +94,7 @@ namespace Amarin.UI
 
             var session = services.ChatStore.CreateNew(CurrentModelId());
             session.IsTemporary = true;
-            var reasoning = services.Settings.ChatReasoning ?? new ReasoningSettings();
-            session.DisableThinking = reasoning.DisableThinking;
-            session.ReasoningEffort = reasoning.ReasoningEffort;
-            session.ModelSpeed = reasoning.Speed;
+            ApplyChatReasoningDefaults(session);
             _quickSession = session;
             window.ShowWaiting();
 

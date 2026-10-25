@@ -442,7 +442,8 @@ internal static partial class SynGuard
             Loc.Get(checkFailed ? "S.Confirm.GuardUncheckedDesc" : "S.Confirm.GuardDesc"),
             arguments,
             "json",
-            AlwaysAsk: true);
+            AlwaysAsk: true,
+            GuardWarning: true);
     }
 
     /// <summary>

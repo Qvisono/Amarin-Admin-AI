@@ -2314,7 +2314,7 @@ namespace Amarin.UI
                 UpdatedAt = DateTime.Now
             };
             RefreshTargetPicker();
-            ApplyChatReasoningDefaults();
+            ApplyChatReasoningDefaults(_session);
             if (persist)
             {
                 PersistCurrent();
@@ -2325,12 +2325,12 @@ namespace Amarin.UI
             FocusMessageInput();
         }
 
-        private void ApplyChatReasoningDefaults()
+        private void ApplyChatReasoningDefaults(ChatSession session)
         {
             var reasoning = _services?.Settings.ChatReasoning ?? new ReasoningSettings();
-            _session.DisableThinking = reasoning.DisableThinking;
-            _session.ReasoningEffort = reasoning.ReasoningEffort;
-            _session.ModelSpeed = reasoning.Speed;
+            session.DisableThinking = reasoning.DisableThinking;
+            session.ReasoningEffort = reasoning.ReasoningEffort;
+            session.ModelSpeed = reasoning.Speed;
         }
 
         private void LoadSession(ChatSession session)
@@ -3683,8 +3683,9 @@ namespace Amarin.UI
             // по чату, который отвечал в фоне, человек будет наравне с остальными.
             MaybeUpdateSummary(turn.Session);
 
-            // Быстрый вопрос ждут в его окне: ни карточки «ответ готов», ни метки в списке.
-            if (turn.Kind == TurnKind.QuickAsk)
+            // Быстрый вопрос ждут в его окне: ни карточки «ответ готов», ни метки в списке. Открытый
+            // в чате — уже обычный чат, и ответ, законченный в фоне, отмечается, как у всех.
+            if (turn.Kind == TurnKind.QuickAsk && turn.Session.IsTemporary)
             {
                 QuickAskCompleted(turn, assistant);
                 return;

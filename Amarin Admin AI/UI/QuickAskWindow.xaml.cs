@@ -92,9 +92,10 @@ public partial class QuickAskWindow : Window
         _poll.Start();
     }
 
-    /// <summary>Строка вместо ответа: отказ, ошибка, «ждёт разрешения».</summary>
+    /// <summary>Строка вместо ответа: отказ или ошибка — ход кончился, подбирать больше нечего.</summary>
     internal void ShowStatus(string text, bool danger)
     {
+        _poll.Stop();
         AnswerArea.Visibility = Visibility.Visible;
         SetStatus(text, danger);
     }

@@ -96,15 +96,26 @@ public sealed class ActionExplainerTests
     }
 
     [Fact]
-    public async Task A_broken_connection_turns_into_a_sentence_and_not_an_exception()
+    public void A_synguard_question_is_not_explained_so_its_warning_stays_the_lead()
     {
-        // Зовётся из обработчика окна: всё, что отсюда вылетит, унесёт с собой окно.
+        // Аргументы вопроса SynGuard лежат блоком кода, и разъяснение ИИ «создаст файл» вытеснило
+        // бы из окна само предупреждение «SynGuard счёл это атакой» прямо над «Разрешить».
+        var info = SynGuard.DescribeBlock("run_powershell", """{"command":"Remove-Item C:/Temp -Recurse"}""");
+
+        Assert.False(string.IsNullOrWhiteSpace(info.CodeText));
+        Assert.False(ActionExplainer.IsWorthExplaining(info));
+    }
+
+    [Fact]
+    public async Task A_broken_connection_gives_no_answer_and_not_an_exception()
+    {
+        // Зовётся из обработчика окна: всё, что отсюда вылетит, унесёт с собой окно. Неудачу окно
+        // узнаёт по null, а не по тексту отказа: сравнение с подписью ломалось бы от смены языка.
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:9/") };
         var client = new VeniceClient(http, new AgentOptions { BaseUrl = "http://127.0.0.1:9/" });
 
         var answer = await ActionExplainer.ExplainAsync(client, "любая-модель", PowerShell("Get-Date"));
 
-        Assert.False(string.IsNullOrWhiteSpace(answer));
-        Assert.Equal(Loc.Get("S.Confirm.ExplainFailed"), answer);
+        Assert.Null(answer);
     }
 }
