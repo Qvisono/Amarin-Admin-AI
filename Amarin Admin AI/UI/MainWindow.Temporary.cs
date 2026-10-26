@@ -8,7 +8,8 @@ namespace Amarin.UI
     /// </summary>
     /// <remarks>
     /// Запись охраняет само хранилище (<see cref="ChatStore.Save"/>), здесь — только то, что видит
-    /// человек: плашка посреди пустого чата, отметка у поля ввода и срок жизни. В режиме «до
+    /// человек: кнопка-инкогнито в строке заголовка и рисунок посреди пустого временного чата
+    /// (1.37.0-beta.7), отметка у поля ввода и срок жизни. В режиме «до
     /// закрытия программы» временный чат стоит в своей группе списка и открывается из неё, пока
     /// программа не закрыта; в режиме «сразу» уход из него — конец разговора, как в веб-чатах.
     /// </remarks>
@@ -16,8 +17,8 @@ namespace Amarin.UI
     {
         private readonly TemporaryChats _temporaryChats = new();
 
-        /// <summary>Плашка посреди пустого чата: сделать его временным или вернуть обычным.</summary>
-        private void TemporaryChatPlaque_Click(object sender, RoutedEventArgs e)
+        /// <summary>Инкогнито в строке заголовка: сделать пустой чат временным или вернуть обычным.</summary>
+        private void TemporaryChatButton_Click(object sender, RoutedEventArgs e)
         {
             if (_services is null || _session.Messages.Count > 0)
             {
@@ -43,17 +44,23 @@ namespace Amarin.UI
             FocusMessageInput();
         }
 
-        /// <summary>Плашка — у пустого чата, отметка у поля — у временного с сообщениями.</summary>
+        /// <summary>
+        /// Кнопка и рисунок — у пустого чата (рисунок — только у временного), отметка у поля — у
+        /// временного с сообщениями.
+        /// </summary>
         private void RefreshTemporaryUi()
         {
-            if (TemporaryChatPlaque is null || TemporaryChatChip is null)
+            if (TemporaryChatButton is null || TemporaryChatChip is null)
             {
                 return;
             }
 
             var empty = _session.Messages.Count == 0;
-            TemporaryChatPlaque.IsChecked = _session.IsTemporary;
-            TemporaryChatPlaque.Visibility = empty && _services is not null ? Visibility.Visible : Visibility.Collapsed;
+            var offered = empty && _services is not null;
+            TemporaryChatButton.IsChecked = _session.IsTemporary;
+            TemporaryChatButton.Visibility = offered ? Visibility.Visible : Visibility.Collapsed;
+            TemporaryChatButton.SetResourceReference(ToolTipProperty, _session.IsTemporary ? "S.Temporary.TurnOff" : "S.Temporary.PlaqueTip");
+            TemporaryChatEmpty.Visibility = offered && _session.IsTemporary ? Visibility.Visible : Visibility.Collapsed;
             TemporaryChatChip.Visibility = _session.IsTemporary && !empty ? Visibility.Visible : Visibility.Collapsed;
         }
 

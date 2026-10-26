@@ -328,4 +328,10 @@ internal sealed record FoxSituation
 
     /// <summary>Роза спит.</summary>
     public bool Asleep { get; init; }
+
+    /// <summary>
+    /// Роза договаривает фразу или ещё показывает реакцию: своё (занятие, шалость, требование,
+    /// фразу от скуки) он начнёт следующим тиком, а не оборвёт недосказанное.
+    /// </summary>
+    public bool Busy { get; init; }
 }

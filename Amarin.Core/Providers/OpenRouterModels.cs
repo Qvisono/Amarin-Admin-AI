@@ -152,7 +152,11 @@ internal static class OpenRouterMapper
     /// </summary>
     private static readonly List<string> EffortOptions = ["low", "medium", "high"];
 
-    public static IReadOnlyList<VeniceModelInfo> ToModels(OpenRouterModelsResponse response)
+    /// <param name="nitro">
+    /// Достроить близнецов <c>:nitro</c> (<see cref="HasNitro"/>). Их просит загрузка каталога для
+    /// выбора моделей; прочим разборам (книга цен) они ни к чему.
+    /// </param>
+    public static IReadOnlyList<VeniceModelInfo> ToModels(OpenRouterModelsResponse response, bool nitro = false)
     {
         var models = new List<VeniceModelInfo>(response.Data.Count);
         foreach (var model in response.Data)
@@ -170,10 +174,40 @@ internal static class OpenRouterMapper
             }
 
             models.Add(ToModel(model));
+            if (nitro && HasNitro(model))
+            {
+                models.Add(ToModel(Nitro(model)));
+            }
         }
 
         return models;
     }
+
+    /// <summary>
+    /// У модели есть вариант <c>:nitro</c>. Каталог его не перечисляет — это приставка, которую
+    /// OpenRouter принимает у любой модели: запрос уходит самому быстрому провайдеру, а цена,
+    /// контекст и умения — те же. Без варианта у вариантов (<c>:free</c>, <c>:batch</c>), у
+    /// подвижных имён (<c>~…-latest</c>), маршрутизаторов OpenRouter и моделей Decisions.
+    /// </summary>
+    private static bool HasNitro(OpenRouterModel model) =>
+        !model.Id.Contains(':', StringComparison.Ordinal) &&
+        !model.Id.StartsWith('~') &&
+        !model.Id.StartsWith("openrouter/", StringComparison.OrdinalIgnoreCase) &&
+        (model.Architecture?.OutputModalities is not { } outputs || (Has(outputs, "text") && !Has(outputs, "decisions")));
+
+    /// <summary>Близнец модели с пометкой <c>:nitro</c>: в списке его показывает чип «Nitro».</summary>
+    private static OpenRouterModel Nitro(OpenRouterModel model) => new()
+    {
+        Id = model.Id + ModelRef.NitroVariant,
+        Name = string.IsNullOrWhiteSpace(model.Name) ? null : model.Name.Trim() + " (nitro)",
+        Description = model.Description,
+        Created = model.Created,
+        ContextLength = model.ContextLength,
+        Architecture = model.Architecture,
+        SupportedParameters = model.SupportedParameters,
+        Pricing = model.Pricing,
+        Reasoning = model.Reasoning
+    };
 
     private static VeniceModelInfo ToModel(OpenRouterModel model)
     {

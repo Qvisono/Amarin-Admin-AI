@@ -919,6 +919,8 @@ public sealed partial class VeniceClient
             return ReasoningPolicy.None;
         }
 
+        // Модель, у которой размышление не выключается, на «без размышления» получает нижний уровень.
+        choice = ReasoningPolicy.Effective(choice, info, hasTools);
         if (choice.DisableThinking)
         {
             return ReasoningPolicy.HasNoneOption(info) ? ReasoningPolicy.None : null;
@@ -1053,7 +1055,11 @@ public sealed partial class VeniceClient
         var choice = request.ReasoningChoice;
         ReasoningConfig? reasoning = null;
 
-        if (choice is { DisableThinking: false } thinking &&
+        // Выключить нельзя, а без поля модель думает на своём уровне по умолчанию — у Aion 3.5 Mini
+        // это high, и «без размышления» становилось самым дорогим. Ближе всего к просьбе — нижний
+        // уровень (ReasoningPolicy.Effective).
+        ReasoningChoice? wanted = choice is { } picked ? ReasoningPolicy.Effective(picked, info, withTools: true) : null;
+        if (wanted is { DisableThinking: false } thinking &&
             info?.ModelSpec?.Capabilities?.SupportsReasoning != false)
         {
             // Каталог мог ещё не доехать — тогда обрезать уровень не по чему, и просьба
@@ -1067,14 +1073,11 @@ public sealed partial class VeniceClient
                 ? new ReasoningConfig { Enabled = true }
                 : new ReasoningConfig { Effort = effort };
         }
-        else if (choice is { DisableThinking: true } &&
-                 info?.ModelSpec?.Capabilities is { ReasoningMandatory: true } &&
-                 ReasoningPolicy.VisibleEffortOptions(info, withTools: true) is [var lowest, ..])
+        else if (wanted is { DisableThinking: true } && ReasoningPolicy.HasNoneOption(info))
         {
-            // Выключить нельзя, а без поля модель думает на своём уровне по умолчанию — у Aion
-            // 3.5 Mini это high, и «без размышления» становилось самым дорогим. Ближе всего к
-            // просьбе — нижний уровень.
-            reasoning = new ReasoningConfig { Effort = lowest };
+            // Выключить можно уровнем none (Haiku 5.5): без поля модель думала бы на своём уровне
+            // по умолчанию, и «без размышления» не выключало ничего (до 1.37.0-beta.7).
+            reasoning = new ReasoningConfig { Effort = ReasoningPolicy.None };
         }
         else if (choice is null && request.Reasoning is { } asked)
         {

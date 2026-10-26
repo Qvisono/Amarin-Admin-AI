@@ -19,12 +19,41 @@ public sealed class FoxInstinctTests
     [InlineData("Меня обманули на сайте, украли деньги", "scam")]
     [InlineData("I got scammed yesterday", "scam")]
     [InlineData("Мне сегодня грустно и одиноко", "sad")]
-    [InlineData("Спасибо большое!", "thanks")]
+    [InlineData("Роза, спасибо большое!", "thanks")]
     [InlineData("Ура, заработало!", "happy")]
     [InlineData("Роза, ты такая милая", "praise")]
+    [InlineData("Ты такая милая, Роза!", "praise")]
     [InlineData("Роза, ты тупой", "rude-to-fox")]
     public void Topics_are_recognized(string message, string topic) =>
         Assert.Contains(topic, FoxInstinct.Read(message).Topics);
+
+    /// <summary>
+    /// Сообщения ассистенту — не Розе: благодарность, похвала и грубость в них на его счёт не идут,
+    /// даже если в тексте есть слово из его имени.
+    /// </summary>
+    [Theory]
+    [InlineData("Спасибо большое!")]
+    [InlineData("Спасибо, ты молодец, очень мило")]
+    [InlineData("Напиши стих про розу, ты умница")]
+    [InlineData("Роза Люксембург была хорошим оратором?")]
+    [InlineData("Где растут лисички, ты же умный?")]
+    [InlineData("Ты тупой, даже про лису ответить не можешь")]
+    public void Words_to_the_assistant_are_not_taken_personally(string message)
+    {
+        var topics = FoxInstinct.Read(message).Topics;
+        Assert.DoesNotContain(FoxTopic.Thanks, topics);
+        Assert.DoesNotContain(FoxTopic.Praise, topics);
+        Assert.DoesNotContain(FoxTopic.RudeToFox, topics);
+        Assert.False(FoxInstinct.Addressed(message));
+    }
+
+    [Theory]
+    [InlineData("Роза, привет")]
+    [InlineData("привет, Роза")]
+    [InlineData("Ну что, лисёнок?")]
+    [InlineData("Rosa!")]
+    public void Calling_him_by_name_addresses_him(string message) =>
+        Assert.True(FoxInstinct.Addressed(message));
 
     /// <summary>«Вирус» не про компьютер: реклама, популярность, болезни.</summary>
     [Theory]

@@ -177,14 +177,24 @@ internal static class VeniceModelCatalog
                name.Contains(q, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <param name="nitro">
+    /// Чип «Nitro» (1.37.0-beta.7): включён — только варианты <c>:nitro</c>, выключен — без них.
+    /// Близнец есть у каждой модели OpenRouter, и в общем списке они удвоили бы его.
+    /// </param>
     public static IEnumerable<VeniceModelInfo> FilterAllTab(
         IEnumerable<VeniceModelInfo> models,
         string? search,
         bool vision,
-        bool code)
+        bool code,
+        bool nitro = false)
     {
         foreach (var model in models)
         {
+            if (ModelRef.IsNitro(model.Id) != nitro)
+            {
+                continue;
+            }
+
             if (vision && !HasVision(model))
             {
                 continue;

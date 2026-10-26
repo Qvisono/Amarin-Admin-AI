@@ -191,6 +191,60 @@ public sealed class AgentBrowserTests
         Assert.DoesNotContain("secret-value", context, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Перед Enter защитник видит, что агент набрал и куда уйдёт клавиша: без этого на «отправь»
+    /// он отвечал «не проверил», и человек получал вопрос о том, о чём сам просил (1.37.0-beta.7).
+    /// После клавиши поле забывается: отправленное уже не в нём.
+    /// </summary>
+    [Fact]
+    public async Task The_guard_sees_the_typed_text_where_a_key_press_goes()
+    {
+        var port = new FakeBrowser();
+        using var session = Session(port);
+        var tool = new BrowserTool(session);
+        _ = await tool.ExecuteAsync(Args(new { action = "read" }));
+        _ = await tool.ExecuteAsync(Args(new { action = "type", element = "b1_3", text = "привет, Петя" }));
+
+        var beforeEnter = session.DescribeForGuard([Args(new { action = "press", key = "enter" })]);
+        var target = session.DescribeForGuard([Args(new { action = "click", element = "b1_3" })]);
+        _ = await tool.ExecuteAsync(Args(new { action = "press", key = "enter" }));
+        var afterEnter = session.DescribeForGuard([Args(new { action = "press", key = "enter" })]);
+
+        Assert.Contains("key presses go there): textbox \"Search\", value \"привет, Петя\"", beforeEnter, StringComparison.Ordinal);
+        Assert.Contains("Target b1_3: textbox \"Search\", value \"привет, Петя\"", target, StringComparison.Ordinal);
+        Assert.DoesNotContain("привет, Петя", afterEnter, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Набранное агентом защитник видит с тем же пределом и в строке поля, и в строке цели: длинное
+    /// письмо целиком раздуло бы его промпт.
+    /// </summary>
+    [Fact]
+    public async Task A_long_typed_text_reaches_the_guard_clipped()
+    {
+        var port = new FakeBrowser();
+        using var session = Session(port);
+        var tool = new BrowserTool(session);
+        var letter = new string('x', 5000);
+        _ = await tool.ExecuteAsync(Args(new { action = "read" }));
+        _ = await tool.ExecuteAsync(Args(new { action = "type", element = "b1_3", text = letter }));
+
+        var context = session.DescribeForGuard([Args(new { action = "click", element = "b1_3" })])!;
+
+        Assert.DoesNotContain(letter, context, StringComparison.Ordinal);
+        Assert.Contains("Target b1_3: textbox \"Search\", value \"" + letter[..600] + " […]\"", context, StringComparison.Ordinal);
+        Assert.True(context.Length < 2000, $"контекст защитника {context.Length} знаков");
+    }
+
+    /// <summary>Правило браузера, как у мыши: просьба человека — уже согласие, handoff — не для вопросов.</summary>
+    [Fact]
+    public void The_browser_rules_treat_the_request_as_approval()
+    {
+        Assert.Contains("already approved: do not stop to ask again", BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        Assert.Contains("Never use handoff to ask for approval", BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        Assert.Contains("add no conditions, confirmations", BrowserPrompt.ChatRules, StringComparison.Ordinal);
+    }
+
     // ───────────────────────── шлюз ─────────────────────────
 
     [Theory]

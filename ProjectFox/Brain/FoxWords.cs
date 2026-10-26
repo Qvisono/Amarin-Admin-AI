@@ -91,6 +91,10 @@ internal sealed class FoxWords
         return false;
     }
 
+    /// <summary>Подходит ли одно слово (уже через <see cref="Normalize"/>) под список: целиком или началом.</summary>
+    public bool Matches(string word) =>
+        _whole.Contains(word) || _prefixes.Any(prefix => word.StartsWith(prefix, StringComparison.Ordinal));
+
     /// <summary>Знает ли список это слово целиком (для частых слов при проверке раскладки).</summary>
     public bool Knows(string word) => _whole.Contains(word) || _prefixes.Contains(word, StringComparer.Ordinal);
 

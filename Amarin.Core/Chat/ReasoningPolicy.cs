@@ -215,6 +215,50 @@ internal static class ReasoningPolicy
         return false;
     }
 
+    /// <summary>
+    /// Можно ли у модели выключить размышление. Нельзя — когда каталог OpenRouter называет его
+    /// обязательным или каталог Anthropic не знает ни <c>disabled</c>, ни <c>between_tools</c>.
+    /// Модель, о которой каталог ничего не сказал, выключать можно, как и прежде.
+    /// </summary>
+    /// <remarks>
+    /// До 1.37.0-beta.7 переключатель «Размышление» был у всех моделей, и у Sonnet 5.5 или Opus 5.5
+    /// «без размышления» молча становилось нижним уровнем: на кнопке одно, на проводе другое.
+    /// </remarks>
+    public static bool CanDisable(VeniceModelInfo? model)
+    {
+        var capabilities = model?.ModelSpec?.Capabilities;
+        if (capabilities is null)
+        {
+            return true;
+        }
+
+        if (capabilities.ReasoningMandatory)
+        {
+            return false;
+        }
+
+        return capabilities.ThinkingModes is not { } modes ||
+               modes.Any(mode => mode.Equals("disabled", StringComparison.OrdinalIgnoreCase) ||
+                                 mode.Equals("between_tools", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Выбор, каким он уйдёт модели: «без размышления» у модели, которая его не выключает, — её
+    /// нижний уровень. Так его и показывают кнопка и спидометр, так его и шлёт запрос.
+    /// </summary>
+    public static ReasoningChoice Effective(ReasoningChoice choice, VeniceModelInfo? model, bool withTools = false)
+    {
+        if (!choice.DisableThinking || CanDisable(model))
+        {
+            return choice;
+        }
+
+        var options = VisibleEffortOptions(model, withTools);
+        return options.Count == 0
+            ? choice
+            : choice with { DisableThinking = false, Effort = options.MinBy(EffortRank) };
+    }
+
     /// <summary>Уровни размышления по возрастанию — по этой шкале ищется ближайший.</summary>
     private static readonly string[] EffortScale = ["minimal", "low", "medium", "high", "xhigh", "max"];
 
@@ -366,6 +410,7 @@ internal static class ReasoningPolicy
         bool autoMode,
         bool withTools = false)
     {
+        choice = Effective(choice, model, withTools);
         if (choice.DisableThinking)
         {
             return Loc.Get("S.Reasoning.Off");

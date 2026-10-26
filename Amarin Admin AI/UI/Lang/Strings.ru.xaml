@@ -454,6 +454,7 @@
     <system:String x:Key="S.ChatList.Temporary" xml:space="preserve">Временные</system:String>
     <system:String x:Key="S.Temporary.Plaque" xml:space="preserve">Временный чат</system:String>
     <system:String x:Key="S.Temporary.PlaqueTip" xml:space="preserve">Сделать этот чат временным: он не сохраняется</system:String>
+    <system:String x:Key="S.Temporary.TurnOff" xml:space="preserve">Сделать чат обычным: он сохранится</system:String>
     <system:String x:Key="S.Temporary.Hint" xml:space="preserve">Не сохраняется, не попадает в поиск и архив</system:String>
     <system:String x:Key="S.Temporary.Chip" xml:space="preserve">Временный</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
@@ -620,10 +621,6 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Инструменты отработали, жду ответа модели</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Инструменты отработали, жду ответа модели (шаг {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Инструменты прерваны</system:String>
-    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Агент, поиск и картинки оплачиваются сверх.</system:String>
-    <system:String x:Key="S.Estimate.Label" xml:space="preserve">Цена ответа</system:String>
-    <system:String x:Key="S.Estimate.Images" xml:space="preserve">Картинки и PDF не учтены: сколько токенов они займут, решает провайдер.</system:String>
-    <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">Для части моделей в каталоге нет цены, они не учтены.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Ассистент</system:String>
     <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Куда выгрузить чаты</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Выгружено {0}</system:String>
@@ -900,7 +897,7 @@
     <system:String x:Key="S.Info.Or.Step1.Button" xml:space="preserve">Открыть openrouter.ai</system:String>
     <system:String x:Key="S.Info.Or.Step1.Text" xml:space="preserve">OpenRouter даёт доступ к моделям многих производителей: один счёт и один ключ на все.</system:String>
     <system:String x:Key="S.Info.Or.Step1.Title" xml:space="preserve">Зарегистрируйтесь на openrouter.ai</system:String>
-    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Модели оплачиваются с баланса учётной записи. Пополните его в разделе Credits. Оценка цены следующего ответа видна рядом с кольцом контекста.</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Модели оплачиваются с баланса учётной записи. Пополните его в разделе Credits.</system:String>
     <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Пополните баланс</system:String>
     <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Открыть ключи OpenRouter</system:String>
     <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">Ключу можно задать лимит трат на стороне OpenRouter. Это вторая страховка вдобавок к лимитам программы на странице «Ключи и траты».</system:String>
@@ -1501,6 +1498,8 @@
     <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ДВИЖОК</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Код</system:String>
+    <system:String x:Key="S.Models.FilterNitro" xml:space="preserve">Nitro</system:String>
+    <system:String x:Key="S.Models.FilterNitroTip" xml:space="preserve">Варианты, которые OpenRouter отправляет самому быстрому провайдеру</system:String>
     <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Картинки</system:String>
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">КЛЮЧ</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">По умолчанию</system:String>
@@ -2287,6 +2286,7 @@
     <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">В облаке</system:String>
     <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">На этом ПК</system:String>
     <system:String x:Key="S.Voice.Failed" xml:space="preserve">Распознать не удалось: {0}</system:String>
+    <system:String x:Key="S.Voice.TimedOut" xml:space="preserve">провайдер не ответил вовремя</system:String>
     <system:String x:Key="S.Voice.Language" xml:space="preserve">Язык речи</system:String>
     <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Как в интерфейсе</system:String>
     <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">Язык, на котором вы говорите</system:String>
@@ -2299,7 +2299,8 @@
     <system:String x:Key="S.Voice.NotSetUp" xml:space="preserve">Не настроен</system:String>
     <system:String x:Key="S.Voice.Nothing" xml:space="preserve">Речь не распознана.</system:String>
     <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Распознаю речь…</system:String>
-    <system:String x:Key="S.Voice.Recording" xml:space="preserve">Идёт запись. Нажмите, чтобы закончить, или Esc, чтобы отменить</system:String>
+    <system:String x:Key="S.Voice.RecordingTime" xml:space="preserve">Запись {0}. Нажмите, чтобы закончить, или Esc, чтобы отменить</system:String>
+    <system:String x:Key="S.Voice.RecordingHold" xml:space="preserve">Запись {0}. Отпустите, чтобы закончить</system:String>
     <system:String x:Key="S.Voice.SetupOpen" xml:space="preserve">Настроить</system:String>
     <system:String x:Key="S.Voice.SetupText" xml:space="preserve">Распознавать речь нечем: в Windows нет распознавания этого языка, а для облака нужен ключ Venice или OpenRouter.</system:String>
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Голосовой ввод</system:String>

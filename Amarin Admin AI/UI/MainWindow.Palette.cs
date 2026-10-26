@@ -103,13 +103,13 @@ namespace Amarin.UI
                 StartTemporaryChat));
         }
 
-        /// <summary>Новый чат и сразу временный — как плашка посреди пустого чата.</summary>
+        /// <summary>Новый чат и сразу временный — как кнопка-инкогнито в строке заголовка.</summary>
         private void StartTemporaryChat()
         {
             StartNewChatFromUi();
             if (!_session.IsTemporary)
             {
-                TemporaryChatPlaque_Click(TemporaryChatPlaque, new RoutedEventArgs());
+                TemporaryChatButton_Click(TemporaryChatButton, new RoutedEventArgs());
             }
         }
 

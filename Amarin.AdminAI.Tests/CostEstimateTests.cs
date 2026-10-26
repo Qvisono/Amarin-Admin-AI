@@ -3,7 +3,7 @@ using Amarin.Core;
 
 namespace Amarin.AdminAI.Tests;
 
-/// <summary>Оценка цены до отправки (E2): цены из обоих каталогов и сама оценка.</summary>
+/// <summary>Цены моделей из обоих каталогов: по ним оценивается ответ провайдера без своей цены.</summary>
 public sealed class CostEstimateTests
 {
     [Fact]
@@ -45,39 +45,5 @@ public sealed class CostEstimateTests
         Assert.Equal(new ModelPrice(3m, 15m), CostEstimator.PriceOf(models[0]));
         Assert.Null(CostEstimator.PriceOf(models[1]));
         Assert.Null(CostEstimator.PriceOf(models[2]));
-    }
-
-    [Fact]
-    public void The_estimate_spans_the_candidates_and_skips_unpriced_ones()
-    {
-        var estimate = CostEstimator.Estimate(10_000, 1_000, [new ModelPrice(1m, 2m), null, new ModelPrice(3m, 16m)])!.Value;
-
-        Assert.Equal(0.012m, estimate.Low);
-        Assert.Equal(0.046m, estimate.High);
-        Assert.True(estimate.IsRange);
-        Assert.Equal("≈ $0.01–0.05", CostEstimator.Format(estimate));
-        Assert.Null(CostEstimator.Estimate(10, 10, [null]));
-    }
-
-    [Theory]
-    [InlineData(0.004, 0.004, "< $0.01")]
-    [InlineData(0.03, 0.03, "≈ $0.03")]
-    [InlineData(0.002, 0.09, "≈ $0.002–0.09")]
-    public void The_label_is_short(double low, double high, string expected)
-    {
-        Assert.Equal(expected, CostEstimator.Format(new CostEstimate((decimal)low, (decimal)high, 0, 0)));
-    }
-
-    [Fact]
-    public void The_answer_length_follows_this_chats_recent_answers()
-    {
-        var session = new ChatSession();
-        Assert.Equal(CostEstimator.DefaultOutputTokens, CostEstimator.TypicalOutputTokens(session));
-
-        session.Messages.Add(new ChatDisplayMessage { Role = "user", Text = new string('q', 4000) });
-        session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Text = new string('a', 400) });
-        session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Text = new string('a', 1200) });
-
-        Assert.Equal(200, CostEstimator.TypicalOutputTokens(session));
     }
 }

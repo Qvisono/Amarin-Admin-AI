@@ -82,6 +82,35 @@
     -->
     <Geometry x:Key="Icon.TemporaryChat" po:Freeze="True">M8,3.6 A5.4,5.4 0 1 1 8,14.4 A5.4,5.4 0 1 1 8,3.6 Z M6.4,1.6 H9.6 M8,1.6 V3.6 M8,6.3 V9 L9.9,10.3 M12.3,4.3 L13.2,3.4</Geometry>
 
+    <!--
+        Временный чат — инкогнито (1.37.0-beta.7): шляпа и очки обводкой в боксе 24x24. Рисуется
+        внутри Canvas 24x24 без растяжения: у зачёркнутого варианта другие границы фигуры, и
+        Stretch растягивал бы два состояния кнопки по-разному. Разрыв вокруг черты — Clip
+        (IncognitoGap), а не обводка цветом фона: фон под кнопкой меняется от наведения.
+    -->
+    <Geometry x:Key="Icon.Incognito" po:Freeze="True">M7,10.2 L8.1,5.4 C8.3,4.5 9.2,4 10,4.4 L12,5.3 L14,4.4 C14.8,4 15.7,4.5 15.9,5.4 L17,10.2 M3.2,10.6 C7,11.8 17,11.8 20.8,10.6 M5,16.4 A2.9,2.9 0 1 1 10.8,16.4 A2.9,2.9 0 1 1 5,16.4 Z M13.2,16.4 A2.9,2.9 0 1 1 19,16.4 A2.9,2.9 0 1 1 13.2,16.4 Z M10.8,16.1 Q12,15.2 13.2,16.1</Geometry>
+    <Geometry x:Key="Icon.IncognitoSlash" po:Freeze="True">M3.5,3 L21,20.5</Geometry>
+    <CombinedGeometry x:Key="Icon.IncognitoGap" GeometryCombineMode="Exclude" po:Freeze="True">
+        <CombinedGeometry.Geometry1>
+            <RectangleGeometry Rect="0,0,24,24"/>
+        </CombinedGeometry.Geometry1>
+        <CombinedGeometry.Geometry2>
+            <PathGeometry Figures="M2,4.5 L19.5,22 L22.5,19 L5,1.5 Z"/>
+        </CombinedGeometry.Geometry2>
+    </CombinedGeometry>
+    <!-- Крупный рисунок посреди временного чата: заливки шляпы и стёкол, лента и блики поверх контура. -->
+    <Geometry x:Key="Icon.IncognitoCrown" po:Freeze="True">M7,10.2 L8.1,5.4 C8.3,4.5 9.2,4 10,4.4 L12,5.3 L14,4.4 C14.8,4 15.7,4.5 15.9,5.4 L17,10.2 Z</Geometry>
+    <Geometry x:Key="Icon.IncognitoLenses" po:Freeze="True">M5,16.4 A2.9,2.9 0 1 1 10.8,16.4 A2.9,2.9 0 1 1 5,16.4 Z M13.2,16.4 A2.9,2.9 0 1 1 19,16.4 A2.9,2.9 0 1 1 13.2,16.4 Z</Geometry>
+    <Geometry x:Key="Icon.IncognitoBand" po:Freeze="True">M7.5,8.6 C10,9.1 14,9.1 16.5,8.6</Geometry>
+    <Geometry x:Key="Icon.IncognitoGlints" po:Freeze="True">M6.4,15.4 A1.7,1.7 0 0 1 7.6,14.6 M14.6,15.4 A1.7,1.7 0 0 1 15.8,14.6</Geometry>
+
+    <!--
+        Во что обошёлся чат (1.37.0): мешок с деньгами — рисунок, выбранный человеком, но без знака
+        доллара. Заливкой в боксе 48x48 (его держат «M48,48z M0,0z»), узел и тело одной фигурой:
+        у них общая система координат, порознь их растянуло бы по-разному.
+    -->
+    <Geometry x:Key="Icon.ChatCost" po:Freeze="True">F0 M48,48z M0,0z M24.0433,4C19.0249,4 14.4518,5.65746 11.7469,7.01231 11.5031,7.13439 11.2746,7.25402 11.0622,7.36975 10.642,7.59878 10.2852,7.81256 10,8L13.0777,12.5307 14.5263,13.1074C20.1889,15.9645,27.7825,15.9645,33.4451,13.1074L35.09,12.254 38,8C37.5736,7.7157 36.9838,7.37078 36.2581,7.00403 36.2139,6.98167 36.1692,6.95924 36.1239,6.93673 33.4307,5.59663 28.9687,4 24.0433,4z M16.8852,9.12906C15.7776,8.92471 14.6893,8.64286 13.662,8.31949 16.1968,7.19394 19.9743,6 24.0433,6 26.8626,6 29.5282,6.57325 31.733,7.2991 29.1492,7.66384 26.3919,8.27955 23.7654,9.03939 21.6987,9.63727 19.2829,9.57147 16.8852,9.12906z M34.6185,14.7556L34.3461,14.893C28.1168,18.036,19.8546,18.036,13.6254,14.893L13.3664,14.7624C4.00908,25.0304 -5.80757,44.2853 24.0433,43.9968 53.8737,43.7085 43.9033,24.6761 34.6185,14.7556z</Geometry>
+
     <Style TargetType="ScrollBar">
         <Setter Property="Width" Value="7"/>
         <Setter Property="MinWidth" Value="7"/>
@@ -420,6 +449,10 @@
         <Setter Property="Stretch" Value="Uniform"/>
     </Style>
 
+    <!--
+        Крестик окна (1.37.0): под курсором — акцент, а не красный, и значок цветом надписей на
+        акценте, как у кнопок «Новый чат» и «Отправить». Так решил человек.
+    -->
     <Style x:Key="LockChromeCloseButton" TargetType="Button" BasedOn="{StaticResource LockChromeButton}">
         <Setter Property="Template">
             <Setter.Value>
@@ -434,8 +467,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Status.DangerStrong}"/>
-                            <Setter TargetName="icon" Property="Fill" Value="{DynamicResource Text.Primary}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter TargetName="icon" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

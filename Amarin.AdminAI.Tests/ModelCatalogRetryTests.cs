@@ -58,8 +58,11 @@ public sealed class ModelCatalogRetryTests
 
         var loaded = await cache.LoadAsync(LlmProvider.OpenRouter);
 
+        // Модель каталога и её близнец :nitro — его достраивает загрузка (1.37.0-beta.7).
         Assert.NotNull(loaded.Models);
-        Assert.Single(loaded.Models!);
+        Assert.Equal(
+            ["openrouter:anthropic/claude-haiku-5.5", "openrouter:anthropic/claude-haiku-5.5:nitro"],
+            loaded.Models!.Select(model => model.Id));
         Assert.Null(loaded.Error);
         Assert.Null(cache.ErrorFor(LlmProvider.OpenRouter));
         Assert.Equal(2, script.Calls);

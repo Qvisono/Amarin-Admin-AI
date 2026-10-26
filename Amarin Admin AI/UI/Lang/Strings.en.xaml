@@ -454,6 +454,7 @@
     <system:String x:Key="S.ChatList.Temporary" xml:space="preserve">Temporary</system:String>
     <system:String x:Key="S.Temporary.Plaque" xml:space="preserve">Temporary chat</system:String>
     <system:String x:Key="S.Temporary.PlaqueTip" xml:space="preserve">Make this chat temporary: it is not saved</system:String>
+    <system:String x:Key="S.Temporary.TurnOff" xml:space="preserve">Make this chat regular: it will be saved</system:String>
     <system:String x:Key="S.Temporary.Hint" xml:space="preserve">Not saved, not searchable, not archived</system:String>
     <system:String x:Key="S.Temporary.Chip" xml:space="preserve">Temporary</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Rename</system:String>
@@ -620,10 +621,6 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Tools finished, waiting for the model's reply</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Tools finished, waiting for the model's reply (step {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Tools stopped</system:String>
-    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Agent work, search and images are charged on top.</system:String>
-    <system:String x:Key="S.Estimate.Label" xml:space="preserve">Answer cost</system:String>
-    <system:String x:Key="S.Estimate.Images" xml:space="preserve">Images and PDFs are not counted: the provider decides how many tokens they take.</system:String>
-    <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">The catalog gives no price for some models; they are left out.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Assistant</system:String>
     <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Where to export the chats</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Exported {0}</system:String>
@@ -900,7 +897,7 @@
     <system:String x:Key="S.Info.Or.Step1.Button" xml:space="preserve">Open openrouter.ai</system:String>
     <system:String x:Key="S.Info.Or.Step1.Text" xml:space="preserve">OpenRouter is a gateway to models from many vendors: one account and one key for all of them.</system:String>
     <system:String x:Key="S.Info.Or.Step1.Title" xml:space="preserve">Sign up at openrouter.ai</system:String>
-    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Models are paid from your account balance. Top it up in the Credits section. An estimate for the next answer is shown next to the context ring.</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Models are paid from your account balance. Top it up in the Credits section.</system:String>
     <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Add credits</system:String>
     <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Open OpenRouter keys</system:String>
     <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">You can set a spending limit for the key on OpenRouter's side. It is a second safeguard on top of the app's own limits on the Keys &amp; spending page.</system:String>
@@ -1501,6 +1498,8 @@
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ENGINE</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Code</system:String>
+    <system:String x:Key="S.Models.FilterNitro" xml:space="preserve">Nitro</system:String>
+    <system:String x:Key="S.Models.FilterNitroTip" xml:space="preserve">Variants that OpenRouter sends to the fastest provider</system:String>
     <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Vision</system:String>
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">Default</system:String>
@@ -2287,6 +2286,7 @@
     <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">In the cloud</system:String>
     <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">On this PC</system:String>
     <system:String x:Key="S.Voice.Failed" xml:space="preserve">Recognition failed: {0}</system:String>
+    <system:String x:Key="S.Voice.TimedOut" xml:space="preserve">the provider did not answer in time</system:String>
     <system:String x:Key="S.Voice.Language" xml:space="preserve">Speech language</system:String>
     <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Same as the interface</system:String>
     <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">The language you speak</system:String>
@@ -2299,7 +2299,8 @@
     <system:String x:Key="S.Voice.NotSetUp" xml:space="preserve">Not set up</system:String>
     <system:String x:Key="S.Voice.Nothing" xml:space="preserve">No speech recognised.</system:String>
     <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Recognising speech…</system:String>
-    <system:String x:Key="S.Voice.Recording" xml:space="preserve">Recording. Click to finish, or press Esc to cancel</system:String>
+    <system:String x:Key="S.Voice.RecordingTime" xml:space="preserve">Recording {0}. Click to finish, or press Esc to cancel</system:String>
+    <system:String x:Key="S.Voice.RecordingHold" xml:space="preserve">Recording {0}. Release to finish</system:String>
     <system:String x:Key="S.Voice.SetupOpen" xml:space="preserve">Set up</system:String>
     <system:String x:Key="S.Voice.SetupText" xml:space="preserve">There is nothing to recognize speech with: Windows cannot recognize this language, and the cloud needs a Venice or OpenRouter key.</system:String>
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Voice input</system:String>

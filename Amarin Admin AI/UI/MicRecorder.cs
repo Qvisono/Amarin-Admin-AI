@@ -81,8 +81,8 @@ internal sealed class MicRecorder : IDisposable
 
     private static readonly uint HeaderSize = (uint)Marshal.SizeOf<WaveHeader>();
 
-    /// <summary>Громкость последнего куска, 0…1 — для индикатора.</summary>
-    public event Action<double>? LevelChanged;
+    /// <summary>Записан очередной кусок (~100 мс) — для индикатора громкости у кнопки.</summary>
+    public event Action<byte[]>? ChunkRecorded;
 
     /// <summary>Запись упёрлась в <see cref="WavFile.MaxLength"/> и остановилась сама.</summary>
     public event Action? LimitReached;
@@ -144,7 +144,7 @@ internal sealed class MicRecorder : IDisposable
                 var chunk = new byte[state.BytesRecorded];
                 Marshal.Copy(data, chunk, 0, chunk.Length);
                 _pcm.Write(chunk);
-                LevelChanged?.Invoke(WavFile.Level(chunk));
+                ChunkRecorded?.Invoke(chunk);
             }
 
             if (requeue && !_stopped)

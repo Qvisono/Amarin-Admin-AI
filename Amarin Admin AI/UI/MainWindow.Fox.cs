@@ -154,6 +154,36 @@ namespace Amarin.UI
             }
         }
 
+        /// <summary>
+        /// Сменился профиль или импорт подменил его данные: у профиля своя галочка «Лисёнок Роза».
+        /// </summary>
+        /// <remarks>
+        /// До 1.37.0-beta.7 здесь звали только <see cref="IFoxHooks.ProfileChanged"/>: Роза
+        /// переезжал на память нового профиля и оставался в окне, даже если там он выключен, а
+        /// выключенный в прежнем профиле не приходил во включённом новом. Галочку на странице
+        /// настроек ставит загрузка под <c>_loading</c>, и <see cref="ApplyFoxSettings"/> она не зовёт.
+        /// </remarks>
+        private void ApplyFoxForProfile()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            if (!_services.Settings.Fox.Enabled)
+            {
+                StopFox();
+            }
+            else if (_fox is null)
+            {
+                StartFox();
+            }
+            else
+            {
+                _fox.ProfileChanged();
+            }
+        }
+
         /// <summary>«Наша дружба»: уровень, привязанность, дни вместе, счётчики дня.</summary>
         internal async Task ShowFoxFriendshipAsync()
         {

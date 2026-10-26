@@ -580,7 +580,7 @@ namespace Amarin.UI
             _services.ProfileRegistry = _services.Profiles.Load();
             _services.UseProfile(ProfileStore.DataRootFor(_services.ProfileRegistry.ActiveProfileId));
             OnDeferredProfileChanged();
-            _fox?.ProfileChanged();
+            ApplyFoxForProfile();
             StartTextIndexBuild();
 
             // Кэш держит прежний фон объектом, и без сброса на экране остался бы старый.

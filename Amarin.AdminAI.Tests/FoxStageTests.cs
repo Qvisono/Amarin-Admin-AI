@@ -502,6 +502,9 @@ public sealed class FoxStageTests : IDisposable
                 state.NextActivityAt = null;
             });
             stage.PlayLaser();
+
+            // Обрадовался указке — договорил и доиграл: пока реагирует, воля и не выбирает.
+            host.Now = host.Now.AddSeconds(10);
             var before = stage.Anim;
             stage.Signal(new FoxSignal(FoxSignalKind.Tick, Value: 10));
             return (store.Snapshot().NextActivityAt is not null, stage.Game, stage.Anim == before);
@@ -695,6 +698,10 @@ public sealed class FoxStageTests : IDisposable
             stage.OpenTalk();
             var talkField = host.Layer.Children.OfType<Border>().Any(border => border.Child is TextBox && border.IsVisible);
             stage.HideFor(1);
+
+            // Сперва договаривает прощание, потом исчезает.
+            host.Now = host.Now.AddSeconds(10);
+            stage.Advance(16);
             return (sitsAbove, !talkField, stage.Chat is null && !host.Layer.Children.OfType<FoxChat>().Any());
         }, motion: false);
 
@@ -719,6 +726,88 @@ public sealed class FoxStageTests : IDisposable
         }, motion: false);
 
         Assert.True(right <= width - 8 + 0.5, $"пузырь вылез за край: {right} из {width}");
+    }
+
+    /// <summary>
+    /// Новая фраза не обрывает недоговорённую: ждёт её конца и встаёт следом. До 1.37.0-beta.7
+    /// ответ своей модели перебивал Розу на полуслове.
+    /// </summary>
+    [Fact]
+    public void A_new_line_waits_until_he_finishes_the_current_one()
+    {
+        var (first, still, next) = With((stage, host, _) =>
+        {
+            string Shown()
+            {
+                host.Layer.UpdateLayout();
+                return host.Layer.Children.OfType<Border>()
+                    .Where(border => border.Child is TextBlock && border.IsVisible)
+                    .Select(border => ((TextBlock)border.Child).Text).SingleOrDefault() ?? "";
+            }
+
+            // Приветствие при приходе тоже договаривается до конца.
+            host.Now = host.Now.AddSeconds(10);
+            stage.Advance(16);
+
+            stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: "Первая мысль"));
+            var shownFirst = Shown();
+            stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: "Вторая мысль"));
+            var stillFirst = Shown();
+            host.Now = host.Now.AddSeconds(5);
+            stage.Advance(16);
+            return (shownFirst, stillFirst, Shown());
+        }, motion: false);
+
+        Assert.Equal("Первая мысль", first);
+        Assert.Equal("Первая мысль", still);
+        Assert.Equal("Вторая мысль", next);
+    }
+
+    /// <summary>
+    /// Фоновый сигнал (кивок на начало ответа ассистента) не перебивает реакцию, начатую рукой
+    /// человека; доиграла — фоновые снова видны.
+    /// </summary>
+    [Fact]
+    public void A_background_signal_does_not_cut_a_running_reaction()
+    {
+        var (during, after) = With((stage, host, _) =>
+        {
+            stage.Signal(FoxSignalKind.Treat);
+            var reaction = stage.Anim;
+            stage.Signal(FoxSignalKind.AssistantStarted);
+            var kept = stage.Anim == reaction;
+            host.Now = host.Now.AddSeconds(10);
+            stage.Advance(16);
+            stage.Signal(FoxSignalKind.AssistantStarted);
+            return (kept, stage.Anim);
+        }, motion: false);
+
+        Assert.True(during, "кивок оборвал реакцию на вкусняшку");
+        Assert.Equal("nod", after);
+    }
+
+    /// <summary>
+    /// Фоновая реакция фоновую не глушит: конец ответа сменяет кивок «читаю». Иначе после короткого
+    /// ответа (меньше шести секунд кивка) пропадали взгляд и мордочка, а Роза кивал дальше.
+    /// </summary>
+    [Fact]
+    public void The_end_of_an_answer_replaces_the_reading_nod()
+    {
+        var (reading, done) = With((stage, host, _) =>
+        {
+            // Приветствие при приходе — реакция на человека: сперва ему дают доиграть.
+            host.Now = host.Now.AddSeconds(10);
+            stage.Advance(16);
+
+            stage.Signal(FoxSignalKind.AssistantStarted);
+            var nod = stage.Anim;
+            host.Now = host.Now.AddSeconds(2);
+            stage.Signal(new FoxSignal(FoxSignalKind.AssistantCompleted, Text: "Готово."));
+            return (nod, stage.Anim);
+        }, motion: false);
+
+        Assert.Equal("nod", reading);
+        Assert.Equal("lookback", done);
     }
 
     // ───────────── игры, отказы и укусы (1.36.0) ─────────────

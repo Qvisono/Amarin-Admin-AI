@@ -203,6 +203,10 @@ internal sealed class ModelPriceBook
                     SupportsReasoningEffortWithTools = caps.SupportsReasoningEffortWithTools,
                     ReasoningEffortOptions = caps.ReasoningEffortOptions ?? knownCaps?.ReasoningEffortOptions,
                     DefaultReasoningEffort = caps.DefaultReasoningEffort ?? knownCaps?.DefaultReasoningEffort,
+
+                    // Прямые провайдеры обязательность размышления не называют, а без неё
+                    // переключатель «Размышление» предлагал выключить то, что не выключается.
+                    ReasoningMandatory = caps.ReasoningMandatory || knownCaps?.ReasoningMandatory == true,
                     SupportsVision = caps.SupportsVision || knownCaps?.SupportsVision == true,
                     Quantization = caps.Quantization,
                     ThinkingModes = caps.ThinkingModes

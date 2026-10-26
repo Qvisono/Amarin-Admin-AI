@@ -64,6 +64,7 @@ internal sealed partial class FoxStage
 
         _talkInput!.Text = "";
         _talk.Visibility = Visibility.Visible;
+        _pendingBubble = null;
         if (_bubble is not null)
         {
             _bubble.Visibility = Visibility.Collapsed;
@@ -185,6 +186,9 @@ internal sealed partial class FoxStage
 
         Play("think", "sit");
         _reactUntil = DateTime.MaxValue;
+
+        // Ждёт ответа, а не реагирует: ответ своей модели — фоновый сигнал — эту позу сменит.
+        _reactionEnds = DateTime.MinValue;
         _face = "thinking";
         _faceUntil = _clock().AddSeconds(3);
         Burst("dots", 1);

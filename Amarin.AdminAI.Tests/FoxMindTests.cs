@@ -51,14 +51,15 @@ public sealed class FoxMindTests : IDisposable
         Assert.False(request.Metered, "запрос Розы попал в счёт хода");
         Assert.Contains("спасибо, всё заработало", request.Body);
 
-        // «Спасибо» ассистенту — не Розе: это сказано и в правилах, и прямо над сообщением.
+        // «Спасибо» ассистенту — не Розе: это сказано и в правилах, и прямо над сообщением, а
+        // программа сама не даёт такому сообщению ни побега, ни сдвига дружбы (1.37.0-beta.7).
         Assert.Contains("Сообщения человека ИИ-ассистенту в чате. Они не тебе", request.Body);
         Assert.Contains("а не к тебе", request.Body);
-        Assert.Contains("\"escape\"", request.Body);
+        Assert.DoesNotContain("\"escape\"", request.Body);
         Assert.DoesNotContain("\"web_search\"", request.Body);
         Assert.Contains(VeniceSku.Fox, charged);
         var reply = Assert.Single(run.Replies);
-        Assert.Equal(("react", "happy", "Мур!", 1), (reply.Kind, reply.Emotion, reply.Line, reply.Mood));
+        Assert.Equal(("react", "happy", "Мур!", 0), (reply.Kind, reply.Emotion, reply.Line, reply.Mood));
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public sealed class FoxMindTests : IDisposable
         var server = new Server(_ => Answer(dirty));
         await using var run = Start(server);
 
-        run.Mind.Ask("react", "смотри что нашёл");
+        run.Mind.Ask("react", "Роза, смотри что нашёл");
         await run.Mind.IdleAsync();
 
         var reply = Assert.Single(run.Replies);
@@ -87,7 +88,7 @@ public sealed class FoxMindTests : IDisposable
         var server = new Server(_ => Answer("""{"emotion":"seductive","line":"ты хуйня","mood":-2}"""));
         await using var run = Start(server);
 
-        run.Mind.Ask("react", "фу");
+        run.Mind.Ask("react", "Роза, фу");
         await run.Mind.IdleAsync();
 
         var reply = Assert.Single(run.Replies);
@@ -157,7 +158,7 @@ public sealed class FoxMindTests : IDisposable
         var server = new Server(_ => ToolCall("escape", """{"minutes":90,"line":"Я ухожу!"}"""));
         await using var run = Start(server);
 
-        run.Mind.Ask("react", "ты глупый лис");
+        run.Mind.Ask("react", "ты глупый, лис!");
         await run.Mind.IdleAsync();
 
         var reply = Assert.Single(run.Replies);

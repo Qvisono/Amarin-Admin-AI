@@ -37,6 +37,22 @@ public sealed class VoiceInputTests
         Assert.Equal(1, WavFile.Level(loud));
     }
 
+    /// <summary>Точки у кнопки записи: громкость каждой доли куска своя (1.37.0-beta.7).</summary>
+    [Fact]
+    public void Each_part_of_a_chunk_has_its_own_level()
+    {
+        var chunk = new byte[1000];
+        for (var i = 200; i < 300; i++)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(chunk.AsSpan(i * 2), (short)(i % 2 == 0 ? 20000 : -20000));
+        }
+
+        var levels = WavFile.Levels(chunk, 5);
+
+        Assert.Equal([0, 0, 1, 0, 0], levels);
+        Assert.Equal(new double[5], WavFile.Levels([], 5));
+    }
+
     [Theory]
     [InlineData("""{"text":" hello there "}""", "hello there", null)]
     [InlineData("""{"text":"hi","usage":{"cost":0.0012}}""", "hi", "0.0012")]
@@ -54,37 +70,64 @@ public sealed class VoiceInputTests
     {
         public HttpRequestMessage? Request;
         public string Body = "";
+        public string ContentType = "";
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Request = request;
+            ContentType = request.Content!.Headers.ContentType?.ToString() ?? "";
             Body = await request.Content!.ReadAsStringAsync(cancellationToken);
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"text":"recognised words"}""") };
         }
     }
 
+    /// <summary>
+    /// OpenRouter получает звук JSON-телом (<c>input_audio</c>) — так его основным способом
+    /// описывает сам OpenRouter (1.37.0-beta.7); ключ и адрес — провайдера модели.
+    /// </summary>
     [Fact]
-    public async Task The_request_is_an_openai_style_multipart_form_to_the_models_provider()
+    public async Task OpenRouter_gets_the_audio_as_a_json_body()
     {
         var capture = new Capture();
         var options = new AgentOptions { ApiKey = "venice-secret", BaseUrl = "https://api.venice.ai/api/v1", Model = "grok-4-6" };
         var client = new VeniceClient(new HttpClient(capture), options);
+        var wav = WavFile.Build(new byte[3200]);
 
-        var text = await client.TranscribeAsync(
-            WavFile.Build(new byte[3200]),
-            "openrouter:some/stt-model",
-            "ru",
-            new ApiCredential(LlmProvider.OpenRouter, "or-secret"));
+        var text = await client.TranscribeAsync(wav, "openrouter:some/stt-model", "ru", new ApiCredential(LlmProvider.OpenRouter, "or-secret"));
 
         Assert.Equal("recognised words", text);
         Assert.EndsWith("/audio/transcriptions", capture.Request!.RequestUri!.AbsolutePath, StringComparison.Ordinal);
         Assert.Contains("openrouter", capture.Request.RequestUri.Host, StringComparison.Ordinal);
         Assert.Equal("or-secret", capture.Request.Headers.Authorization!.Parameter);
-        Assert.Matches("name=\"?model\"?", capture.Body);
-        Assert.Contains("some/stt-model", capture.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("openrouter:some", capture.Body, StringComparison.Ordinal);
-        Assert.Matches("name=\"?language\"?", capture.Body);
-        Assert.Matches("filename=\"?speech\\.wav\"?", capture.Body);
+        using var body = System.Text.Json.JsonDocument.Parse(capture.Body);
+        Assert.Equal("some/stt-model", body.RootElement.GetProperty("model").GetString());
+        Assert.Equal("ru", body.RootElement.GetProperty("language").GetString());
+        Assert.Equal("wav", body.RootElement.GetProperty("input_audio").GetProperty("format").GetString());
+        Assert.Equal(Convert.ToBase64String(wav), body.RootElement.GetProperty("input_audio").GetProperty("data").GetString());
+    }
+
+    /// <summary>
+    /// Venice — форма multipart, как её пишет curl: имена в кавычках, без <c>filename*</c> и с
+    /// границей без кавычек. Форму .NET «как есть» часть серверов не разбирала.
+    /// </summary>
+    [Fact]
+    public async Task Venice_gets_a_plain_multipart_form()
+    {
+        var capture = new Capture();
+        var options = new AgentOptions { ApiKey = "venice-secret", BaseUrl = "https://api.venice.ai/api/v1", Model = "grok-4-6" };
+        var client = new VeniceClient(new HttpClient(capture), options);
+
+        await client.TranscribeAsync(WavFile.Build(new byte[3200]), "openai/whisper-large-v3", "ru", new ApiCredential(LlmProvider.Venice, "venice-secret"));
+
+        Assert.Contains("venice", capture.Request!.RequestUri!.Host, StringComparison.Ordinal);
+        var type = capture.ContentType;
+        Assert.StartsWith("multipart/form-data; boundary=", type, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"", type, StringComparison.Ordinal);
+        Assert.Contains("name=\"file\"; filename=\"speech.wav\"", capture.Body, StringComparison.Ordinal);
+        Assert.Contains("name=\"model\"", capture.Body, StringComparison.Ordinal);
+        Assert.Contains("name=\"language\"", capture.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain("filename*", capture.Body, StringComparison.Ordinal);
+        Assert.Contains("openai/whisper-large-v3", capture.Body, StringComparison.Ordinal);
     }
 }
 

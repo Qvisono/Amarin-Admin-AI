@@ -122,33 +122,47 @@ public sealed class SectionBWindowTests
 
     // ───────────────────────── временный чат ─────────────────────────
 
+    /// <summary>
+    /// Инкогнито в строке заголовка (1.37.0-beta.7): у пустого чата делает его временным и обратно.
+    /// Середина обычного чата пуста, у временного там рисунок; включённая кнопка остаётся на месте.
+    /// </summary>
     [Fact]
-    public void The_plaque_in_an_empty_chat_makes_it_temporary_and_back() => With((window, _) =>
+    public void The_incognito_button_makes_an_empty_chat_temporary_and_back() => With((window, _) =>
     {
         window.StartNewChatFromUi();
-        var plaque = window.TemporaryChatPlaque;
-        Assert.Equal(Visibility.Visible, plaque.Visibility);
+        var button = window.TemporaryChatButton;
+        Assert.Equal(Visibility.Visible, button.Visibility);
+        Assert.Equal(Visibility.Collapsed, window.TemporaryChatEmpty.Visibility);
 
-        plaque.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         Assert.True(Session(window).IsTemporary);
-        Assert.True(plaque.IsChecked);
+        Assert.True(button.IsChecked);
+        Assert.Equal(Visibility.Visible, button.Visibility);
+        Assert.Equal(Visibility.Visible, window.TemporaryChatEmpty.Visibility);
+        Assert.Equal(Loc.Get("S.Temporary.TurnOff"), button.ToolTip);
 
-        plaque.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         Assert.False(Session(window).IsTemporary);
+        Assert.Equal(Visibility.Collapsed, window.TemporaryChatEmpty.Visibility);
         Assert.Equal(Visibility.Collapsed, window.TemporaryChatChip.Visibility);
         return true;
     });
 
-    /// <summary>Состояние видно по переключателю внутри кнопки, а строки пояснений у неё нет.</summary>
+    /// <summary>Включённый режим зачёркивает значок: черта и разрыв вокруг неё.</summary>
     [Fact]
-    public void The_temporary_chat_button_shows_its_state_with_a_switch_and_no_explanation() => With((window, _) =>
+    public void The_incognito_icon_is_crossed_out_while_the_chat_is_temporary() => With((window, _) =>
     {
         window.StartNewChatFromUi();
-        var plaque = window.TemporaryChatPlaque;
-        plaque.ApplyTemplate();
+        var button = window.TemporaryChatButton;
+        button.ApplyTemplate();
+        var slash = (UIElement)button.Template.FindName("Slash", button);
+        var figure = (UIElement)button.Template.FindName("Figure", button);
+        Assert.Equal(Visibility.Collapsed, slash.Visibility);
+        Assert.Null(figure.Clip);
 
-        Assert.NotNull(plaque.Template.FindName("Track", plaque));
-        Assert.Null(plaque.Template.FindName("Hint", plaque));
+        button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        Assert.Equal(Visibility.Visible, slash.Visibility);
+        Assert.NotNull(figure.Clip);
         return true;
     });
 
@@ -190,7 +204,7 @@ public sealed class SectionBWindowTests
     {
         services.Settings.TemporaryChatsUntilClose = untilClose;
         window.StartNewChatFromUi();
-        window.TemporaryChatPlaque.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        window.TemporaryChatButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         var temporary = Session(window);
         temporary.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "m1", Text = "secret-plan" });
 

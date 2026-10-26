@@ -211,7 +211,6 @@ namespace Amarin.UI
                 candidates);
             _context?.Show(usage);
             UpdateCompactHint(usage);
-            ScheduleCostEstimate(usage, candidates);
         }
 
         /// <summary>Кнопки композера по состоянию открытого чата.</summary>

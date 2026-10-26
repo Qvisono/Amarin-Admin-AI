@@ -84,10 +84,10 @@ public partial class ModelPickerPanel : UserControl
     /// <c>Version = -1</c> значит «не собран ничем»: у настоящего каталога счётчик растёт
     /// с нуля, и совпасть эти состояния не могут.
     /// </remarks>
-    private (LlmProvider Provider, string Search, bool Vision, bool Code, int Version) _built = Nothing;
+    private (LlmProvider Provider, string Search, bool Vision, bool Code, bool Nitro, int Version) _built = Nothing;
 
-    private static (LlmProvider Provider, string Search, bool Vision, bool Code, int Version) Nothing =>
-        (default, "", false, false, -1);
+    private static (LlmProvider Provider, string Search, bool Vision, bool Code, bool Nitro, int Version) Nothing =>
+        (default, "", false, false, false, -1);
 
     private bool _suppressProviderEvent;
     private bool _suppressKeyEvent;
@@ -776,7 +776,12 @@ public partial class ModelPickerPanel : UserControl
         var search = ModelSearchBox?.Text ?? "";
         var vision = VisionChip?.IsChecked == true;
         var code = CodeChip?.IsChecked == true;
-        var want = (_shown, search, vision, code, state.Version);
+
+        // Чип «Nitro» — только у каталога с такими вариантами; спрятанный не фильтрует.
+        var hasNitro = state.Ready && state.Error is null && state.Models.Any(model => ModelRef.IsNitro(model.Id));
+        NitroChip.Visibility = hasNitro ? Visibility.Visible : Visibility.Collapsed;
+        var nitro = hasNitro && NitroChip.IsChecked == true;
+        var want = (_shown, search, vision, code, nitro, state.Version);
 
         // Ничего не изменилось — список уже такой, какой нужен. Это и есть вся разница между
         // «плашка открывается мгновенно» и «плашка думает полсекунды».
@@ -801,7 +806,7 @@ public partial class ModelPickerPanel : UserControl
             return;
         }
 
-        foreach (var model in VeniceModelCatalog.FilterAllTab(state.Models, search, vision, code))
+        foreach (var model in VeniceModelCatalog.FilterAllTab(state.Models, search, vision, code, nitro))
         {
             _rows.Add(ModelPickerRow.Build(this, model));
         }
@@ -809,7 +814,7 @@ public partial class ModelPickerPanel : UserControl
         if (_rows.Count == 0)
         {
             ShowStatus(
-                string.IsNullOrWhiteSpace(search) && !vision && !code
+                string.IsNullOrWhiteSpace(search) && !vision && !code && !nitro
                     ? Loc.Get("S.Models.Empty")
                     : Loc.Get("S.Common.NothingFound"));
             return;

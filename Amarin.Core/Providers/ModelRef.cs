@@ -21,6 +21,9 @@ public static class ModelRef
     /// <summary>Приставка пакетного варианта — то, чем OpenRouter помечает такие модели.</summary>
     private const string BatchVariant = ":batch";
 
+    /// <summary>Вариант OpenRouter «самый быстрый провайдер» (1.37.0-beta.7).</summary>
+    public const string NitroVariant = ":nitro";
+
     /// <summary>
     /// Чья это модель. Пустая строка и «авто» — не модели, о провайдере они не говорят
     /// ничего, поэтому для них возвращается <paramref name="fallback"/>.
@@ -95,6 +98,13 @@ public static class ModelRef
         var colon = id.IndexOf(':', StringComparison.Ordinal);
         return colon > "custom-".Length ? colon + 1 : 0;
     }
+
+    /// <summary>
+    /// Вариант <c>…:nitro</c>: та же модель, а OpenRouter ведёт запрос к самому быстрому
+    /// провайдеру. Каталог такие варианты не перечисляет — их достраивает <see cref="OpenRouterMapper"/>.
+    /// </summary>
+    public static bool IsNitro(string? modelId) =>
+        (modelId ?? "").Trim().EndsWith(NitroVariant, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Пакетный вариант модели у OpenRouter: <c>…:batch</c>.

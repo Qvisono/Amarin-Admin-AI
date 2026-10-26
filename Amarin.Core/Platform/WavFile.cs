@@ -63,6 +63,24 @@ internal static class WavFile
         return Math.Clamp(Math.Sqrt(sum / samples) * 4, 0, 1);
     }
 
+    /// <summary>
+    /// Громкость каждой из <paramref name="parts"/> равных долей куска, 0…1 — для точек у кнопки
+    /// микрофона: соседние доли звучат по-разному, и точки двигаются вразнобой, как речь.
+    /// </summary>
+    public static double[] Levels(ReadOnlySpan<byte> pcm, int parts)
+    {
+        var levels = new double[Math.Max(0, parts)];
+        var samples = pcm.Length / 2;
+        for (var part = 0; part < levels.Length && samples > 0; part++)
+        {
+            var from = samples * part / levels.Length;
+            var to = samples * (part + 1) / levels.Length;
+            levels[part] = Level(pcm[(from * 2)..(to * 2)]);
+        }
+
+        return levels;
+    }
+
     /// <summary>Длительность данных.</summary>
     public static TimeSpan Duration(int pcmBytes) => TimeSpan.FromSeconds(pcmBytes / (double)BytesPerSecond);
 

@@ -121,4 +121,45 @@ public sealed class VoiceButtonTests
         Assert.Equal(nameof(Visibility.Collapsed), shown.Before);
         Assert.Equal(nameof(Visibility.Visible), shown.After);
     }
+
+    /// <summary>
+    /// Запись (1.37.0-beta.7): кнопка залита акцентом, вместо значка — пять точек цветом надписей
+    /// на акценте, громкость тянет их вверх; после записи — снова значок микрофона.
+    /// </summary>
+    [Fact]
+    public void Recording_turns_the_button_accent_with_five_level_dots()
+    {
+        var seen = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var motion = UiMotion.Enabled;
+            UiMotion.Enabled = false;
+            void Call(string name, params object[] args) =>
+                typeof(MainWindow).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, args);
+            try
+            {
+                Call("ShowMicRecording");
+                var accent = ReferenceEquals(window.MicButton.Background, window.FindResource("Accent.Fill"));
+                var dots = window.MicDots.Children.OfType<Border>().ToList();
+                var dotColor = dots.All(dot => ReferenceEquals(dot.Background, window.FindResource("Text.OnAccent")));
+                var recording = (window.MicDots.Visibility, window.MicIcon.Visibility);
+                Call("ShowVoiceLevels", (IReadOnlyList<double>)[0, 0, 1, 0, 0]);
+                var heights = dots.Select(dot => dot.Height).ToList();
+                Call("ShowMicIdle");
+                return (accent, dotColor, dots.Count, recording, heights, Idle: (window.MicDots.Visibility, window.MicIcon.Visibility));
+            }
+            finally
+            {
+                UiMotion.Enabled = motion;
+            }
+        });
+
+        Assert.True(seen.accent, "фон записи — не акцент");
+        Assert.True(seen.dotColor, "точки не цветом надписей на акценте");
+        Assert.Equal(5, seen.Count);
+        Assert.Equal((Visibility.Visible, Visibility.Collapsed), seen.recording);
+        Assert.Equal(14, seen.heights[2]);
+        Assert.Equal(3, seen.heights[0]);
+        Assert.Equal((Visibility.Collapsed, Visibility.Visible), seen.Idle);
+    }
 }

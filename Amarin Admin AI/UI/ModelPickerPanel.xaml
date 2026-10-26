@@ -316,6 +316,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
@@ -346,6 +347,10 @@
                                   Content="{DynamicResource S.Models.FilterVision}" Click="FilterChip_Click"/>
                     <ToggleButton x:Name="CodeChip" Grid.Column="2" Style="{StaticResource FilterChip}"
                                   Content="{DynamicResource S.Models.FilterCode}" Click="FilterChip_Click"/>
+                    <!-- Варианты :nitro (1.37.0-beta.7): только там, где каталог их знает (OpenRouter). -->
+                    <ToggleButton x:Name="NitroChip" Grid.Column="3" Style="{StaticResource FilterChip}" Visibility="Collapsed"
+                                  Content="{DynamicResource S.Models.FilterNitro}" ToolTip="{DynamicResource S.Models.FilterNitroTip}"
+                                  Click="FilterChip_Click"/>
                 </Grid>
 
                 <!-- «Авто» закреплена над списком, а не едет вместе с ним: это не модель,

@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Amarin.Core;
 
@@ -43,8 +45,9 @@ public sealed partial class VeniceClient
     }
 
     /// <summary>
-    /// Распознавание речи в облаке (D14): OpenAI-совместимый <c>POST audio/transcriptions</c>
-    /// с WAV формой multipart — так его принимают и Venice, и OpenRouter.
+    /// Распознавание речи в облаке (D14): OpenAI-совместимый <c>POST audio/transcriptions</c>.
+    /// Звук — WAV, формой multipart или JSON-телом, как провайдер описывает его основным способом
+    /// (<see cref="ProviderSpec.TranscribesJson"/>).
     /// </summary>
     /// <remarks>
     /// Цена записывается, только если провайдер назвал её в ответе (<c>usage.cost</c> или
@@ -59,19 +62,9 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         await GuardSpendAsync(credential, cancellationToken).ConfigureAwait(false);
-        using var form = new MultipartFormDataContent();
-        var file = new ByteArrayContent(wav);
-        file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
-        form.Add(file, "file", "speech.wav");
-        form.Add(new StringContent(ModelRef.Bare(modelId)), "model");
-        form.Add(new StringContent("json"), "response_format");
-        if (!string.IsNullOrWhiteSpace(language))
-        {
-            form.Add(new StringContent(language.Trim()), "language");
-        }
-
+        using var content = TranscriptionBody(ProviderSpec.For(ModelRef.Of(modelId)), wav, ModelRef.Bare(modelId), language);
         using var httpRequest = Request(HttpMethod.Post, "audio/transcriptions", credential);
-        httpRequest.Content = form;
+        httpRequest.Content = content;
         using var response = await _http.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
         UpdateBalanceFromHeaders(response, credential);
@@ -145,6 +138,56 @@ public sealed partial class VeniceClient
         }
 
         return new SpeechAudio(audio, response.Content.Headers.ContentType?.ToString() ?? "audio/mpeg");
+    }
+
+    /// <summary>Тело запроса распознавания по тому, как его ждёт провайдер.</summary>
+    /// <remarks>
+    /// Форму собирает не <c>MultipartFormDataContent.Add(…, имя, файл)</c>: он пишет имена без
+    /// кавычек, добавляет <c>filename*</c>, которого RFC 7578 в форме не допускает, и берёт
+    /// границу в кавычки — часть серверов такую форму не разбирает. Здесь — как у curl.
+    /// </remarks>
+    internal static HttpContent TranscriptionBody(ProviderSpec spec, byte[] wav, string model, string? language)
+    {
+        var lang = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        if (spec.TranscribesJson)
+        {
+            var json = new JsonObject
+            {
+                ["model"] = model,
+                ["input_audio"] = new JsonObject { ["data"] = Convert.ToBase64String(wav), ["format"] = "wav" },
+                ["response_format"] = "json"
+            };
+            if (lang is not null)
+            {
+                json["language"] = lang;
+            }
+
+            return new StringContent(json.ToJsonString(), Encoding.UTF8, "application/json");
+        }
+
+        var boundary = "amarin" + Guid.NewGuid().ToString("N");
+        var form = new MultipartFormDataContent(boundary);
+        form.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data; boundary=" + boundary);
+        var file = new ByteArrayContent(wav);
+        file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        file.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data") { Name = "\"file\"", FileName = "\"speech.wav\"" };
+        form.Add(file);
+        Field("model", model);
+        Field("response_format", "json");
+        if (lang is not null)
+        {
+            Field("language", lang);
+        }
+
+        return form;
+
+        void Field(string name, string value)
+        {
+            var part = new StringContent(value);
+            part.Headers.ContentType = null;
+            part.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data") { Name = "\"" + name + "\"" };
+            form.Add(part);
+        }
     }
 
     /// <summary>Текст и цена из ответа распознавания; незнакомый ответ — пустой текст.</summary>

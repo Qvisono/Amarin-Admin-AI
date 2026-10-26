@@ -137,6 +137,38 @@ public sealed class FoxBrainTests
         Assert.Equal(3, state.Today.Treats);
     }
 
+    /// <summary>Наедается на два-три часа, а не до полуночи; дневной счёт вкусняшек при этом растёт.</summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(42)]
+    public void He_is_full_for_two_to_three_hours_not_the_whole_day(int seed)
+    {
+        var state = Known();
+        for (var i = 0; i < FoxBrain.TreatsPerMeal; i++)
+        {
+            Run(state, FoxSignalKind.Treat, seed: seed);
+        }
+
+        Assert.Equal(["S.Fox.Say.TreatFull"], Said(Run(state, new FoxSignal(FoxSignalKind.Treat), now: Noon.AddMinutes(119), seed: seed)));
+        Assert.Equal(["S.Fox.Say.Treat"], Said(Run(state, new FoxSignal(FoxSignalKind.Treat), now: Noon.AddMinutes(181), seed: seed)));
+        Assert.Equal(4, state.Today.Treats);
+    }
+
+    /// <summary>Недоеденная трапеза забывается: вкусняшка через три часа не насыщает.</summary>
+    [Fact]
+    public void An_unfinished_meal_is_forgotten_after_a_long_break()
+    {
+        var state = Known();
+        Run(state, FoxSignalKind.Treat);
+        Run(state, FoxSignalKind.Treat);
+
+        Run(state, new FoxSignal(FoxSignalKind.Treat), now: Noon.AddHours(4));
+
+        Assert.Null(state.FullUntil);
+        Assert.Equal(1, state.MealTreats);
+    }
+
     /// <summary>
     /// Забвение считается по дням, когда программа была открыта. Не гладили два таких дня — дуется,
     /// с четвёртого садится посреди поля ввода и требует внимания.

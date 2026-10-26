@@ -25,6 +25,9 @@ internal sealed partial class FoxStage
     private DateTime _backAt;
     private DateTime _nextHabit;
     private DateTime _reactUntil = DateTime.MaxValue;
+
+    /// <summary>Когда кончится реакция, показанная по сигналу (<see cref="Reacting"/>).</summary>
+    private DateTime _reactionEnds;
     private DateTime _peekUntil;
     private DateTime _nextZ;
     private bool _rendering;
@@ -636,10 +639,26 @@ internal sealed partial class FoxStage
             Seat(spot, foot);
         }
 
+        // Сперва договаривает: исчезнувшему пузырь не показывают (PlaceBubble), и до 1.37.0-beta.7
+        // прощальная фраза пропадала на полуслове, а без анимаций её не было видно вовсе.
+        var talk = SpeechLeft();
         if (!_host.Motion() || _spot != FoxSpot.Home)
         {
-            Burst("puff", 2);
-            Gone();
+            void Vanish()
+            {
+                Burst("puff", 2);
+                Gone();
+            }
+
+            if (talk > TimeSpan.Zero)
+            {
+                After(talk, Vanish);
+            }
+            else
+            {
+                Vanish();
+            }
+
             return;
         }
 
@@ -648,8 +667,9 @@ internal sealed partial class FoxStage
             _mode = FoxMode.Idle;
         }
 
-        // Сперва договаривает: реплика и взмах лапой — и только потом бежит.
-        After(TimeSpan.FromMilliseconds(900), () => WalkTo(_host.Width() + Px(40), run: true, then: Gone, clamp: false));
+        // Реплика и взмах лапой — и только потом бежит.
+        var wait = TimeSpan.FromMilliseconds(900);
+        After(talk > wait ? talk : wait, () => WalkTo(_host.Width() + Px(40), run: true, then: Gone, clamp: false));
     }
 
     /// <summary>Где лапы сидят по умолчанию: справа на кромке поля ввода, или куда его посадили.</summary>

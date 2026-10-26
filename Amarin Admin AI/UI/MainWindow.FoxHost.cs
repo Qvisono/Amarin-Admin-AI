@@ -107,7 +107,7 @@ namespace Amarin.UI
                 var (sprites, store) = await Task.Run(() =>
                 {
                     var loaded = FoxSprites.Load();
-                    var opened = new FoxStore(root, () => services.Settings.EncryptChats);
+                    var opened = new FoxStore(root, EncryptFor(root, services));
                     _ = opened.Snapshot();
                     return (loaded, opened);
                 });
@@ -614,10 +614,25 @@ namespace Amarin.UI
 
                 // Начатое для прежнего профиля туда и не попадёт: разум — новый.
                 _mind?.Dispose();
-                _store.UseRoot(root, () => services.Settings.EncryptChats);
+                _store.UseRoot(root, EncryptFor(root, services));
                 _mind = CreateMind(services, _store);
                 _stage.Start();
             }
+
+            /// <summary>
+            /// Шифровать ли память Розы в папке <paramref name="root"/> — по галочке «Шифровать чаты»
+            /// того профиля, чья это папка, а не того, что открыт сейчас.
+            /// </summary>
+            /// <remarks>
+            /// Окно узнаёт о смене профиля, когда настройки уже подменены (<c>ProfileScope.UseProfile</c>),
+            /// а отложенная память прежнего профиля пишется позже: при пересадке на новый профиль, при
+            /// уходе Розы или таймером. До 1.37.0-beta.7 она бралась по галочке нового профиля, и память
+            /// профиля с шифрованием ложилась в его папку открытым текстом, если в новом шифрования нет.
+            /// </remarks>
+            private static Func<bool> EncryptFor(string root, AppServices services) => () =>
+                string.Equals(services.Profile.DataRoot, root, StringComparison.OrdinalIgnoreCase)
+                    ? services.Settings.EncryptChats
+                    : new AppSettingsStore(root).Load().EncryptChats;
 
             public void BeginImport()
             {

@@ -49,7 +49,33 @@ internal sealed partial class FoxStage
         public double Age { get; set; }
     }
 
-    /// <summary>Реплика над головой. Длинная держится дольше: по 45 мс на знак, но не меньше <paramref name="ms"/>.</summary>
+    /// <summary>
+    /// Фраза, которая ждёт, пока Роза договорит прежнюю. Одна: пришла новее — заменяет ждущую.
+    /// </summary>
+    private (string Text, int Ms)? _pendingBubble;
+
+    /// <summary>Роза ещё договаривает: пузырь на виду, и его время не вышло.</summary>
+    private bool Speaking =>
+        _bubble is { Visibility: Visibility.Visible } && _bubbleFade != -1 && _clock() < _bubbleUntil;
+
+    /// <summary>Сколько ещё он будет говорить: нынешняя фраза и ждущая за ней.</summary>
+    private TimeSpan SpeechLeft()
+    {
+        var left = Speaking ? _bubbleUntil - _clock() : TimeSpan.Zero;
+        return _pendingBubble is { } pending ? left + TimeSpan.FromMilliseconds(BubbleMs(pending.Text, pending.Ms)) : left;
+    }
+
+    /// <summary>Сколько держится фраза: по 45 мс на знак, но не меньше <paramref name="ms"/>.</summary>
+    private static int BubbleMs(string text, int ms) => Math.Max(ms, 1200 + (text.Length * 45));
+
+    /// <summary>
+    /// Реплика над головой. Недоговорённую не обрывает: новая ждёт её конца (<see cref="_pendingBubble"/>).
+    /// </summary>
+    /// <remarks>
+    /// До 1.37.0-beta.7 каждая фраза сразу заменяла прежнюю: ответ своей модели, приходящий через
+    /// секунды, конец ответа ассистента и занятие воли перебивали Розу на полуслове, а из двух фраз
+    /// одного сигнала (тык в нос, потом кусь) видна была только последняя.
+    /// </remarks>
     private void Bubble(string text, int ms)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -57,6 +83,18 @@ internal sealed partial class FoxStage
             return;
         }
 
+        if (Speaking)
+        {
+            _pendingBubble = (text, ms);
+            return;
+        }
+
+        ShowBubble(text, ms);
+    }
+
+    private void ShowBubble(string text, int ms)
+    {
+        _pendingBubble = null;
         if (_bubble is null)
         {
             _bubbleText = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12, MaxWidth = 220 };
@@ -81,7 +119,7 @@ internal sealed partial class FoxStage
 
         _bubbleText!.Text = text;
         _bubble.Visibility = Visibility.Visible;
-        _bubbleUntil = _clock().AddMilliseconds(Math.Max(ms, 1200 + (text.Length * 45)));
+        _bubbleUntil = _clock().AddMilliseconds(BubbleMs(text, ms));
         if (_host.Motion())
         {
             _bubble.Opacity = 0;
@@ -139,6 +177,13 @@ internal sealed partial class FoxStage
     {
         if (_bubble is null || _bubble.Visibility != Visibility.Visible || now < _bubbleUntil || _bubbleFade == -1)
         {
+            return;
+        }
+
+        // Договорил — следующая фраза встаёт на место прежней, без паузы на угасание.
+        if (_pendingBubble is { } pending)
+        {
+            ShowBubble(pending.Text, pending.Ms);
             return;
         }
 
@@ -257,6 +302,7 @@ internal sealed partial class FoxStage
         StopLaser();
         StopGame();
         ClearFeelings();
+        _pendingBubble = null;
         if (_bubble is not null)
         {
             _bubble.Visibility = Visibility.Collapsed;

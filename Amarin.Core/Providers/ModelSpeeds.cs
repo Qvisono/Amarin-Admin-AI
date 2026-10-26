@@ -43,6 +43,12 @@ internal static class ModelSpeeds
             return [];
         }
 
+        // Nitro сам выбирает самый быстрый маршрут: свой уровень обслуживания поверх него не нужен.
+        if (ModelRef.IsNitro(modelId))
+        {
+            return [];
+        }
+
         var provider = ModelRef.Of(modelId);
         var bare = ModelRef.Bare(modelId);
         var slash = bare.IndexOf('/');

@@ -240,6 +240,7 @@ internal sealed partial class FoxStage
             _callMark = null;
         }
 
+        _pendingBubble = null;
         if (_bubble is not null)
         {
             _host.Layer.Children.Remove(_bubble);
@@ -353,13 +354,27 @@ internal sealed partial class FoxStage
             Holding = _mode == FoxMode.Drag || TypingToHim || Playing,
             Chatting = Chatting,
             CanPeek = _spot is FoxSpot.Home or FoxSpot.Viewer,
-            Asleep = _mode == FoxMode.Sleep
+            Asleep = _mode == FoxMode.Sleep,
+            Busy = Speaking || Reacting(_clock())
         };
         List<FoxAction> actions = [];
         _store.Update(state => actions = FoxBrain.Next(state, signal, situation, _clock(), _random), lazy: signal.Kind == FoxSignalKind.Tick);
-        Apply(actions);
+        Apply(actions, gentle: Background(signal.Kind));
         return actions;
     }
+
+    /// <summary>
+    /// Сигналы не от рук человека: тик, ход ассистента, ответ своей модели. Идущую реакцию на
+    /// действие человека они не перебивают (<see cref="Apply"/>): до 1.37.0-beta.7 кивок на начало
+    /// ответа, приходящий через миллисекунды после отправки, и запоздавший ответ модели обрывали Розу
+    /// посреди чувства. Свою реакцию фоновый сигнал не защищает: конец ответа сменяет кивок «читаю».
+    /// </summary>
+    private static bool Background(FoxSignalKind kind) =>
+        kind is FoxSignalKind.Tick or FoxSignalKind.MindReaction or FoxSignalKind.AssistantStarted or
+            FoxSignalKind.AssistantCompleted or FoxSignalKind.AgentWorking or FoxSignalKind.LongWait;
+
+    /// <summary>Роза ещё показывает реакцию на действие человека: её анимация не доиграла.</summary>
+    private bool Reacting(DateTime now) => _mode == FoxMode.Idle && now < _reactionEnds;
 
     /// <summary>Окно или поле ввода сменили размер: Роза пересаживается на ту же кромку.</summary>
     public void Relayout()
@@ -445,18 +460,23 @@ internal sealed partial class FoxStage
     /// <summary>Сколько точек слоя занимают <paramref name="pixels"/> пикселей рисунка при нынешнем размере.</summary>
     private double Px(double pixels) => _sprite.Side * pixels / FoxSprites.FrameSize;
 
-    private void Apply(IEnumerable<FoxAction> actions)
+    /// <param name="gentle">
+    /// Фоновый сигнал (<see cref="Background"/>): пока идёт реакция на действие человека, его поза,
+    /// мордочка, значок и эффекты не показываются, а фраза встаёт в очередь (<see cref="Bubble"/>).
+    /// </param>
+    private void Apply(IEnumerable<FoxAction> actions, bool gentle = false)
     {
         var now = _clock();
         var visible = _mode is not (FoxMode.Away or FoxMode.Hidden);
+        var feel = visible && !(gentle && Reacting(now));
         foreach (var action in actions)
         {
             switch (action.Kind)
             {
-                case FoxActionKind.Anim when visible:
-                    React(action.Name);
+                case FoxActionKind.Anim when feel:
+                    React(action.Name, guarded: !gentle);
                     break;
-                case FoxActionKind.Face when visible:
+                case FoxActionKind.Face when feel:
                     _face = action.Name;
                     _faceUntil = now.AddMilliseconds(action.Ms);
                     break;
@@ -473,14 +493,14 @@ internal sealed partial class FoxStage
                     _item = action.Name;
                     _itemUntil = now.AddMilliseconds(action.Ms);
                     break;
-                case FoxActionKind.Shake when visible:
+                case FoxActionKind.Shake when feel:
                     _shakeUntil = now.AddMilliseconds(action.Ms);
                     StartRendering();
                     break;
-                case FoxActionKind.Emote when visible:
+                case FoxActionKind.Emote when feel:
                     ShowEmote(action.Name, action.Ms);
                     break;
-                case FoxActionKind.Effect when visible:
+                case FoxActionKind.Effect when feel:
                     Effect(action.Name, action.Ms);
                     break;
                 // Что можно при открытой переписке, решил мозг (FoxSituation.Chatting): прилечь и
@@ -535,7 +555,12 @@ internal sealed partial class FoxStage
     }
 
     /// <summary>Анимация реакции. Сидячие реакции — только сидя: на бегу или в полёте их не видно.</summary>
-    private void React(string anim)
+    /// <param name="guarded">
+    /// Реакция на действие человека: фоновые сигналы её не перебивают (<see cref="Reacting"/>). Реакция
+    /// на фоновый сигнал так не защищена: иначе кивок на начало ответа (6 с) глушил бы реакцию на его
+    /// конец, и после короткого ответа пропадали взгляд и мордочка.
+    /// </param>
+    private void React(string anim, bool guarded)
     {
         if (!_sprites.Animations.ContainsKey(anim))
         {
@@ -549,9 +574,15 @@ internal sealed partial class FoxStage
                 Play(anim, "sit");
 
                 // Повторяющаяся реакция (кивает, ласкается) идёт не вечно: «кивает в такт» — пока читает ответ.
-                _reactUntil = _sprites.Animations[anim].Loop
+                var animation = _sprites.Animations[anim];
+                _reactUntil = animation.Loop
                     ? _clock().AddSeconds(anim == "nod" ? 6 : 2.5)
                     : DateTime.MaxValue;
+                _reactionEnds = !guarded
+                    ? DateTime.MinValue
+                    : animation.Loop
+                        ? _reactUntil
+                        : _clock() + TimeSpan.FromTicks(Enumerable.Range(0, animation.Frames.Count).Sum(frame => animation.HoldOf(frame).Ticks));
                 break;
             case FoxMode.Drag when anim == "hang":
             case FoxMode.Fly when anim == "fly":

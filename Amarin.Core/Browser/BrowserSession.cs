@@ -57,6 +57,17 @@ internal sealed class BrowserSession : IDisposable
     /// <summary>Последняя прочитанная страница: её элементы описывают вызовы для SynGuard.</summary>
     public BrowserPage? Page { get; set; }
 
+    /// <summary>
+    /// Поле, которое агент последним нажал или заполнил, с тем, что в нём теперь: туда уйдёт
+    /// клавиша <c>press</c>. Защитник видит его, как поле с фокусом у мыши.
+    /// </summary>
+    /// <remarks>
+    /// До 1.37.0-beta.7 защитник не видел ни набранного текста (<c>type</c> страницу не
+    /// перечитывает), ни того, куда уйдёт Enter, — и на «отправь» отвечал «не проверил» или
+    /// «небезопасно», а человек получал вопрос о шаге, о котором сам и просил.
+    /// </remarks>
+    public BrowserElement? Focused { get; set; }
+
     /// <summary>Браузер для действия; при первом — берёт его у других агентов и открывает окно.</summary>
     public bool TryPort([NotNullWhen(true)] out IWebBrowser? port, [NotNullWhen(false)] out string? refusal)
     {
@@ -102,18 +113,33 @@ internal sealed class BrowserSession : IDisposable
 
         var text = new StringBuilder();
         text.Append("Page: ").Append(page.Title).Append(" | ").Append(page.Url);
+        if (Focused is { Password: false } focused)
+        {
+            text.Append("\nField the agent last clicked or typed into (key presses go there): ")
+                .Append(focused.Role).Append(" \"").Append(focused.Name).Append('"');
+            if (!string.IsNullOrEmpty(focused.Value))
+            {
+                text.Append(", value \"").Append(TextClip.Clip(focused.Value, FieldValueLimit, 0)).Append('"');
+            }
+        }
+
         foreach (var call in calls)
         {
             if (FileToolPaths.String(call, "element") is not { Length: > 0 } id ||
-                page.Elements.FirstOrDefault(element => element.Id == id) is not { } element)
+                page.Elements.FirstOrDefault(element => element.Id == id) is not { } read)
             {
                 continue;
             }
 
+            // Поле, которое агент только что заполнил, — с набранным, а не с прочитанным до ввода.
+            var element = Focused is { } typed && typed.Id == id ? typed : read;
+
             text.Append("\nTarget ").Append(id).Append(": ").Append(element.Role).Append(" \"").Append(element.Name).Append('"');
             if (!element.Password && !string.IsNullOrEmpty(element.Value))
             {
-                text.Append(", value \"").Append(element.Value).Append('"');
+                // Тот же предел, что у строки поля: набранное агентом ничем не ограничено, а длинное
+                // письмо целиком раздуло бы промпт защитника.
+                text.Append(", value \"").Append(TextClip.Clip(element.Value, FieldValueLimit, 0)).Append('"');
             }
 
             if (!string.IsNullOrEmpty(element.Href))
@@ -124,6 +150,9 @@ internal sealed class BrowserSession : IDisposable
 
         return text.ToString();
     }
+
+    /// <summary>Сколько знаков значения поля видит защитник.</summary>
+    private const int FieldValueLimit = 600;
 
     public void Dispose()
     {

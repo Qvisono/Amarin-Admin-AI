@@ -176,6 +176,105 @@ public sealed class OpenRouterClientTests
     }
 
     /// <summary>
+    /// Nitro (1.37.0-beta.7): каталог OpenRouter вариантов :nitro не перечисляет, поэтому близнец
+    /// достраивается у каждой обычной модели — с той же ценой и умениями. У вариантов, подвижных
+    /// имён и Decisions близнеца нет; список показывает их только под чипом «Nitro».
+    /// </summary>
+    [Fact]
+    public async Task Nitro_twins_are_built_shown_under_their_chip_and_sent_as_is()
+    {
+        var models = OpenRouterMapper.ToModels(JsonSerializer.Deserialize(
+            """
+            {"data":[
+              {"id":"anthropic/claude-haiku-5.5","name":"Anthropic: Claude Haiku 5.5","supported_parameters":["tools"],"pricing":{"prompt":"0.000001","completion":"0.000005"}},
+              {"id":"meta/free-model:free","supported_parameters":["tools"]},
+              {"id":"~anthropic/claude-haiku-latest","supported_parameters":["tools"]},
+              {"id":"microsoft/decision-1","architecture":{"input_modalities":["text"],"output_modalities":["decisions"]}}
+            ]}
+            """,
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!, nitro: true);
+
+        var ids = models.Select(model => model.Id).ToList();
+        Assert.Equal(
+            ["openrouter:anthropic/claude-haiku-5.5", "openrouter:anthropic/claude-haiku-5.5:nitro", "openrouter:meta/free-model:free",
+             "openrouter:~anthropic/claude-haiku-latest", "openrouter:microsoft/decision-1"],
+            ids);
+        var twin = models[1];
+        Assert.Equal("Claude Haiku 5.5 (nitro)", twin.ModelSpec!.Name);
+        Assert.Equal(CostEstimator.PriceOf(models[0]), CostEstimator.PriceOf(twin));
+        Assert.True(twin.ModelSpec.Capabilities!.SupportsFunctionCalling);
+
+        Assert.DoesNotContain(twin, VeniceModelCatalog.FilterAllTab(models, "", vision: false, code: false));
+        Assert.Equal([twin], VeniceModelCatalog.FilterAllTab(models, "", vision: false, code: false, nitro: true));
+        Assert.Empty(ModelSpeeds.For(twin.Id));
+
+        var (client, _, recorder) = Build((_, _) => Json(Completion()));
+        await client.CreateChatCompletionAsync(twin.Id, [User("привет")], tools: null, toolChoice: null, new VeniceParameters());
+        using var body = JsonDocument.Parse(recorder.Bodies[0]);
+        Assert.Equal("anthropic/claude-haiku-5.5:nitro", body.RootElement.GetProperty("model").GetString());
+    }
+
+    /// <summary>
+    /// Модель, которая выключается уровнем none (Haiku 5.5), на «без размышления» его и получает.
+    /// Без поля она думала на своём уровне по умолчанию, и выключатель ничего не выключал.
+    /// </summary>
+    [Fact]
+    public async Task Disabled_thinking_of_a_model_with_none_sends_none()
+    {
+        var models = OpenRouterMapper.ToModels(JsonSerializer.Deserialize(
+            """
+            {"data":[{"id":"anthropic/claude-haiku-5.5","supported_parameters":["tools","reasoning","reasoning_effort"],
+              "reasoning":{"mandatory":false,"supported_efforts":["max","xhigh","high","medium","low","none"],"default_effort":"medium"}}]}
+            """,
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!);
+        var (client, _, recorder) = Build((_, _) => Json(Completion()));
+        client.ResolveModelInfo = id => ReasoningPolicy.Find(models, id);
+
+        await client.CreateChatCompletionAsync(
+            "openrouter:anthropic/claude-haiku-5.5",
+            [User("привет")],
+            tools: null,
+            toolChoice: null,
+            new VeniceParameters(),
+            CancellationToken.None,
+            ReasoningChoice.Disabled);
+
+        Assert.True(ReasoningPolicy.CanDisable(models[0]));
+        using var body = JsonDocument.Parse(recorder.Bodies[0]);
+        Assert.Equal("none", body.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
+    }
+
+    /// <summary>
+    /// Выключить нельзя — и кнопка не врёт: вместо «без размышления» она называет нижний уровень,
+    /// тот, что уйдёт в запросе. Модель, о которой каталог молчит, выключать можно, как раньше.
+    /// </summary>
+    [Fact]
+    public void A_model_that_must_think_shows_its_lowest_level_instead_of_off()
+    {
+        var models = OpenRouterMapper.ToModels(JsonSerializer.Deserialize(
+            """
+            {"data":[{"id":"anthropic/claude-sonnet-5.5","supported_parameters":["tools","reasoning","reasoning_effort"],
+              "reasoning":{"mandatory":true,"supported_efforts":["max","high","medium","low"],"default_effort":"high"}}]}
+            """,
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!);
+        var anthropicOpus = new VeniceModelInfo
+        {
+            Id = "anthropic:claude-opus-5.5",
+            ModelSpec = new VeniceModelSpec
+            {
+                Capabilities = new VeniceModelCapabilities { ThinkingModes = ["adaptive"], ReasoningEffortOptions = ["low", "medium", "high"] }
+            }
+        };
+
+        Assert.False(ReasoningPolicy.CanDisable(models[0]));
+        Assert.False(ReasoningPolicy.CanDisable(anthropicOpus));
+        Assert.True(ReasoningPolicy.CanDisable(null));
+        Assert.Equal(new ReasoningChoice(false, "low"), ReasoningPolicy.Effective(ReasoningChoice.Disabled, models[0], withTools: true));
+        Assert.Equal("Low", ReasoningPolicy.ButtonText(ReasoningChoice.Disabled, models[0], autoMode: false, withTools: true));
+        Assert.Equal(ReasoningChoice.Disabled, ReasoningPolicy.Effective(ReasoningChoice.Disabled, null));
+    }
+
+    /// <summary>
     /// Запрет усилия рядом с инструментами — свойство Venice, а не моделей: тот же GPT-5.x за
     /// OpenRouter принимает и то и другое. Разбор имени этой разницы не видит, имена у
     /// провайдеров одни и те же.

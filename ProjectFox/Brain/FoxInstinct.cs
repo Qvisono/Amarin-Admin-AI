@@ -76,7 +76,7 @@ internal static class FoxInstinct
 
         var text = new FoxText(raw);
         var lists = Words.Value;
-        var aboutFox = lists.Fox.In(text);
+        var toFox = Addressed(raw);
 
         if (LooksLikeCode(raw) || lists.Code.In(text))
         {
@@ -96,13 +96,15 @@ internal static class FoxInstinct
         AddIf(topics, FoxTopic.Scam, lists.Scam.In(text));
         AddIf(topics, FoxTopic.Sad, lists.Sad.In(text));
         AddIf(topics, FoxTopic.Happy, lists.Happy.In(text));
-        AddIf(topics, FoxTopic.Thanks, lists.Thanks.In(text));
+
+        // Благодарность и похвала ассистенту — не Розе: на свой счёт он берёт их только по обращению.
+        AddIf(topics, FoxTopic.Thanks, toFox && lists.Thanks.In(text));
 
         if (lists.Rude.In(text))
         {
-            topics.Add(aboutFox ? FoxTopic.RudeToFox : FoxTopic.Rude);
+            topics.Add(toFox ? FoxTopic.RudeToFox : FoxTopic.Rude);
         }
-        else if (aboutFox && lists.Praise.In(text))
+        else if (toFox && lists.Praise.In(text))
         {
             topics.Add(FoxTopic.Praise);
         }
@@ -116,6 +118,58 @@ internal static class FoxInstinct
         }
 
         return new FoxReading(topics, wrongLayout);
+    }
+
+    /// <summary>Знаки, которыми обращение отделяют от остальной фразы.</summary>
+    private const string AddressMarks = ",!?.…:;";
+
+    /// <summary>
+    /// Сообщение обращено к самому Розе: его имя стоит отдельно — между краем сообщения, запятой
+    /// или знаком конца фразы с обеих сторон.
+    /// </summary>
+    /// <remarks>
+    /// До 1.37.0-beta.7 хватало любого слова из списка где угодно: «стих про розу» или «лисички в
+    /// лесу» считались разговором о нём, и похвала, благодарность или грубость ассистенту в таком
+    /// сообщении доставались Розе. Пропустить обращение без запятой лучше, чем обидеться на чужое.
+    /// </remarks>
+    public static bool Addressed(string? message)
+    {
+        var text = FoxWords.Normalize(message ?? "");
+        var fox = Words.Value.Fox;
+        var start = -1;
+        for (var i = 0; i <= text.Length; i++)
+        {
+            var inWord = i < text.Length && char.IsLetter(text[i]);
+            if (inWord && start < 0)
+            {
+                start = i;
+            }
+            else if (!inWord && start >= 0)
+            {
+                if (fox.Matches(text[start..i]) && SetOff(text, start - 1, -1) && SetOff(text, i, 1))
+                {
+                    return true;
+                }
+
+                start = -1;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>С этой стороны слова — край сообщения или знак обращения (пробелы не в счёт).</summary>
+    private static bool SetOff(string text, int from, int step)
+    {
+        for (var i = from; i >= 0 && i < text.Length; i += step)
+        {
+            if (!char.IsWhiteSpace(text[i]))
+            {
+                return AddressMarks.Contains(text[i], StringComparison.Ordinal);
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Ответ ассистента говорит, что угроз нет: облегчение после испуга.</summary>

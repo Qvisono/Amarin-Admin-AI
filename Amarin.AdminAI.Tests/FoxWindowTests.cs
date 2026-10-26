@@ -415,6 +415,58 @@ public sealed class FoxWindowTests : IDisposable
         Assert.Equal(0, children);
     }
 
+    /// <summary>
+    /// Смена профиля читает галочку нового профиля: там Роза выключен — уходит из окна. До
+    /// 1.37.0-beta.7 он только переезжал на память нового профиля и оставался.
+    /// </summary>
+    [Fact]
+    public void A_profile_where_rosa_is_off_takes_him_away()
+    {
+        var (fox, children) = With(window =>
+        {
+            Arrive(window);
+
+            // Настройки нового профиля уже живые (UseProfile), страница их только показывает.
+            Services(window).Settings.Fox.Enabled = false;
+            Call(window, "ApplyFoxForProfile");
+            return (window.Fox, Layer(window).Children.Count);
+        });
+
+        Assert.Null(fox);
+        Assert.Equal(0, children);
+    }
+
+    /// <summary>
+    /// Память прежнего профиля ложится в его папку по его галочке шифрования, а не по галочке
+    /// нового: до 1.37.0-beta.7 у профиля с шифрованием она уходила на диск открытым текстом,
+    /// если в профиле, куда перешли, шифрования нет.
+    /// </summary>
+    [Fact]
+    public void Leaving_a_profile_writes_rosas_memory_with_that_profiles_encryption()
+    {
+        var (encrypted, written) = With(window =>
+        {
+            Arrive(window);
+            var services = Services(window);
+            var first = services.Profile.DataRoot;
+            services.Settings.EncryptChats = true;
+            services.SettingsStore.Save(services.Settings);
+            var host = window.Fox!;
+            var store = (FoxStore)host.GetType().GetField("_store", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+            store.Update(state => state.Boredom = 42);
+
+            services.UseProfile(Path.Combine(_root, "second-" + Guid.NewGuid().ToString("N")[..8]));
+            services.Settings.EncryptChats = false;
+            Call(window, "ApplyFoxForProfile");
+
+            var bytes = File.ReadAllBytes(FoxData.StatePath(first));
+            return (AtRestCipher.IsEncrypted(bytes), bytes.Length > 0);
+        });
+
+        Assert.True(written);
+        Assert.True(encrypted, "память профиля с шифрованием легла на диск открытым текстом");
+    }
+
     /// <summary>Дружба и дневник видны и у выключенного Розы — из его файлов; «Начать заново» дневник не трогает.</summary>
     [Fact]
     public void Friendship_and_diary_read_his_files_and_a_reset_keeps_the_diary()

@@ -279,6 +279,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootSectionE(window, folder, language == "ru");
             }
 
+            if (Wanted(only, "section-g"))
+            {
+                await ShootSectionG(window, folder);
+            }
+
             if (Wanted(only, "picker"))
             {
                 await ShootPicker(window, folder);
@@ -678,6 +683,32 @@ public sealed class UiShotTests : IDisposable
     }
 
     /// <summary>
+    /// Раздел G (1.37.0-beta.7): открытый чат с ценой, запись голоса точками, пустой обычный и
+    /// пустой временный чат с кнопкой-инкогнито в строке заголовка.
+    /// </summary>
+    private async Task ShootSectionG(MainWindow window, string folder)
+    {
+        var composer = (FrameworkElement)window.FindSetting("MicHost");
+        composer.Visibility = Visibility.Visible;
+        Call(window, "ShowMicRecording");
+        Call(window, "ShowVoiceLevels", (IReadOnlyList<double>)[0.15, 0.45, 0.9, 0.35, 0.08]);
+        await Settle(200);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "g-chat-recording.png"), null);
+        Call(window, "ShowMicIdle");
+
+        window.StartNewChatFromUi();
+        await Settle(300);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "g-empty.png"), null);
+        window.TemporaryChatButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        await Settle(300);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "g-temporary.png"), null);
+        window.TemporaryChatButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        composer.Visibility = Visibility.Collapsed;
+        Call(window, "OpenChat", "c7");
+        await Settle(300);
+    }
+
+    /// <summary>
     /// Раздел E и H 1.37.0: палитра команд (пустая и с запросом), журнал, «Что нового», подсказки
     /// поля ввода и окно быстрого вопроса с готовым ответом.
     /// </summary>
@@ -710,13 +741,10 @@ public sealed class UiShotTests : IDisposable
         balance.ShowForShot(37.5m);
         var ring = (ContextRing)typeof(MainWindow).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
         ring.Show(new ContextUsage(104_210, 128_000, false));
-        var estimate = CostBreakdownTooltip.CreateEmpty();
-        CostBreakdownTooltip.Fill(estimate, new TipRow(Loc.Get("S.Estimate.Label"), "≈ $0,03"), [], [new TipNote(Loc.Get("S.Estimate.Agent"))]);
         foreach (var (tip, file) in new[]
                  {
                      (((FrameworkElement)window.FindSetting("BalanceBadge")).ToolTip, "e-tip-balance.png"),
-                     (((FrameworkElement)window.FindSetting("ContextBadge")).ToolTip, "e-tip-context.png"),
-                     ((object)estimate, "e-tip-estimate.png")
+                     (((FrameworkElement)window.FindSetting("ContextBadge")).ToolTip, "e-tip-context.png")
                  })
         {
             if (tip is ToolTip { Content: FrameworkElement content })

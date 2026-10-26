@@ -186,7 +186,11 @@ public partial class ReasoningPicker : UserControl
         try
         {
             var model = CurrentModel();
-            var choice = new ReasoningChoice(_disableThinking, _effort, _speed);
+
+            // У модели, которая размышление не выключает, переключателя нет, а «без размышления»
+            // из настроек показывается её нижним уровнем — тем, что и уйдёт в запросе.
+            var canDisable = ReasoningPolicy.CanDisable(model);
+            var choice = ReasoningPolicy.Effective(new ReasoningChoice(_disableThinking, _effort, _speed), model, _withTools);
             LabelText = ReasoningPolicy.ButtonText(choice, model, _autoMode, _withTools);
             if (!_autoMode && ModelSpeeds.Pick(choice, _modelId) is { } speed)
             {
@@ -203,26 +207,27 @@ public partial class ReasoningPicker : UserControl
 
             if (ThinkingToggle is not null)
             {
-                ThinkingToggle.IsChecked = !_disableThinking;
+                ThinkingToggle.IsChecked = !choice.DisableThinking;
             }
 
             if (ThinkingHint is not null)
             {
-                ThinkingHint.Text = Loc.Get(_disableThinking
+                ThinkingHint.Text = Loc.Get(choice.DisableThinking
                     ? "S.Reasoning.ToggleOff"
                     : "S.Reasoning.ToggleOn");
             }
 
             var options = _autoMode ? [] : ReasoningPolicy.VisibleEffortOptions(model, _withTools);
             var showEffort = options.Count > 0;
+            var showToggle = !_autoMode && canDisable;
             if (DisableRow is not null)
             {
-                DisableRow.Visibility = _autoMode ? Visibility.Collapsed : Visibility.Visible;
+                DisableRow.Visibility = showToggle ? Visibility.Visible : Visibility.Collapsed;
             }
 
             if (ThinkingHint is not null)
             {
-                ThinkingHint.Visibility = _autoMode ? Visibility.Collapsed : Visibility.Visible;
+                ThinkingHint.Visibility = showToggle ? Visibility.Visible : Visibility.Collapsed;
             }
 
             if (AutoHint is not null)
@@ -246,7 +251,7 @@ public partial class ReasoningPicker : UserControl
                 EffortCaption.Visibility = showEffort ? Visibility.Visible : Visibility.Collapsed;
             }
 
-            RebuildChips(options, model);
+            RebuildChips(options, model, choice);
             RebuildSpeedChips();
         }
         finally
@@ -260,7 +265,7 @@ public partial class ReasoningPicker : UserControl
         }
     }
 
-    private void RebuildChips(IReadOnlyList<string> options, VeniceModelInfo? model)
+    private void RebuildChips(IReadOnlyList<string> options, VeniceModelInfo? model, ReasoningChoice choice)
     {
         if (EffortHost is null)
         {
@@ -273,7 +278,7 @@ public partial class ReasoningPicker : UserControl
             return;
         }
 
-        var selected = ReasoningPolicy.ClampEffort(_effort, model, _withTools);
+        var selected = ReasoningPolicy.ClampEffort(choice.Effort, model, _withTools);
         foreach (var option in options)
         {
             var chip = new RadioButton
@@ -284,7 +289,7 @@ public partial class ReasoningPicker : UserControl
                 Tag = option,
                 IsChecked = selected is not null &&
                             option.Equals(selected, StringComparison.OrdinalIgnoreCase),
-                IsEnabled = !_disableThinking
+                IsEnabled = !choice.DisableThinking
             };
             chip.Checked += EffortChip_Checked;
             EffortHost.Children.Add(chip);

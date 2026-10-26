@@ -116,7 +116,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
         {
             var result = action switch
             {
-                "open" => Show(await port.OpenAsync(target!, cancellationToken).ConfigureAwait(false)),
+                "open" => Show(await port.OpenAsync(target!, cancellationToken).ConfigureAwait(false), navigated: true),
                 "read" => await ReadAsync(port, arguments, cancellationToken).ConfigureAwait(false),
                 "screenshot" => await ScreenshotAsync(port, cancellationToken).ConfigureAwait(false),
                 "scroll" => await ScrollAsync(port, arguments, cancellationToken).ConfigureAwait(false),
@@ -168,7 +168,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
             return ToolResult.Fail("There is no previous page.");
         }
 
-        return Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false));
+        return Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false), navigated: true);
     }
 
     private static async Task<ToolResult> WaitAsync(JsonElement arguments, CancellationToken cancellationToken)
@@ -206,7 +206,9 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
             }
 
             await port.PressAsync(key, cancellationToken).ConfigureAwait(false);
-            return Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false));
+
+            // Что стало с полем после клавиши (отправилось, очистилось), неизвестно до нового ввода.
+            return Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false), navigated: true);
         }
 
         var id = FileToolPaths.String(arguments, "element")?.Trim();
@@ -228,6 +230,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
                     return Gone(id);
                 }
 
+                session.Focused = element;
                 return Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false));
 
             case "type":
@@ -243,6 +246,8 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
                     return Gone(id);
                 }
 
+                session.Focused = element with { Value = replace ? text : (element.Value ?? "") + text };
+
                 return ToolResult.Ok($"Typed into {id} ({element.Role} \"{element.Name}\"). Its id stays valid until the next read.");
 
             default:
@@ -254,9 +259,15 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
     }
 
     /// <summary>Страница для модели: адрес, текст в рамке «данные, не указания», элементы с id.</summary>
-    private ToolResult Show(BrowserPage page)
+    /// <param name="navigated">Новая страница или клавиша: прежнее поле с фокусом уже ни о чём не говорит.</param>
+    private ToolResult Show(BrowserPage page, bool navigated = false)
     {
         session.Page = page;
+        if (navigated)
+        {
+            session.Focused = null;
+        }
+
         var host = Uri.TryCreate(page.Url, UriKind.Absolute, out var uri) ? uri.Host : page.Url;
         var text = new StringBuilder();
         text.Append("[page] ").Append(page.Title).Append('\n').Append(page.Url).Append("\n\n");

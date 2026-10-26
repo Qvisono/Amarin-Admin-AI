@@ -28,6 +28,17 @@ internal static class FoxBrain
     /// <summary>Как часто требует внимания, когда забыт.</summary>
     public static readonly TimeSpan DemandEvery = TimeSpan.FromMinutes(8);
 
+    /// <summary>Столько вкусняшек за трапезу — и он сыт.</summary>
+    public const int TreatsPerMeal = 3;
+
+    /// <summary>Сытости хватает от <see cref="FullAtLeast"/> до <see cref="FullAtMost"/> — каждый раз по-разному.</summary>
+    public static readonly TimeSpan FullAtLeast = TimeSpan.FromHours(2);
+
+    public static readonly TimeSpan FullAtMost = TimeSpan.FromHours(3);
+
+    /// <summary>Перерыв, после которого недоеденная трапеза забыта и следующая вкусняшка начинает новую.</summary>
+    public static readonly TimeSpan MealWindow = TimeSpan.FromHours(3);
+
     public static List<FoxAction> Next(FoxState state, FoxSignal signal, FoxSituation situation, DateTime now, Random random)
     {
         var actions = new List<FoxAction>();
@@ -231,13 +242,15 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.Treat:
-                if (day.Treats >= 3)
+                if (!Eat(state, now, random))
                 {
                     actions.Add(FoxAction.Face("shy", 1800));
                     say("TreatFull");
                     break;
                 }
 
+                // Прибавка гаснет по вкусняшкам дня, а не трапезы: сытость прошла — дружба
+                // не открывается заново.
                 FoxFriendship.Change(state, FoxFriendship.Gain(3, day.Treats));
                 FoxFriendship.Resent(state, -10);
                 day.Treats++;
@@ -622,7 +635,7 @@ internal static class FoxBrain
             state.Boredom = Math.Min(100, state.Boredom + minutes);
         }
 
-        if (situation.Away)
+        if (situation.Away || situation.Busy)
         {
             return;
         }
@@ -875,7 +888,8 @@ internal static class FoxBrain
 
         if (reading.Has(FoxTopic.Rude))
         {
-            day.Annoyance += 0.5;
+            // Грубость ассистенту: Роза только удивляется со стороны. Раздражение копит то, что
+            // сделали с ним самим, — иначе он становился колючим к человеку за чужой разговор.
             actions.AddRange(FoxEmotions.Feel("surprised", 1500, pose: false));
             actions.Add(FoxAction.Shake(400));
             say("Rude");
@@ -1012,6 +1026,33 @@ internal static class FoxBrain
         state.Today.Note("bit-free");
         Bite(state, situation, actions, say, "GrabRefuse");
         actions.Add(FoxAction.Refuse());
+    }
+
+    /// <summary>
+    /// Съесть вкусняшку: <c>false</c> — сыт. Третья за трапезу насыщает на два-три часа; трапеза,
+    /// не доеденная за <see cref="MealWindow"/>, забывается.
+    /// </summary>
+    private static bool Eat(FoxState state, DateTime now, Random random)
+    {
+        if (state.FullUntil is { } full && now < full)
+        {
+            return false;
+        }
+
+        if (state.FullUntil is not null || state.MealStartedAt is not { } started || now - started >= MealWindow)
+        {
+            state.FullUntil = null;
+            state.MealStartedAt = now;
+            state.MealTreats = 0;
+        }
+
+        state.MealTreats++;
+        if (state.MealTreats >= TreatsPerMeal)
+        {
+            state.FullUntil = now + FullAtLeast + ((FullAtMost - FullAtLeast) * random.NextDouble());
+        }
+
+        return true;
     }
 
     /// <summary>

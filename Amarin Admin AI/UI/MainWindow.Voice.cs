@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Amarin.Core;
 
@@ -21,17 +24,21 @@ namespace Amarin.UI
         private readonly DispatcherTimer _voiceClock = new() { Interval = TimeSpan.FromMilliseconds(250) };
         private CancellationTokenSource? _voiceCancel;
 
+        /// <summary>Подсказка кнопки во время записи: время записи, обновляется каждую четверть секунды.</summary>
+        private ToolTip? _micTip;
+
+        /// <summary>Высота точки записи в тишине и на полной громкости, точек.</summary>
+        private const double DotLow = 3;
+        private const double DotHigh = 14;
+
+        /// <summary>Крайние точки ниже средней: ряд читается волной, а не забором.</summary>
+        private static readonly double[] DotWeights = [0.55, 0.8, 1, 0.8, 0.55];
+
         internal bool IsRecording => _recorder is not null;
 
         private void WireVoice()
         {
-            _voiceClock.Tick += (_, _) =>
-            {
-                if (_recorder is { } recorder)
-                {
-                    VoiceTimer.Text = recorder.Elapsed.ToString(@"m\:ss", CultureInfo.InvariantCulture);
-                }
-            };
+            _voiceClock.Tick += (_, _) => UpdateRecordingTip();
             ShowMicIdle();
             Closed += (_, _) => _speech?.Dispose();
 
@@ -131,21 +138,75 @@ namespace Amarin.UI
                 return false;
             }
 
-            recorder.LevelChanged += level =>
-            {
-                VoiceLevel.Opacity = 0.18 + level * 0.3;
-                VoiceLevelScale.ScaleX = VoiceLevelScale.ScaleY = 1 + level * 0.45;
-            };
+            recorder.ChunkRecorded += chunk => ShowVoiceLevels(WavFile.Levels(chunk, MicDots.Children.Count));
             recorder.LimitReached += () => Detached.Run(FinishRecordingAsync(), "voice_limit");
             _recorder = recorder;
             _fox?.RecordingStarted();
-            VoiceTimer.Text = "0:00";
-            VoiceTimer.Visibility = Visibility.Visible;
-            MicButton.SetResourceReference(BackgroundProperty, "Status.DangerStrong");
-            MicButton.SetResourceReference(ForegroundProperty, "Text.Primary");
-            MicButton.SetResourceReference(ToolTipProperty, "S.Voice.Recording");
+            ShowMicRecording();
             _voiceClock.Start();
             return true;
+        }
+
+        /// <summary>
+        /// Запись идёт: кнопка залита акцентом, вместо значка — точки громкости, время — в подсказке.
+        /// </summary>
+        /// <remarks>
+        /// До 1.37.0-beta.7 запись показывали красная кнопка, дышащий круг за ней и время рядом,
+        /// которое сдвигало ряд показаний у поля ввода. Нынешний вид выбрал человек.
+        /// </remarks>
+        private void ShowMicRecording()
+        {
+            MicButton.SetResourceReference(BackgroundProperty, "Accent.Fill");
+            MicButton.SetResourceReference(BorderBrushProperty, "Accent.Fill");
+            MicIcon.Visibility = Visibility.Collapsed;
+            MicDots.Visibility = Visibility.Visible;
+            ShowVoiceLevels(new double[MicDots.Children.Count]);
+            _micTip ??= new ToolTip { Placement = PlacementMode.Top, PlacementTarget = MicButton };
+            MicButton.ToolTip = _micTip;
+            UpdateRecordingTip();
+        }
+
+        /// <summary>
+        /// Время записи в подсказке. Пока кнопку держат (рация), подсказка открыта сама: отпустить —
+        /// значит закончить, и сколько записано, видно, не уводя мышь.
+        /// </summary>
+        private void UpdateRecordingTip()
+        {
+            if (_recorder is not { } recorder || _micTip is null)
+            {
+                return;
+            }
+
+            var holding = _micStartedByPress && Mouse.LeftButton == MouseButtonState.Pressed &&
+                          DateTime.UtcNow - _micPressedAt >= HoldThreshold;
+            var time = recorder.Elapsed.ToString(@"m\:ss", CultureInfo.InvariantCulture);
+            _micTip.Content = Loc.Format(holding ? "S.Voice.RecordingHold" : "S.Voice.RecordingTime", time);
+            if (holding && !_micTip.IsOpen)
+            {
+                _micTip.IsOpen = true;
+            }
+        }
+
+        /// <summary>Высота каждой точки — по громкости своей доли куска записи.</summary>
+        private void ShowVoiceLevels(IReadOnlyList<double> levels)
+        {
+            for (var i = 0; i < MicDots.Children.Count && i < levels.Count; i++)
+            {
+                var dot = (FrameworkElement)MicDots.Children[i];
+                var weight = i < DotWeights.Length ? DotWeights[i] : 1;
+
+                // Корень: тихая речь поднимает точки заметно, громкая не упирается в потолок сразу.
+                var height = DotLow + ((DotHigh - DotLow) * Math.Clamp(Math.Sqrt(levels[i]) * weight, 0, 1));
+                if (UiMotion.Enabled)
+                {
+                    dot.BeginAnimation(HeightProperty, new DoubleAnimation(height, TimeSpan.FromMilliseconds(90)));
+                }
+                else
+                {
+                    dot.BeginAnimation(HeightProperty, null);
+                    dot.Height = height;
+                }
+            }
         }
 
         /// <summary>Esc во время записи: всё записанное выбрасывается.</summary>
@@ -167,9 +228,15 @@ namespace Amarin.UI
         private void ShowMicIdle()
         {
             _voiceClock.Stop();
-            VoiceTimer.Visibility = Visibility.Collapsed;
-            VoiceLevel.Opacity = 0;
+            if (_micTip is not null)
+            {
+                _micTip.IsOpen = false;
+            }
+
+            MicIcon.Visibility = Visibility.Visible;
+            MicDots.Visibility = Visibility.Collapsed;
             MicButton.SetResourceReference(BackgroundProperty, "Bg.Raised");
+            MicButton.SetResourceReference(BorderBrushProperty, "Border.Default");
             MicButton.SetResourceReference(ForegroundProperty, "Text.Dim");
             MicButton.SetResourceReference(ToolTipProperty, "S.Voice.Button");
         }
@@ -217,7 +284,7 @@ namespace Amarin.UI
                     InsertRecognized(text);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 ClearComposerNotice(sessionId);
             }
@@ -226,12 +293,22 @@ namespace Amarin.UI
                 ClearComposerNotice(sessionId);
                 await ShowNoticeAsync(Loc.Get("S.Voice.UnavailableTitle"), ex.Message, Loc.Get("S.Common.Close"), null, NoticeTone.Info);
             }
-            catch (Exception ex) when (ex is HttpRequestException or VeniceApiException or TimeoutException or InvalidOperationException)
+            catch (Exception ex) when (ex is not OutOfMemoryException)
             {
+                // До 1.37.0-beta.7 тайм-аут запроса (TaskCanceledException без отмены) уходил в
+                // ветку отмены и пропадал молча, а прочие сбои не ловились вовсе: под полем
+                // так и висело «Распознаю…».
                 ClearComposerNotice(sessionId);
-                ShowTransientNotice(sessionId, Loc.Format("S.Voice.Failed", ex.Message));
+                ShowTransientNotice(sessionId, Loc.Format("S.Voice.Failed", VoiceError(ex)));
             }
         }
+
+        /// <summary>Причина сбоя распознавания для человека.</summary>
+        private static string VoiceError(Exception ex) => ex switch
+        {
+            OperationCanceledException or TimeoutException => Loc.Get("S.Voice.TimedOut"),
+            _ => ex.Message
+        };
 
         /// <summary>Распознанное — в поле, на место каретки, с пробелом, если нужен.</summary>
         private void InsertRecognized(string text)

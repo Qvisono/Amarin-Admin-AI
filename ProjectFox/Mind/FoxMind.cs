@@ -311,14 +311,24 @@ internal sealed class FoxMind : IDisposable
             new() { Role = "user", Content = ChatContent.Text(FoxPrompt.ReactUser(messages, state, _clock())) }
         ];
 
-        if (await CallAsync(history, Tools(EscapeTool(state), ActTool(offered)), token).ConfigureAwait(false) is not { } message)
+        // Сказанное ассистенту Розы не касается: отношение к человеку и побег двигает только
+        // обращение к нему самому. Правило есть и в промпте, но лёгкая модель всё равно принимала
+        // похвалу и упрёки ассистенту на свой счёт, поэтому граница — здесь.
+        var addressed = messages.Any(FoxInstinct.Addressed);
+        var escape = addressed ? EscapeTool(state) : null;
+        if (await CallAsync(history, Tools(escape, ActTool(offered)), token).ConfigureAwait(false) is not { } message)
         {
             return null;
         }
 
-        var (minutes, escapeLine) = Escape(message);
+        var (minutes, escapeLine) = addressed ? Escape(message) : (0, "");
         var (acts, actLine) = Acts(message, offered);
         var reply = FoxPrompt.ParseReply("react", ReadText(message), minutes) with { Acts = acts };
+        if (!addressed)
+        {
+            reply = reply with { Mood = 0 };
+        }
+
         return reply.Line.Length > 0 ? reply : reply with { Line = escapeLine.Length > 0 ? escapeLine : actLine };
     }
 

@@ -88,7 +88,6 @@ namespace Amarin.UI
             WireDropZone();
             WireChatProfile();
             WireVoice();
-            WireCostEstimate();
             WireWindowsIntegration();
 
             // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).

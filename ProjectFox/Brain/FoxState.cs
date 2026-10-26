@@ -86,6 +86,18 @@ public sealed class FoxState
     /// <summary>Памятные отметки, которые уже отпраздновали: знакомство, сотое поглаживание, годовщины.</summary>
     public List<string> Milestones { get; set; } = [];
 
+    /// <summary>Когда началась нынешняя трапеза: первая вкусняшка после сытости или долгого перерыва.</summary>
+    public DateTime? MealStartedAt { get; set; }
+
+    /// <summary>Сколько вкусняшек съел за нынешнюю трапезу.</summary>
+    public int MealTreats { get; set; }
+
+    /// <summary>
+    /// До этого он сыт и от вкусняшек отказывается. Наедается на два-три часа, а не до полуночи:
+    /// прежде сытость держал дневной счётчик (<see cref="FoxDay.Treats"/>).
+    /// </summary>
+    public DateTime? FullUntil { get; set; }
+
     /// <summary>Человек попросил спрятать Розу — до этого времени его нет на экране.</summary>
     public DateTime? HiddenUntil { get; set; }
 

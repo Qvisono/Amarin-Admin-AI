@@ -143,6 +143,13 @@ public sealed record ProviderSpec
     public bool HasBatch { get; init; }
 
     /// <summary>
+    /// Распознавание речи принимает звук JSON-телом (<c>input_audio</c> в Base64), а не формой
+    /// multipart. Так его основным способом описывает OpenRouter (1.37.0-beta.7): форму он тоже
+    /// берёт, но её разбор у него ломался на записях из программы.
+    /// </summary>
+    public bool TranscribesJson { get; init; }
+
+    /// <summary>
     /// Отвечает ли <c>/chat/completions</c> отказом на усилие размышления рядом с инструментами
     /// у моделей GPT-5.4+ и GPT-6. Так ведёт себя сам OpenAI и всё, что передаёт ему запрос как
     /// есть; OpenRouter такой запрос переводит и принимает.
@@ -199,6 +206,7 @@ public sealed record ProviderSpec
         // получает отказ — как журнал Venice без админ-ключа.
         HasWebSearch = true,
         HasBatch = true,
+        TranscribesJson = true,
         KeyPrefixes = ["sk-or-"]
     };
 
