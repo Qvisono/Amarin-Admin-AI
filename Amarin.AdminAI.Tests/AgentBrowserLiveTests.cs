@@ -127,6 +127,64 @@ public sealed class AgentBrowserLiveTests
         }
     }
 
+    /// <summary>
+    /// 1.37.0-beta.9: окна страницы не держат агента. alert закрывается, confirm получает OK, prompt —
+    /// отмену, «Уйти с сайта?» — уход; страница после каждого читается, а модель узнаёт об окне
+    /// заметкой. Страница — data:, ничего не отправляется.
+    /// </summary>
+    [Fact]
+    public async Task The_real_browser_answers_page_dialogs_and_keeps_working()
+    {
+        if (Environment.GetEnvironmentVariable("AMARIN_BROWSER_LIVE") != "1")
+        {
+            return;
+        }
+
+        const string html = """
+            <!doctype html><html><head><meta charset="utf-8"></head><body>
+            <button onclick="alert('saved')">Show alert</button>
+            <button onclick="document.getElementById('out').textContent = 'confirm:' + confirm('Delete it?')">Ask confirm</button>
+            <button onclick="document.getElementById('out').textContent = 'prompt:' + prompt('Your name?')">Ask prompt</button>
+            <p id="out">nothing</p>
+            <script>addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = ''; });</script>
+            </body></html>
+            """;
+
+        var profile = Path.Combine(Path.GetTempPath(), "amarin-browser-live-" + Guid.NewGuid().ToString("N"));
+        var dispatcher = _wpf.Ui.Invoke(() => Application.Current.Dispatcher);
+        var browser = new WebViewBrowser(dispatcher, profile, 10 * 1024 * 1024, _ => { });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        try
+        {
+            var page = await browser.OpenAsync(
+                new Uri("data:text/html;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(html))), timeout.Token);
+            string Button(BrowserPage shown, string name) => shown.Elements.Single(element => element.Name == name).Id;
+
+            Assert.True(await browser.ClickAsync(Button(page, "Show alert"), timeout.Token));
+            Assert.Contains(browser.TakeNotes(), note => note.Contains("\"saved\"", StringComparison.Ordinal));
+
+            page = await browser.ReadAsync(2000, 50, timeout.Token);
+            Assert.True(await browser.ClickAsync(Button(page, "Ask confirm"), timeout.Token));
+            Assert.Contains(browser.TakeNotes(), note => note.Contains("\"Delete it?\"", StringComparison.Ordinal));
+            page = await browser.ReadAsync(2000, 50, timeout.Token);
+            Assert.Contains("confirm:true", page.Text, StringComparison.Ordinal);
+
+            Assert.True(await browser.ClickAsync(Button(page, "Ask prompt"), timeout.Token));
+            Assert.Contains(browser.TakeNotes(), note => note.Contains("cancelled", StringComparison.Ordinal));
+            page = await browser.ReadAsync(2000, 50, timeout.Token);
+            Assert.Contains("prompt:null", page.Text, StringComparison.Ordinal);
+
+            // Страница держит «Уйти с сайта?», а агент уходит по другому адресу.
+            var next = await browser.OpenAsync(new Uri("https://example.com/"), timeout.Token);
+            Assert.Contains("Example Domain", next.Title, StringComparison.Ordinal);
+            Assert.Contains(browser.TakeNotes(), note => note.Contains("leave", StringComparison.Ordinal));
+        }
+        finally
+        {
+            browser.Close();
+        }
+    }
+
     /// <summary>Ввод доверенным событием: текст доходит до поля. Форма не отправляется.</summary>
     [Fact]
     public async Task The_real_browser_types_into_a_field()

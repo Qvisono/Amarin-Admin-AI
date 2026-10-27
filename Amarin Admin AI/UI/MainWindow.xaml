@@ -881,6 +881,7 @@
                     <Button x:Name="ScrollBottomButton" Grid.Row="0" Width="36" Height="36"
                             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
+                            Foreground="{DynamicResource Text.Dim}"
                             AutomationProperties.Name="{DynamicResource S.Chat.ScrollBottom}"
                             MouseEnter="ScrollBottomButton_MouseEnter" MouseLeave="ScrollBottomButton_MouseLeave"
                             Click="ScrollBottomButton_Click">
@@ -892,19 +893,26 @@
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
                                         BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                                         CornerRadius="18">
-                                    <Path x:Name="Icon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
-                                          Margin="0,2,0,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.7"
-                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                        <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
+                        <!-- Пока в чате идёт ответ, вместо стрелки бегут точки (MainWindow.ScrollJump.cs). -->
+                        <Grid>
+                            <Path x:Name="ScrollBottomIcon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
+                                  Margin="0,2,0,0" Stroke="{Binding Foreground, ElementName=ScrollBottomButton}" StrokeThickness="1.7"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <local:WorkDots x:Name="ScrollBottomDots" Visibility="Collapsed"
+                                            Fill="{DynamicResource Accent.Fill}"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
                     <!--
                         Подсказка к «в конец» — не ToolTip, а элемент окна над кнопкой. Под кнопкой

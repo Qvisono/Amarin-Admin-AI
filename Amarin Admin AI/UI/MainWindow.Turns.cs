@@ -222,6 +222,7 @@ namespace Amarin.UI
             UpdateTrayState();
             _compact?.SetBusy(busy);
             _variantGate.IsOpen = !busy;
+            UpdateScrollBottomWork();
 
             // Остаётся живым, пока чат отвечает: вторую строку не отклоняем, а ставим в очередь и
             // вплетаем в контекст на следующей границе раунда.

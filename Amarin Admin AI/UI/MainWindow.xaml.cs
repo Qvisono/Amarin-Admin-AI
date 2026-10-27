@@ -2389,6 +2389,7 @@ namespace Amarin.UI
             }
 
             _variantGate.IsOpen = !IsBusy(_session.Id);
+            UpdateScrollBottomWork();
             BuildMessageHosts();
 
             if (FindTurn(_session.Id) is { } live)
