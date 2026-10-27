@@ -2245,7 +2245,12 @@
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов, и программа перезапустится.</system:String>
 
     <system:String x:Key="S.Updates.WhatsNewOk" xml:space="preserve">Понятно</system:String>
-    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Заметки на английском</system:String>
+    <system:String x:Key="S.Updates.WhatsNewTranslating" xml:space="preserve">Перевожу…</system:String>
+    <system:String x:Key="S.Updates.WhatsNewNeedsKey" xml:space="preserve">Перевод доступен с ключом ИИ</system:String>
+    <system:String x:Key="S.Updates.WhatsNewNeedsKeyHint" xml:space="preserve">Перевод делает модель ИИ: добавьте ключ в «Ключах и тратах»</system:String>
+    <system:String x:Key="S.Updates.WhatsNewTranslateFailed" xml:space="preserve">Не удалось перевести заметки</system:String>
+    <system:String x:Key="S.Updates.WhatsNewLanguages" xml:space="preserve">Язык заметок</system:String>
+    <system:String x:Key="S.Updates.WhatsNewSections" xml:space="preserve">Разделы</system:String>
     <system:String x:Key="S.Updates.WhatsNewHeading" xml:space="preserve">Что нового</system:String>
     <system:String x:Key="S.Variant.Busy" xml:space="preserve">Варианты можно листать, когда чат закончит отвечать.</system:String>
     <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Вместе с ним удалится вся переписка, которая шла после него. Остальные варианты останутся, на экране будет соседний.</system:String>

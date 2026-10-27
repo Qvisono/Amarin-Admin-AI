@@ -253,18 +253,60 @@ namespace Amarin.UI
         {
             if (_whatsNew is null)
             {
-                _whatsNew = new WhatsNewSheet();
-                _whatsNew.Closed += () =>
+                var sheet = new WhatsNewSheet();
+                sheet.Closed += () =>
                 {
+                    // Лист показывается раз на версию, и после закрытия его нет вовсе: ни
+                    // элементов, ни сцены, ни подписок — окно работает, как до него.
+                    WhatsNewHost.Children.Remove(sheet);
                     WhatsNewHost.Visibility = Visibility.Collapsed;
+                    if (ReferenceEquals(_whatsNew, sheet))
+                    {
+                        _whatsNew = null;
+                    }
+
                     FocusMessageInput();
                 };
-                WhatsNewHost.Children.Add(_whatsNew);
+                WhatsNewHost.Children.Add(sheet);
+                _whatsNew = sheet;
             }
 
             WhatsNewHost.Visibility = Visibility.Visible;
-            _whatsNew.Show(this, version, notes,
-                englishInterface: string.Equals(LanguageManager.Current, "en", StringComparison.OrdinalIgnoreCase));
+            _whatsNew.Show(version, notes, WhatsNewTranslationFor());
+        }
+
+        /// <summary>
+        /// Перевод заметок на язык интерфейса: заметки пишутся по-английски. Переводит модель
+        /// слота «Заголовок чата» его же ключом, как она пишет заголовки: служебная и дешёвая;
+        /// без ключа кнопка остаётся, но недоступна. Интерфейс по-английски — переводить нечего.
+        /// </summary>
+        private WhatsNewTranslation? WhatsNewTranslationFor()
+        {
+            var code = LanguageManager.Current;
+            if (string.Equals(code, "en", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var name = LanguageManager.Available()
+                .FirstOrDefault(language => string.Equals(language.Code, code, StringComparison.OrdinalIgnoreCase))
+                ?.NativeName ?? code;
+            var russian = string.Equals(code, "ru", StringComparison.OrdinalIgnoreCase);
+            if (_services is not { } services)
+            {
+                return new WhatsNewTranslation(name, russian, null);
+            }
+
+            var model = ChatTitle.ResolveModel(services.Settings, services.Options.Model);
+            var credential = services.Keys.CredentialFor(model, ModelSlots.ReadKey(services.Settings, ModelSlot.Title));
+            if (string.IsNullOrWhiteSpace(credential.Secret))
+            {
+                return new WhatsNewTranslation(name, russian, null);
+            }
+
+            var languageName = Loc.Get(Loc.LanguageNameKey);
+            return new WhatsNewTranslation(name, russian, (outline, token) =>
+                ReleaseNotesTranslator.TranslateAsync(services.Venice, model, credential, outline, languageName, token));
         }
 
         private WhatsNewSheet? _whatsNew;

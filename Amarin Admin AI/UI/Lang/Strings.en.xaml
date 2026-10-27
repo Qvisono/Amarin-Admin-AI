@@ -2245,7 +2245,12 @@
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish, and the program will restart.</system:String>
 
     <system:String x:Key="S.Updates.WhatsNewOk" xml:space="preserve">Got it</system:String>
-    <system:String x:Key="S.Updates.WhatsNewText" xml:space="preserve">Release notes are in English</system:String>
+    <system:String x:Key="S.Updates.WhatsNewTranslating" xml:space="preserve">Translating…</system:String>
+    <system:String x:Key="S.Updates.WhatsNewNeedsKey" xml:space="preserve">Translation needs an AI key</system:String>
+    <system:String x:Key="S.Updates.WhatsNewNeedsKeyHint" xml:space="preserve">An AI model translates the notes: add a key in Keys &amp; spending</system:String>
+    <system:String x:Key="S.Updates.WhatsNewTranslateFailed" xml:space="preserve">Couldn't translate the notes</system:String>
+    <system:String x:Key="S.Updates.WhatsNewLanguages" xml:space="preserve">Notes language</system:String>
+    <system:String x:Key="S.Updates.WhatsNewSections" xml:space="preserve">Sections</system:String>
     <system:String x:Key="S.Updates.WhatsNewHeading" xml:space="preserve">What's new</system:String>
     <system:String x:Key="S.Variant.Busy" xml:space="preserve">Versions can be switched once the chat finishes answering.</system:String>
     <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Everything that came after it in the conversation is deleted too. The other versions stay, and the neighbouring one is shown.</system:String>
