@@ -70,6 +70,7 @@ public sealed class AppSettingsStore
             changed |= MigrateSummarySlot(settings);
             settings.FoxReasoning ??= AppSettings.FactoryFoxReasoning();
             settings.BypassReasoning ??= new ReasoningSettings();
+            settings.FastReasoning ??= new ReasoningSettings();
             settings.Fox ??= new FoxSettings();
             changed |= settings.Fox.Normalize();
 
@@ -196,10 +197,16 @@ public sealed class AppSettingsStore
     /// (<see cref="AppSettings.CurrentFactoryModels"/>).
     /// </summary>
     /// <remarks>
-    /// Меняется и выбранное руками — так решил человек к выпуску 1.35.0: маршрутизатор и защита
-    /// переехали на модели Decisions, и старый выбор у них не работает. Ровно один раз на профиль
-    /// за ревизию, поэтому выбор, сделанный после замены, остаётся. Ключи не трогаются, снимаются
-    /// только их привязки к слотам: заводская модель могла уехать к другому провайдеру.
+    /// Меняется и выбранное руками — так решил человек к выпуску 1.35.0 (маршрутизатор и защита
+    /// переехали на модели Decisions) и снова к 1.37.0-beta.8 (модели OpenRouter у всех). Ровно
+    /// один раз на профиль за ревизию, поэтому выбор, сделанный после замены, остаётся. Ключи не
+    /// трогаются, снимаются только их привязки к слотам: заводская модель могла уехать к другому
+    /// провайдеру.
+    /// <para>
+    /// SynGuard и поиск «Авто» ставили ревизии 2 и 3; ревизия 4 их не трогает — об этом её не
+    /// просили, и выключенный человеком SynGuard не должен включаться сам. Профиль, не прошедший
+    /// ревизию 3, получает их, как получил бы ею.
+    /// </para>
     /// </remarks>
     internal static bool MigrateFactoryModels(AppSettings settings)
     {
@@ -214,6 +221,7 @@ public sealed class AppSettingsStore
             write(settings, read(defaults));
         }
 
+        settings.FastReasoning = defaults.FastReasoning;
         settings.ChatReasoning = defaults.ChatReasoning;
         settings.LiteReasoning = defaults.LiteReasoning;
         settings.HeavyReasoning = defaults.HeavyReasoning;
@@ -227,9 +235,19 @@ public sealed class AppSettingsStore
         settings.FoxReasoning = defaults.FoxReasoning;
         settings.BypassReasoning = defaults.BypassReasoning;
         settings.ModelKeys = null;
-        settings.WebSearchProvider = null;
-        settings.WebSearchKeyId = null;
-        settings.SynGuardEnabled = true;
+        if (settings.FactoryModelsRevision < 3)
+        {
+            settings.WebSearchProvider = null;
+            settings.WebSearchKeyId = null;
+            settings.SynGuardEnabled = true;
+        }
+
+        // Голос (1.37.0-beta.8): распознавание и озвучка — «Авто», они берут OpenRouter, когда к
+        // нему есть ключ (VoiceAvailability).
+        settings.VoiceModel = defaults.VoiceModel;
+        settings.SpeechModel = defaults.SpeechModel;
+        settings.SpeechVoice = defaults.SpeechVoice;
+        settings.SpeechRate = defaults.SpeechRate;
         settings.FactoryModelsRevision = AppSettings.CurrentFactoryModels;
         return true;
     }

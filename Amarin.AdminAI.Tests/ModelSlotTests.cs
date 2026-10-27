@@ -81,16 +81,28 @@ public sealed class ModelSlotDefaultsTests
 
     /// <summary>У Venice ничего не изменилось: умолчания те же, что и были в настройках.</summary>
     [Fact]
-    public void Venice_keeps_its_shipped_defaults()
+    public void Venice_gets_the_same_models_as_the_openrouter_defaults_or_its_own()
     {
-        var defaults = new AppSettings();
+        // 1.37.0-beta.8: заводские модели — у OpenRouter; у Venice — та же модель семейством, а у
+        // быстрой и обхода — своя (ShippedElsewhere).
+        var venice = new[]
+        {
+            Model("deepseek-v4-flash-0731"), Model("claude-sonnet-5-5"), Model("claude-haiku-5-5"),
+            Model("minimax-m3-1-flash"), Model("grok-4-3"), Model("abliteration-abliterated-model-large-flash")
+        };
 
-        Assert.Equal(
-            defaults.TitleModelId,
-            ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Title, catalog: null));
-        Assert.Equal(
-            defaults.HeavyModelId,
-            ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Heavy, catalog: null));
+        Assert.Equal("deepseek-v4-flash-0731", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Title, venice));
+        Assert.Equal("claude-sonnet-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Heavy, venice));
+        Assert.Equal("claude-haiku-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Fox, venice));
+        Assert.Equal("minimax-m3-1-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Fast, venice));
+        Assert.Equal("minimax-m3-1-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.AgentFast, venice));
+        Assert.Equal("abliteration-abliterated-model-large-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Bypass, venice));
+        Assert.Equal("claude-haiku-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Lite, catalog: null));
+
+        // У OpenRouter заводская модель остаётся собой, nitro-близнец — тоже.
+        Assert.Equal(AppSettings.ShippedFastModelId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.Fast, catalog: null));
+        Assert.Equal(AppSettings.FactoryBypassModelId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.Bypass, catalog: null));
+        Assert.Equal("anthropic:claude-haiku-5-5", ModelSlotDefaults.Resolve(LlmProvider.Anthropic, ModelSlot.Lite, catalog: null));
     }
 
     /// <summary>

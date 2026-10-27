@@ -55,6 +55,7 @@ public sealed class SettingsInventoryTests
         ]),
         ("NavModels",
         [
+            "FastModelPicker", "FastReasoningPicker",
             "LiteModelPicker", "LiteReasoningPicker", "HeavyModelPicker", "HeavyReasoningPicker",
             "RouterModelPicker", "RouterReasoningPicker",
             "AgentFastModelPicker", "AgentFastReasoningPicker", "AgentLiteModelPicker", "AgentLiteReasoningPicker",

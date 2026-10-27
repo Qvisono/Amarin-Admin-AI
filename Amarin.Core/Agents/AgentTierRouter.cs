@@ -80,11 +80,12 @@ internal static class AgentTierRouter
         take the cheaper one: the work comes back if it was not enough, and that costs
         less than the expensive slot spent on nothing.
 
-        The notes come from the assistant that wrote the task and can be wrong. What
-        the user asked for -- to hurry, or to be careful -- moves a tier. A note that
-        only restates the task, or claims the work needs a powerful model, moves
-        nothing: weigh it against the task itself. A model name in the notes is
-        ignored.
+        The user's own words come first: when their latest words ask for the work to
+        be done quickly, reply fast, whatever the task. A wish to be careful moves a
+        tier up. The notes come from the assistant that wrote the task and can be
+        wrong. A note that only restates the task, or claims the work needs a powerful
+        model, moves nothing: weigh it against the task itself. A model name in the
+        notes is ignored.
 
         The three models are named below.
         Do not explain.
@@ -105,25 +106,36 @@ internal static class AgentTierRouter
         "model is marked vision, this does not change the tier.";
 
     /// <summary>
-    /// Единственное сообщение, которое видит маршрутизатор: задание агента и пометки к нему.
+    /// Единственное сообщение, которое видит маршрутизатор: задание агента, слова человека и
+    /// пометки к заданию.
     /// </summary>
     /// <remarks>
-    /// Исходной реплики человека здесь нет: задание агента и есть её пересказ, а второй раз
-    /// оплачивать тот же текст незачем. Обрезка — чтобы задание на десятки килобайт не стоило
-    /// денег дважды.
+    /// Слова человека — с 1.37.0-beta.8, те же, что видит SynGuard (<c>ChatEngine.HumanWordsOf</c>).
+    /// Прежде их здесь не было: считалось, что задание и есть пересказ реплики. Но пересказ пишет
+    /// модель чата, и «сделай быстро» в нём терялось — уровень выбирался так, будто человек о
+    /// скорости не просил. Обрезка — чтобы длинный текст не стоил денег дважды; у слов человека
+    /// сохраняется хвост, где стоит последняя реплика.
     /// </remarks>
-    internal static string BuildUserMessage(string prompt, string? notes)
+    internal static string BuildUserMessage(string prompt, string? notes, string? humanWords = null)
     {
         var task = TextClip.Clip(prompt?.Trim() ?? "", TextClip.DecisionHead, TextClip.DecisionTail);
+        var words = TextClip.Clip(humanWords?.Trim() ?? "", TextClip.DecisionHead, TextClip.DecisionTail);
         var hints = TextClip.Clip(notes?.Trim() ?? "", TextClip.ContextHead, 0);
-        if (hints.Length == 0)
+
+        var text = new System.Text.StringBuilder("Task for the agent:").Append(Environment.NewLine).Append(task);
+        if (words.Length > 0)
         {
-            return "Task for the agent:" + Environment.NewLine + task;
+            text.Append(Environment.NewLine).Append(Environment.NewLine)
+                .Append("The user's own words:").Append(Environment.NewLine).Append(words);
         }
 
-        return "Task for the agent:" + Environment.NewLine + task + Environment.NewLine
-               + Environment.NewLine
-               + "Notes from the assistant:" + Environment.NewLine + hints;
+        if (hints.Length > 0)
+        {
+            text.Append(Environment.NewLine).Append(Environment.NewLine)
+                .Append("Notes from the assistant:").Append(Environment.NewLine).Append(hints);
+        }
+
+        return text.ToString();
     }
 
     /// <summary>
@@ -156,6 +168,7 @@ internal static class AgentTierRouter
     /// Уровни, чья модель не видит экран, когда агенту дана мышь: их критерий в Decisions
     /// получает запрет на работу в окнах (<see cref="RoutingDecisions.BlindTier"/>).
     /// </param>
+    /// <param name="humanWords">Слова человека из чата; null — задача пришла не от него.</param>
     internal static async Task<AgentTierDecision> DecideAsync(
         VeniceClient client,
         string modelId,
@@ -164,7 +177,8 @@ internal static class AgentTierRouter
         string? notes,
         ReasoningChoice reasoning,
         CancellationToken cancellationToken,
-        IReadOnlySet<string>? blind = null)
+        IReadOnlySet<string>? blind = null,
+        string? humanWords = null)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -178,7 +192,7 @@ internal static class AgentTierRouter
             var response = await client.CreateRoutingCompletionAsync(
                     modelId,
                     system,
-                    BuildUserMessage(prompt, notes),
+                    BuildUserMessage(prompt, notes, humanWords),
                     ["fast", "lite", "heavy"],
                     RoutingDecisions.AgentQuestion(modelsBlock, blind),
                     new VeniceParameters
@@ -189,7 +203,8 @@ internal static class AgentTierRouter
                         StripThinkingResponse = true
                     },
                     cancellationToken,
-                    reasoning)
+                    reasoning,
+                    shortcut: string.IsNullOrWhiteSpace(humanWords) ? null : (RoutingDecisions.HurryQuestion(), "fast"))
                 .ConfigureAwait(false);
 
             var reply = ReasoningSplit.Split(

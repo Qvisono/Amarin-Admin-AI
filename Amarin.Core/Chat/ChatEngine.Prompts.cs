@@ -98,9 +98,11 @@ internal sealed partial class ChatEngine
             : ComputerOffRules);
 
         // Браузер агента (1.37.0) — блоком здесь, а не в описании init_agent: то собирается один раз.
-        if (settings.AgentBrowser)
+        // Выключен — чат называет переключатель, а не обещает браузер (1.37.0-beta.8). На удалённой
+        // машине браузера у агента нет вовсе, и говорить о нём нечего.
+        if (ExecutionTarget.Current is null)
         {
-            parts.Add(BrowserPrompt.ChatRules);
+            parts.Add(settings.AgentBrowser ? BrowserPrompt.ChatRules : BrowserPrompt.ChatOffRules(ComputerHub.Allowed(settings)));
         }
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать

@@ -10,6 +10,10 @@ public sealed partial class VeniceClient
     /// Выбор уровня: обычная модель отвечает словом, Decisions — типизированным choice.
     /// Правила Decisions передаются структурированным вопросом; текстовая модель сохраняет свой промпт.
     /// </summary>
+    /// <param name="shortcut">
+    /// Вопрос «да или нет» тем же запросом Decisions: «да» выбирает этот уровень, что бы ни ответил
+    /// вопрос об уровне. Текстовой модели то же правило говорит её промпт.
+    /// </param>
     internal async Task<ChatCompletionResponse> CreateRoutingCompletionAsync(
         string model,
         string instructions,
@@ -19,7 +23,8 @@ public sealed partial class VeniceClient
         VeniceParameters veniceParameters,
         CancellationToken cancellationToken,
         ReasoningChoice reasoning,
-        ApiCredential? credential = null)
+        ApiCredential? credential = null,
+        (JsonObject Question, string Tier)? shortcut = null)
     {
         var key = Resolve(credential);
         if (!await UsesDecisionsAsync(model, cancellationToken, key).ConfigureAwait(false))
@@ -38,11 +43,20 @@ public sealed partial class VeniceClient
         {
             ["tier"] = decisionQuestion
         };
+        if (shortcut is { } extra)
+        {
+            questions["shortcut"] = extra.Question;
+        }
+
         var (decision, _) = await CreateDecisionsAsync(model, state, questions, cancellationToken, key)
             .ConfigureAwait(false);
         var answer = decision.Answers?.GetValueOrDefault("tier");
         var choice = answer is { Type: "choice", Choice: { } picked } && tiers.Contains(picked)
             ? picked : "";
+        if (shortcut is { } taken && decision.Answers?.GetValueOrDefault("shortcut")?.BooleanValue == true)
+        {
+            choice = taken.Tier;
+        }
         return new ChatCompletionResponse
         {
             Choices = [new ChatChoice { Message = new ChatMessage { Role = "assistant", Content = ChatContent.Text(choice) } }],

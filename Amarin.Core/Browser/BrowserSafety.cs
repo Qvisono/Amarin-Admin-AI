@@ -55,8 +55,12 @@ internal static class BrowserSafety
     public static bool TryGetHardBlockReason(JsonElement arguments, [NotNullWhen(true)] out string? reason)
     {
         reason = null;
-        return FileToolPaths.String(arguments, "action") == "open" &&
-               !TryOpen(FileToolPaths.String(arguments, "url"), out _, out reason);
+        var action = FileToolPaths.String(arguments, "action");
+        var url = FileToolPaths.String(arguments, "url");
+
+        // read с адресом открывает его (BrowserTool) — и проверяется так же, как open.
+        return (action == "open" || (action == "read" && !string.IsNullOrWhiteSpace(url))) &&
+               !TryOpen(url, out _, out reason);
     }
 
     /// <summary>Отказ ввода: поле пароля.</summary>

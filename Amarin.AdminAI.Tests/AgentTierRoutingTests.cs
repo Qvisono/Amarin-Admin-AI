@@ -171,6 +171,15 @@ public sealed class AgentTierRoutingTests
         // Задание на десятки килобайт не должно оплачиваться ещё и выбором исполнителя.
         var huge = AgentTierRouter.BuildUserMessage(new string('ф', 20_000), null);
         Assert.True(huge.Length < 2100, $"router message grew to {huge.Length}");
+
+        // Слова человека (1.37.0-beta.8): пересказ задания терял «сделай быстро». Длинные — с хвостом,
+        // где стоит последняя реплика.
+        var words = AgentTierRouter.BuildUserMessage("почини печать", null, "User (latest): почини, только быстро");
+        Assert.Contains("The user's own words:", words, StringComparison.Ordinal);
+        Assert.Contains("только быстро", words, StringComparison.Ordinal);
+        var tail = AgentTierRouter.BuildUserMessage("почини печать", null, new string('ф', 20_000) + "в конце быстро");
+        Assert.EndsWith("в конце быстро", tail, StringComparison.Ordinal);
+        Assert.DoesNotContain("own words", AgentTierRouter.BuildUserMessage("почини печать", null, "  "), StringComparison.Ordinal);
     }
 
     // ───────────────────────── решение и запуск ─────────────────────────

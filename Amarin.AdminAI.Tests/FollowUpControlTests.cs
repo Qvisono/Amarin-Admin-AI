@@ -588,6 +588,54 @@ public sealed class FollowUpControlTests
         Assert.Equal("Понял, останавливаю агента.", note);
     }
 
+    /// <summary>
+    /// «Быстрее» агенту, который уже на этом уровне: не пересадка с нуля, а вводная. До 1.37.0-beta.8
+    /// быстрый агент на такую просьбу начинал задачу заново той же моделью и терял найденное.
+    /// </summary>
+    [Fact]
+    public async Task Hurrying_an_agent_already_on_that_tier_tells_it_instead_of_restarting_it()
+    {
+        var registry = new AgentRegistry();
+        var observer = new QueueingObserver();
+        var tool = new AgentLikeTool(registry);
+
+        var round = 0;
+        var handler = new ScriptedHandler(_ => Interlocked.Increment(ref round) == 1
+            ? SseWithToolCall("Запускаю агента.", AgentLikeTool.ToolName)
+            : Sse("Готово."));
+
+        var options = Options();
+        using var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.venice.ai/api/v1/")
+        };
+        var settings = AppSettings.CreateDefault();
+        var engine = new ChatEngine(
+            new VeniceClient(http, options),
+            options,
+            () => settings,
+            new ToolRegistry([tool]),
+            registry)
+        {
+            // Агент заглушки работает на «lite» — пересадка просит тот же уровень.
+            FollowUpDecider = (_, agents, _) => Task.FromResult(new FollowUpDecision(
+                AgentInterruptKind.Switch, agents.Select(agent => agent.Id).ToList(), "lite", "Пересаживаю агента."))
+        };
+
+        tool.Started = () => observer.Enqueue("давай быстрее");
+
+        var session = new ChatSession { Id = "s", SelectedModelId = "grok-4-6" };
+        await engine.RunTurnAsync(session, "посмотри диск C", observer, CancellationToken.None);
+
+        Assert.False(tool.WasInterrupted, "агента перезапустили на том же уровне");
+        Assert.Equal(["давай быстрее"], tool.Told);
+        var note = session.Messages
+            .SelectMany(message => message.ToolRounds)
+            .Select(item => item.FollowUpNote)
+            .Last(text => !string.IsNullOrWhiteSpace(text));
+        Assert.Equal(Loc.Get("S.Tools.AgentTold"), note);
+    }
+
     [Fact]
     public async Task A_correction_typed_mid_run_reaches_the_agent_without_costing_it_its_work()
     {

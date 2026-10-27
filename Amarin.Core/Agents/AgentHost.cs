@@ -386,7 +386,9 @@ internal sealed class AgentHost : IAgentHost
                 Addendum = string.Join("\n\n", new[]
                 {
                     session is null ? null : ComputerPrompt.AgentRule,
-                    browser is null ? null : BrowserPrompt.AgentRule
+                    browser is not null ? BrowserPrompt.AgentRule
+                        : BrowserOff(settings) ? BrowserPrompt.AgentOffRule
+                        : null
                 }.OfType<string>()),
                 GuardScreen = session is null ? null : session.DescribeForGuard,
                 GuardPage = browser is null ? null : browser.DescribeForGuard,
@@ -540,6 +542,14 @@ internal sealed class AgentHost : IAgentHost
     }
 
     /// <summary>
+    /// Браузер у этого агента был бы, не будь он выключен человеком: программа его умеет (хаб с
+    /// окном есть) и цель — этот ПК. Тогда агенту говорится, что браузер выключен и где его
+    /// включить (1.37.0-beta.8); в тестах без хаба и на удалённой машине промпт не меняется.
+    /// </summary>
+    private bool BrowserOff(AppSettings settings) =>
+        !settings.AgentBrowser && _browser?.Factory is not null && ExecutionTarget.Current is null;
+
+    /// <summary>
     /// Видит ли модель картинки — снимок экрана отдаётся только такой. Модель, о которой каталог
     /// ещё ничего не знает, снимки получает: ложный отказ модели со зрением хуже.
     /// </summary>
@@ -596,8 +606,11 @@ internal sealed class AgentHost : IAgentHost
             blind = [.. Tiers.Where(tier => !CanSee(ResolveModel(tier, settings)))];
         }
 
+        // Слова человека — из окружения прогона, как у защитника: пересказ задания моделью чата
+        // теряет просьбу поторопиться (1.37.0-beta.8).
         return await AgentTierRouter
-            .DecideAsync(venice, routerId, models, prompt, notes, reasoning, cancellationToken, blind)
+            .DecideAsync(venice, routerId, models, prompt, notes, reasoning, cancellationToken, blind,
+                AgentRunScope.Current?.HumanWords)
             .ConfigureAwait(false);
     }
 

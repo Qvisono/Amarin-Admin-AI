@@ -21,11 +21,12 @@ internal static class ModelBriefing
     private const string Header = "MODELS";
 
     /// <summary>Между кем выбирает «Авто». Порядок строк — от дешёвой к дорогой.</summary>
-    public static string ForRouter(string liteId, string heavyId, Func<string, VeniceModelInfo?>? resolve)
+    public static string ForRouter(string fastId, string liteId, string heavyId, Func<string, VeniceModelInfo?>? resolve)
     {
         var lines = new List<string>
         {
             Header,
+            Slot("fast", fastId, resolve),
             Slot("lite", liteId, resolve),
             Slot("heavy", heavyId, resolve)
         };

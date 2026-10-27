@@ -213,10 +213,17 @@ public partial class VoiceSettingsBlock : UserControl
         }
     }
 
+    /// <remarks>
+    /// Первый пункт — «Авто» (1.37.0-beta.8): заводская озвучка OpenRouter, а без его ключа — Windows.
+    /// В подписи — то, чем «Авто» читает сейчас, как у распознавания.
+    /// </remarks>
     private void FillSpeechModels()
     {
         var chosen = _services?.Settings.SpeechModel?.Trim() ?? "";
         SpeechModelCombo.Items.Clear();
+        var automatic = VoiceAvailability.SpeechModel(new AppSettings { SpeechModel = VeniceModelCatalog.AutoId }, HasKeyFor);
+        SpeechModelCombo.Items.Add(Item(VeniceModelCatalog.AutoId, Loc.Format("S.Voice.ModelAuto",
+            automatic is null ? Loc.Get("S.Speech.EngineWindows") : Display(AudioKind.Speech, automatic))));
         SpeechModelCombo.Items.Add(Item("", Loc.Get("S.Speech.EngineWindows")));
         foreach (var model in Models(AudioKind.Speech))
         {
@@ -243,7 +250,8 @@ public partial class VoiceSettingsBlock : UserControl
             return;
         }
 
-        var model = services.Settings.SpeechModel?.Trim() ?? "";
+        // У «Авто» — голоса того, чем оно читает сейчас.
+        var model = VoiceAvailability.SpeechModel(services.Settings, HasKeyFor) ?? "";
         var chosen = services.Settings.SpeechVoice ?? "";
         var voices = model.Length == 0
             ? OperatingSystem.IsWindows() ? [.. SpeechOutput.Voices()] : new List<string>()

@@ -242,10 +242,10 @@ public sealed class WindowsToolsGateTests
     [Fact]
     public void The_shipped_1_36_prompt_is_kept_so_an_untouched_saved_copy_is_reset()
     {
-        Assert.DoesNotContain("perf_record", LegacyAgentPrompts.All[^1], StringComparison.Ordinal);
-        Assert.Contains("local_users", LegacyAgentPrompts.All[^1], StringComparison.Ordinal);
+        Assert.DoesNotContain("perf_record", LegacyAgentPrompts.V7, StringComparison.Ordinal);
+        Assert.Contains("local_users", LegacyAgentPrompts.V7, StringComparison.Ordinal);
 
-        var settings = new AppSettings { TechAgentPrompt = LegacyAgentPrompts.All[^1].ReplaceLineEndings("\r\n") };
+        var settings = new AppSettings { TechAgentPrompt = LegacyAgentPrompts.V7.ReplaceLineEndings("\r\n") };
         Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
         Assert.Equal("", settings.TechAgentPrompt);
     }

@@ -31,9 +31,10 @@ public sealed class FoxCoreTests : IDisposable
     {
         var slots = Enum.GetValues<ModelSlot>();
 
-        // После Розы дописан только обход (1.36.0) — тоже в конец.
-        Assert.Equal(ModelSlot.Fox, slots[^2]);
-        Assert.Equal(ModelSlot.Bypass, slots[^1]);
+        // После Розы дописаны обход (1.36.0) и быстрая модель чата (1.37.0) — тоже в конец.
+        Assert.Equal(ModelSlot.Fox, slots[^3]);
+        Assert.Equal(ModelSlot.Bypass, slots[^2]);
+        Assert.Equal(ModelSlot.Fast, slots[^1]);
         Assert.Equal(9, (int)ModelSlot.Summary);
         Assert.Equal(10, (int)ModelSlot.Fox);
         Assert.Contains(ModelSlots.All, entry => entry.Slot == ModelSlot.Fox);
@@ -51,7 +52,7 @@ public sealed class FoxCoreTests : IDisposable
 
     /// <summary>
     /// Файл прежней версии ничего о Розе не знает: он получает заводского Розу — включённого,
-    /// среднего, с заводской моделью и нижним уровнем размышления, — и никаких переносов.
+    /// среднего, с заводской моделью без размышления (1.37.0-beta.8), — и никаких переносов.
     /// </summary>
     [Fact]
     public void Settings_of_an_older_version_get_the_factory_fox()
@@ -66,7 +67,7 @@ public sealed class FoxCoreTests : IDisposable
         Assert.True(settings.Fox.ReadChat);
         Assert.True(settings.Fox.WebSearch);
         Assert.Equal(AppSettings.FactoryFoxModelId, settings.FoxModelId);
-        Assert.Equal((false, "low"), (settings.FoxReasoning.DisableThinking, settings.FoxReasoning.ReasoningEffort));
+        Assert.True(settings.FoxReasoning.DisableThinking);
     }
 
     /// <summary>Пустые объекты в руками поправленном файле не роняют чтение: Роза заводской.</summary>
@@ -79,7 +80,7 @@ public sealed class FoxCoreTests : IDisposable
 
         Assert.NotNull(settings.Fox);
         Assert.NotNull(settings.FoxReasoning);
-        Assert.Equal("low", settings.FoxReasoning.ReasoningEffort);
+        Assert.True(settings.FoxReasoning.DisableThinking);
     }
 
     [Theory]

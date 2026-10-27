@@ -36,6 +36,24 @@ internal static class ComputerHistory
     /// <summary>Прежнее чтение страницы браузером агента (1.37.0): его id тоже уже не действуют.</summary>
     public const string PageStub = "[An earlier read of the web page was removed: its element ids are no longer valid.]";
 
+    /// <summary>Прежнее чтение страницы, которую потом прочитали снова: свежее — ниже.</summary>
+    public const string PageRereadStub = "[An earlier read of this page; a later read of it is below.]";
+
+    /// <summary>
+    /// Сколько прежних страниц (разных адресов) остаются в истории кратко — текстом и ссылками.
+    /// </summary>
+    /// <remarks>
+    /// С запасом на работу «список — пункт — список»: агенту нужны и список, и его пункты (в чате с
+    /// тестами курса — список, шесть тестов и журнал оценок). Дальше — заголовок с адресом и заглушка:
+    /// полтысячи раундов текстом страниц не влезли бы в окно.
+    /// </remarks>
+    public const int KeepPageDigests = 10;
+
+    /// <summary>Сколько знаков текста и сколько ссылок у прежней страницы.</summary>
+    public const int DigestText = 3000;
+
+    public const int DigestLinks = 40;
+
     /// <summary>Начало выдачи страницы инструментом <c>browser</c>.</summary>
     public const string PageMark = "[page] ";
 
@@ -46,6 +64,9 @@ internal static class ComputerHistory
         var imagesSeen = 0;
         var treesSeen = new HashSet<string>(StringComparer.Ordinal);
         var pageSeen = false;
+        var pagesRead = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var digests = 0;
+        var unseenFrom = result.FindLastIndex(message => message.Role.Equals("assistant", StringComparison.Ordinal)) + 1;
         for (var i = result.Count - 1; i >= 0; i--)
         {
             var message = result[i];
@@ -66,13 +87,25 @@ internal static class ComputerHistory
                 continue;
             }
 
-            // Страница браузера (1.37.0) — та же логика: модели нужна последняя, а прежние длинны и
-            // держат устаревшие id.
+            // Страница браузера: последняя — целиком, прежние — кратко, текстом и ссылками без id
+            // (1.37.0-beta.8). Прежде их заменяла заглушка, и агент, забыв прочитанное, открывал те же
+            // страницы по кругу. Прежнее чтение адреса, прочитанного позже снова, — заглушка: свежее ниже.
+            // Страницы, которых модель ещё не видела (ответы на её последний ход), — целиком все:
+            // модель открывает по нескольку страниц за ход, и сокращённые до того, как она их прочла,
+            // она открывала снова той же пачкой без конца.
             if (PageStart(message) is { } page)
             {
-                if (pageSeen)
+                var body = page.Text[page.Start..];
+                var url = PageUrl(body);
+                var unseen = i >= unseenFrom;
+                if (pageSeen && (!unseen || (url is not null && pagesRead.Contains(url))))
                 {
-                    result[i] = WithText(message, page.Text[..page.Start] + PageStub);
+                    result[i] = WithText(message, page.Text[..page.Start] + Earlier(body, url, pagesRead, ref digests));
+                }
+
+                if (url is not null)
+                {
+                    pagesRead.Add(url);
                 }
 
                 pageSeen = true;
@@ -101,6 +134,41 @@ internal static class ComputerHistory
         var from = start + ComputerTool.TreeMark.Length;
         var end = text.IndexOf(']', from);
         return end > from ? (text[from..end], start, text) : null;
+    }
+
+    /// <summary>
+    /// Прежнее чтение страницы: заглушка, если тот же адрес прочитан позже; кратко — у первых
+    /// <see cref="KeepPageDigests"/> адресов от конца; дальше — заголовок, адрес и заглушка.
+    /// </summary>
+    private static string Earlier(string body, string? url, HashSet<string> readLater, ref int digests)
+    {
+        var header = PageHeader(body);
+        if (url is not null && readLater.Contains(url))
+        {
+            return header + PageRereadStub;
+        }
+
+        if (digests < KeepPageDigests && BrowserTool.Digest(body, DigestText, DigestLinks) is { } digest)
+        {
+            digests++;
+            return digest;
+        }
+
+        return header + PageStub;
+    }
+
+    /// <summary>Первые две строки выдачи: «[page] заголовок» и адрес.</summary>
+    private static string PageHeader(string body)
+    {
+        var first = body.IndexOf('\n', StringComparison.Ordinal);
+        var second = first < 0 ? -1 : body.IndexOf('\n', first + 1);
+        return second < 0 ? body + "\n" : body[..(second + 1)];
+    }
+
+    private static string? PageUrl(string body)
+    {
+        var lines = body.Split('\n', 3);
+        return lines.Length >= 2 && Uri.TryCreate(lines[1].Trim(), UriKind.Absolute, out _) ? lines[1].Trim() : null;
     }
 
     /// <summary>Выдача страницы в ответе <c>browser</c>: где она начинается. Null — страницы нет.</summary>

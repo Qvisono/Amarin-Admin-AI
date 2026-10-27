@@ -116,7 +116,9 @@ public sealed class Wave3ChatToolsTests
     [Fact]
     public void Router_treats_simple_checks_as_lite()
     {
-        Assert.Contains("status check", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);
+        // С 1.37.0-beta.8 простое действие на ПК — быстрая модель: чат лишь передаёт его агенту.
+        var flat = string.Join(' ', ChatEngine.RouterSystemPrompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("handing one simple action on this computer to an agent", flat, StringComparison.Ordinal);
         Assert.Contains("unsure", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("lite", ChatEngine.RouterSystemPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("list services", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);

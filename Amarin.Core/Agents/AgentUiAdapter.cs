@@ -25,6 +25,42 @@ internal sealed class AgentUiAdapter : IAgentUi
         _changed = changed;
         _agentLabel = agentLabel;
         _sessionId = sessionId;
+        SettleInterrupted(record);
+    }
+
+    /// <summary>
+    /// Вызовы прежней попытки, оборванной пересадкой, — «отменено». Новая попытка пишет в ту же запись.
+    /// </summary>
+    /// <remarks>
+    /// 1.37.0-beta.8. <see cref="ToolResult"/> находит вызов по имени — первый незавершённый. Вызов,
+    /// который пересадка оборвала, так и оставался «выполняется», и каждая выдача новой попытки
+    /// ложилась на вызов раньше: в ленте агент открывал одну страницу, а под ней стояла другая.
+    /// </remarks>
+    private static void SettleInterrupted(AgentRunRecord record)
+    {
+        foreach (var round in record.ToolRounds)
+        {
+            var stopped = false;
+            foreach (var call in round.Calls)
+            {
+                if (call.Status is ToolCallStatus.Pending or ToolCallStatus.Running)
+                {
+                    call.Status = ToolCallStatus.Failed;
+                    call.Success = false;
+                    if (string.IsNullOrWhiteSpace(call.ResultPreview))
+                    {
+                        call.ResultPreview = EngineLines.Cancelled;
+                    }
+                    stopped = true;
+                }
+            }
+
+            if (stopped && (string.IsNullOrWhiteSpace(round.InfoLine) ||
+                            round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal)))
+            {
+                round.InfoLine = EngineLines.ToolsStopped;
+            }
+        }
     }
 
     public void Warn(string message) => AppendInfo(message);

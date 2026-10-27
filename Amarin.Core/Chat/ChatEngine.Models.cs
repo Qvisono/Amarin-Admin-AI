@@ -61,15 +61,18 @@ internal sealed partial class ChatEngine
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, AppSettings.FactoryLiteModelId));
 
+    /// <summary>Быстрая модель «Авто» (1.37.0); пустой слот — лёгкая.</summary>
+    private string FastModelId(string liteId) => FirstNonEmpty(_settings().FastModelId, liteId);
+
     /// <summary>
-    /// Модели, между которыми выбирает «Авто», - ровно те две, что возвращает
-    /// <see cref="RouteAsync"/>. Знание о маршрутизации живёт здесь, а не в интерфейсе: кольцу
-    /// контекста нужен потолок ещё до того, как маршрутизатор отработал.
+    /// Модели, между которыми выбирает «Авто», - ровно те три, что возвращает
+    /// <see cref="RouteAsync"/>, от дешёвой к дорогой. Знание о маршрутизации живёт здесь, а не в
+    /// интерфейсе: кольцу контекста нужен потолок ещё до того, как маршрутизатор отработал.
     /// </summary>
     internal IReadOnlyList<string> AutoCandidateModelIds()
     {
         var lite = LiteModelId();
-        return [lite, FirstNonEmpty(_settings().HeavyModelId, lite)];
+        return [FastModelId(lite), lite, FirstNonEmpty(_settings().HeavyModelId, lite)];
     }
 
     /// <summary>
@@ -90,7 +93,25 @@ internal sealed partial class ChatEngine
     /// у разных провайдеров, и подобрать ключ по одному идентификатору позже уже нельзя —
     /// у провайдера ключей бывает несколько.
     /// </param>
-    internal sealed record RouterDecision(string ModelId, VeniceCost? Cost, string? KeyId = null);
+    /// <param name="Slot">
+    /// Выбранный слот: по нему берётся размышление хода. По совпадению идентификаторов его не
+    /// узнать — быстрый и лёгкий слот могут стоять на одной модели с разным размышлением.
+    /// </param>
+    internal sealed record RouterDecision(string ModelId, VeniceCost? Cost, string? KeyId = null, ModelSlot Slot = ModelSlot.Lite);
+
+    /// <summary>Размышление слота, выбранного «Авто».</summary>
+    private ReasoningChoice ReasoningOf(ModelSlot slot)
+    {
+        var settings = _settings();
+        var reasoning = slot switch
+        {
+            ModelSlot.Fast => settings.FastReasoning,
+            ModelSlot.Heavy => settings.HeavyReasoning,
+            _ => settings.LiteReasoning
+        };
+
+        return (reasoning ?? new ReasoningSettings()).ToChoice();
+    }
 
     private async Task<RouterDecision> RouteAsync(
         string userText,
@@ -99,12 +120,13 @@ internal sealed partial class ChatEngine
     {
         var settings = _settings();
         var liteId = LiteModelId();
+        var fastId = FastModelId(liteId);
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var routerId = FirstNonEmpty(settings.RouterModelId, liteId);
 
         // Маршрутизатор судит о трудности - значит должен знать, между кем выбирает. Блок идёт
         // последним: последний абзац промпта обещает, что модели названы ниже.
-        var models = ModelBriefing.ForRouter(liteId, heavyId, _venice.ResolveModelInfo);
+        var models = ModelBriefing.ForRouter(fastId, liteId, heavyId, _venice.ResolveModelInfo);
         var system = RouterSystemPrompt
                      + Environment.NewLine
                      + Environment.NewLine
@@ -120,7 +142,7 @@ internal sealed partial class ChatEngine
                     routerId,
                     system,
                     BuildRouterUserMessage(userText, previousUserText),
-                    ["lite", "heavy"],
+                    ["fast", "lite", "heavy"],
                     RoutingDecisions.ChatQuestion(models),
                     BuildVeniceParameters(_options),
                     cancellationToken,
@@ -133,11 +155,14 @@ internal sealed partial class ChatEngine
 
             // Цена берётся прямо из ответа, а не разницей общего счёта: RecordCost срабатывает
             // только на успешном разборе, поэтому упавшие попытки цепочки fallback в неё не входят.
-            var heavy = ParseRouterComplexity(reply) == "heavy";
-            return new RouterDecision(
-                heavy ? heavyId : liteId,
-                response.ReportedCost(),
-                ModelSlots.ReadKey(settings, heavy ? ModelSlot.Heavy : ModelSlot.Lite));
+            var (slot, modelId) = ParseRouterComplexity(reply) switch
+            {
+                "fast" => (ModelSlot.Fast, fastId),
+                "heavy" => (ModelSlot.Heavy, heavyId),
+                _ => (ModelSlot.Lite, liteId)
+            };
+
+            return new RouterDecision(modelId, response.ReportedCost(), ModelSlots.ReadKey(settings, slot), slot);
         }
         catch (OperationCanceledException)
         {
@@ -192,7 +217,12 @@ internal sealed partial class ChatEngine
         var first = text.Trim()
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)[0]
             .Trim('`', '"', '\'', '.', ',', ';', ':', '*', '(', ')', '[', ']');
-        return first.Equals("heavy", StringComparison.OrdinalIgnoreCase) ? "heavy" : "lite";
+        return first.ToLowerInvariant() switch
+        {
+            "heavy" => "heavy",
+            "fast" => "fast",
+            _ => "lite"
+        };
     }
 
     private static string FirstNonEmpty(params string?[] values)

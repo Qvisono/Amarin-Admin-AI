@@ -68,6 +68,19 @@ internal sealed class BrowserSession : IDisposable
     /// </remarks>
     public BrowserElement? Focused { get; set; }
 
+    private readonly Dictionary<string, int> _visits = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Сколько раз за прогон открыта эта страница, считая это открытие.</summary>
+    public int CountVisit(string url)
+    {
+        lock (_visits)
+        {
+            var count = _visits.GetValueOrDefault(url) + 1;
+            _visits[url] = count;
+            return count;
+        }
+    }
+
     /// <summary>Браузер для действия; при первом — берёт его у других агентов и открывает окно.</summary>
     public bool TryPort([NotNullWhen(true)] out IWebBrowser? port, [NotNullWhen(false)] out string? refusal)
     {
@@ -87,7 +100,18 @@ internal sealed class BrowserSession : IDisposable
                 return false;
             }
 
-            _port = _create();
+            try
+            {
+                _port = _create();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Окно не создалось (программа закрывается, поток окна занят): отказ модели, а не
+                // авария всего прогона; браузер отдаётся другим агентам.
+                _lease.Release(this);
+                refusal = "The agent browser could not be opened: " + ex.Message + " Do the task without the browser.";
+                return false;
+            }
         }
 
         if (_port.ClosedByHuman)

@@ -156,17 +156,38 @@ public sealed class VoiceAvailabilityTests
         Assert.False(Available(VoiceEngine.Auto, null, local: false, key: false));
     }
 
+    /// <summary>1.37.0-beta.8: OpenRouter приоритетнее — Gemini Transcribe, а без его ключа Scribe у Venice.</summary>
     [Fact]
-    public void The_default_cloud_model_follows_the_key_venice_first()
+    public void The_default_cloud_model_follows_the_key_openrouter_first()
     {
         var settings = new AppSettings();
 
-        Assert.Equal("openai/whisper-large-v3", Amarin.UI.VoiceAvailability.CloudModel(settings, _ => true));
+        Assert.Equal("openrouter:google/gemini-3.5-transcribe", Amarin.UI.VoiceAvailability.CloudModel(settings, _ => true));
         Assert.Equal(
-            "openrouter:openai/whisper-large-v3",
-            Amarin.UI.VoiceAvailability.CloudModel(settings, model => model.StartsWith("openrouter:", StringComparison.Ordinal)));
+            "elevenlabs/scribe-v2",
+            Amarin.UI.VoiceAvailability.CloudModel(settings, model => !model.StartsWith("openrouter:", StringComparison.Ordinal)));
         Assert.Null(Amarin.UI.VoiceAvailability.CloudModel(settings, _ => false));
         Assert.Equal("stt-xai-v1", Amarin.UI.VoiceAvailability.CloudModel(new AppSettings { VoiceModel = " stt-xai-v1 " }, _ => false));
+    }
+
+    /// <summary>
+    /// «Авто» озвучки (1.37.0-beta.8): Eleven v4 голосом Roger с ключом OpenRouter, без него — Windows.
+    /// Пустое значение по-прежнему Windows, выбранное человеком — как есть.
+    /// </summary>
+    [Fact]
+    public void Auto_speech_reads_with_eleven_v4_and_roger_only_with_an_openrouter_key()
+    {
+        var auto = new AppSettings { SpeechModel = "auto" };
+        var keyed = Amarin.UI.VoiceAvailability.SpeechModel(auto, model => model.StartsWith("openrouter:", StringComparison.Ordinal));
+
+        Assert.Equal("openrouter:elevenlabs/eleven-v4", keyed);
+        Assert.Equal("roger", Amarin.UI.VoiceAvailability.SpeechVoice(auto));
+        Assert.Null(Amarin.UI.VoiceAvailability.SpeechModel(auto, _ => false));
+        Assert.Null(Amarin.UI.VoiceAvailability.SpeechModel(new AppSettings(), _ => true));
+        Assert.Equal("tts-kokoro", Amarin.UI.VoiceAvailability.SpeechModel(new AppSettings { SpeechModel = "tts-kokoro" }, _ => false));
+        Assert.Equal("george", Amarin.UI.VoiceAvailability.SpeechVoice(new AppSettings { SpeechModel = "auto", SpeechVoice = "george" }));
+        Assert.Null(Amarin.UI.VoiceAvailability.SpeechVoice(new AppSettings { SpeechModel = "tts-kokoro" }));
+        Assert.Equal("auto", AppSettings.CreateDefault().SpeechModel);
     }
 
     [Fact]

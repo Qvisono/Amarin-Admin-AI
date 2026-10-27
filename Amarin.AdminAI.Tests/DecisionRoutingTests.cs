@@ -90,7 +90,7 @@ public sealed class DecisionRoutingTests
             Assert.Equal("choice", question.GetProperty("type").GetString());
             Assert.StartsWith(RoutingDecisions.ChatInstructions, question.GetProperty("instructions").GetString());
             Assert.Equal(RoutingDecisions.ChatHeavy, question.GetProperty("criteria").GetProperty("heavy").GetString());
-            Assert.Equal(["lite", "heavy"], question.GetProperty("criteria").EnumerateObject().Select(p => p.Name));
+            Assert.Equal(["fast", "lite", "heavy"], question.GetProperty("criteria").EnumerateObject().Select(p => p.Name));
             Assert.False(root.TryGetProperty("messages", out _));
             Assert.False(root.TryGetProperty("reasoning", out _));
             return Json(Answer("heavy"));
@@ -150,6 +150,43 @@ public sealed class DecisionRoutingTests
             null, new ReasoningSettings().ToChoice(), CancellationToken.None);
         Assert.Equal(expected, result.Tier);
         Assert.Equal(0.003m, result.Cost?.Usd);
+    }
+
+    /// <summary>
+    /// 1.37.0-beta.8: слова человека едут маршрутизатору агента, а рядом с уровнем — вопрос о спешке.
+    /// «Да» — быстрый агент, что бы ни ответил уровень; без слов человека вопроса нет.
+    /// </summary>
+    [Theory]
+    [InlineData(0.9, "fast")]
+    [InlineData(0.1, "heavy")]
+    [InlineData(0.5, "heavy")]
+    public async Task A_request_to_hurry_in_the_users_own_words_picks_the_fast_agent(double hurry, string expected)
+    {
+        using var handler = new Handler((_, body) =>
+        {
+            using var json = JsonDocument.Parse(body);
+            var root = json.RootElement;
+            Assert.Contains("The user's own words:\nсделай побыстрее", root.GetProperty("state").GetString()!.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+            Assert.Equal("noul", root.GetProperty("questions").GetProperty("shortcut").GetProperty("type").GetString());
+            return Json($$$"""
+                {"answers":{"tier":{"type":"choice","choice":"heavy"},"shortcut":{"type":"noul","noul":{{{hurry.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}}},
+                 "usage":{"cost":0.003,"input_tokens":40,"output_tokens":2}}
+                """);
+        });
+        using var http = new HttpClient(handler);
+        var result = await AgentTierRouter.DecideAsync(Client(http), DecisionId, "MODELS", "agent task",
+            null, new ReasoningSettings().ToChoice(), CancellationToken.None, humanWords: "сделай побыстрее");
+        Assert.Equal(expected, result.Tier);
+
+        using var silent = new Handler((_, body) =>
+        {
+            using var json = JsonDocument.Parse(body);
+            Assert.False(json.RootElement.GetProperty("questions").TryGetProperty("shortcut", out var unused));
+            return Json(Answer("lite"));
+        });
+        using var quiet = new HttpClient(silent);
+        Assert.Equal("lite", (await AgentTierRouter.DecideAsync(Client(quiet), DecisionId, "MODELS", "agent task",
+            null, new ReasoningSettings().ToChoice(), CancellationToken.None)).Tier);
     }
 
     [Theory]

@@ -151,7 +151,7 @@ internal sealed partial class ChatEngine
         """;
 
     /// <summary>
-    /// Правила выбора между лёгкой и тяжёлой моделью для «Авто».
+    /// Правила выбора между быстрой, лёгкой и тяжёлой моделью для «Авто».
     /// </summary>
     /// <remarks>
     /// Первая строка дословная: по ней тесты отличают запрос маршрутизатора от запроса чата
@@ -172,14 +172,18 @@ internal sealed partial class ChatEngine
     /// Уровень агента по-прежнему выбирает его маршрутизатор: проверку может делать и лёгкая
     /// модель. Правку этого текста проверяют прогоном на живых запросах (<c>RouterLiveTests</c>).
     /// </para>
+    /// <para>
+    /// С 1.37.0-beta.8 ступеней три: fast — ответу не нужно думать вовсе. А heavy описан не одной
+    /// «тихо ошибающейся» работой: до этого научный вопрос или исследование почти всегда получали
+    /// лёгкую модель, и человек видел неточный ответ там, где важна была точность.
+    /// </para>
     /// Названия самих моделей дописываются на лету: см. <see cref="ModelBriefing.ForRouter"/>.
     /// </remarks>
     internal const string RouterSystemPrompt = """
-        Classify the user request. Reply with exactly one word: lite or heavy.
-        When unsure, reply lite -- unless the message may be about the user's safety.
+        Classify the user request. Reply with exactly one word: fast, lite or heavy.
 
         You choose the model that writes the chat reply, and nothing else.
-        Judge the hardest single step of the thinking that reply has to do itself, not how much
+        Judge what the reply itself has to know, reason out and get exactly right, not how much
         text or how many items arrived. A list of easy questions is still easy: five easy sums
         in one message are five easy sums. Counting sub-questions and calling the total
         "complex" is the mistake to avoid.
@@ -199,23 +203,29 @@ internal sealed partial class ChatEngine
         danger is and direct the agents' work, and a cheap wrong answer there costs the user far
         more than the price of the expensive model.
 
-        lite = chat, jokes, opinions, explanations, definitions, translation, short how-to,
-        arithmetic of any length or precision, unit / colour / encoding conversion, a fact or
-        a date to recall, one PowerShell one-liner, a routine local status check, and any job
-        on this computer that is not about safety -- however many of these arrive at once, and
-        in any mix.
+        fast = the reply needs no thinking: a social exchange, stating a single fact or the
+        current date or time, an elementary calculation or practical answer, or handing one
+        simple action on this computer to an agent. A request to study, learn or understand
+        something, any task from school, college or beyond, and anything that needs even a
+        little thought is not fast.
 
-        heavy = anything about the safety of the user or this computer (see above), or the reply
-        itself needs reasoning that can go wrong quietly: subtle debugging of code or text the
-        user put into the message, writing or reworking a long piece of code in the reply, a
-        proof or a derivation, planning against several constraints that fight each other. Pick
-        it for reasoning only when a cheap wrong answer in the chat would cost more than the
-        expensive right one.
+        lite = ordinary help within common knowledge: explaining, advising, translating,
+        writing or editing ordinary text, a short how-to, a routine study task, and any job on
+        this computer that is not about safety -- however many of these arrive at once, and in
+        any mix.
 
+        heavy = anything about the safety of the user or this computer (see above), or a reply
+        whose value depends on depth, rigor or precision: a scientific, research or analytical
+        question, reasoning through several steps or competing constraints, a proof or a
+        derivation, specialist knowledge beyond the common, writing or debugging substantial
+        code, or any answer where a plausible but wrong reply would mislead the user.
+
+        When unsure between fast and lite, reply lite. When unsure between lite and heavy,
+        reply heavy if the message may be about the user's safety or a mistake in the reply
+        would matter to the user.
         Urgency, politeness, length and numbered formatting say nothing about difficulty.
 
-        The two models are named below. heavy is the user's expensive slot -- outside safety,
-        choose it only when lite would actually get this reply wrong.
+        The three models are named below.
         Do not explain.
         """;
 
@@ -747,7 +757,7 @@ internal sealed partial class ChatEngine
                 // Ключ вслед за моделью: «лёгкая» и «тяжёлая» могут стоять у разных
                 // провайдеров, и ключ хода обязан смениться вместе с выбором.
                 turn.Credential = KeyFor(decision.ModelId, decision.KeyId);
-                turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
+                turn.Reasoning = ReasoningOf(decision.Slot);
                 turn.RouterCost = decision.Cost;
             }
 
@@ -1040,7 +1050,7 @@ internal sealed partial class ChatEngine
                 // Ключ вслед за моделью: «лёгкая» и «тяжёлая» могут стоять у разных
                 // провайдеров, и ключ хода обязан смениться вместе с выбором.
                 turn.Credential = KeyFor(decision.ModelId, decision.KeyId);
-                turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
+                turn.Reasoning = ReasoningOf(decision.Slot);
                 turn.RouterCost = decision.Cost;
             }
 
@@ -1555,14 +1565,19 @@ internal sealed partial class ChatEngine
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, AppSettings.FactoryLiteModelId));
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
+        var fastId = FirstNonEmpty(settings.FastModelId, liteId);
 
         // Модель обхода в ходе «Авто» бывает только после отказов (i_refuse), и «Продолжить»
-        // такого ответа должно взять её размышление, а не лёгкой.
+        // такого ответа должно взять её размышление, а не лёгкой. Быстрая — только когда она не
+        // та же модель, что лёгкая: по одному идентификатору их не различить, и лёгкая надёжнее.
         var slot = resolvedModelId.Equals(heavyId, StringComparison.OrdinalIgnoreCase)
             ? settings.HeavyReasoning
             : resolvedModelId.Equals(FirstNonEmpty(settings.BypassModelId, heavyId), StringComparison.OrdinalIgnoreCase)
                 ? settings.BypassReasoning
-                : settings.LiteReasoning;
+                : resolvedModelId.Equals(fastId, StringComparison.OrdinalIgnoreCase) &&
+                  !fastId.Equals(liteId, StringComparison.OrdinalIgnoreCase)
+                    ? settings.FastReasoning
+                    : settings.LiteReasoning;
         return (slot ?? new ReasoningSettings()).ToChoice();
     }
 

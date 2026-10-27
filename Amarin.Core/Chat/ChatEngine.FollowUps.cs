@@ -71,6 +71,7 @@ internal sealed partial class ChatEngine
                     continue;
                 }
 
+                var kind = decision.Kind;
                 foreach (var id in decision.AgentIds)
                 {
                     var agent = running.FirstOrDefault(item =>
@@ -80,11 +81,22 @@ internal sealed partial class ChatEngine
                         continue;
                     }
 
+                    // Пересадка на тот уровень, на котором агент уже работает, — та же модель с нуля:
+                    // до 1.37.0-beta.8 быстрый агент на «быстрее» начинал задачу заново и терял найденное.
+                    // Такая просьба — вводная, а не пересадка.
+                    var sameTier = decision.Kind == AgentInterruptKind.Switch &&
+                                   string.Equals(agent.Complexity, decision.Complexity, StringComparison.OrdinalIgnoreCase);
+
                     // Вводная не прерывает: агент дорабатывает шаг и читает её на границе раунда.
                     // Прервать его ради уточнения значило бы выбросить то, что он уже нашёл.
                     if (decision.Kind == AgentInterruptKind.Tell)
                     {
                         agent.Tell(decision.Message);
+                    }
+                    else if (sameTier)
+                    {
+                        agent.Tell(string.Join(Environment.NewLine, fresh));
+                        kind = AgentInterruptKind.Tell;
                     }
                     else
                     {
@@ -92,8 +104,8 @@ internal sealed partial class ChatEngine
                     }
                 }
 
-                round.FollowUpNote = string.IsNullOrWhiteSpace(decision.Note)
-                    ? Loc.Get(decision.Kind switch
+                round.FollowUpNote = string.IsNullOrWhiteSpace(decision.Note) || kind != decision.Kind
+                    ? Loc.Get(kind switch
                     {
                         AgentInterruptKind.Stop => "S.Tools.AgentStopped",
                         AgentInterruptKind.Tell => "S.Tools.AgentTold",

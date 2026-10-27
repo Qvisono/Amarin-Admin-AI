@@ -34,6 +34,18 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Models.Fast}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <local:ReasoningPicker x:Name="FastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                               Margin="8,0" VerticalAlignment="Center"/>
+                        <local:ModelPickerField x:Name="FastModelPicker" Grid.Column="2"/>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRowDense}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
                         <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Light}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
                         <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                Margin="8,0" VerticalAlignment="Center"/>

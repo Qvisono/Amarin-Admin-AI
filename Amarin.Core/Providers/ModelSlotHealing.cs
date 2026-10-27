@@ -98,11 +98,13 @@ internal static class ModelSlotHealing
     /// той же моделью, если она там есть.
     /// </summary>
     /// <remarks>
-    /// Заводские модели записаны идентификаторами Venice, и человек только с ключом OpenRouter
-    /// или Anthropic иначе получал бы «добавьте ключ Venice» на каждом слоте. Переезжает только
-    /// слот провайдера, у которого ключей нет вовсе, — не тот, чей каталог не загрузился:
+    /// Заводские модели записаны идентификаторами OpenRouter (1.37.0; до этого — Venice), и
+    /// человек без ключа OpenRouter иначе получал бы «добавьте ключ» на каждом слоте. Переезжает
+    /// только слот провайдера, у которого ключей нет вовсе, — не тот, чей каталог не загрузился:
     /// отказ по стране стёр бы выбор, который сработает, как только сеть пустит. И только к
     /// провайдеру выбранного ключа: иначе слоты расползлись бы по тем, чей каталог доехал первым.
+    /// Заводская модель едет к заводской модели того провайдера (<see cref="ModelSlotDefaults.Resolve"/>):
+    /// у обхода и быстрой модели она там своя, а не того же семейства.
     /// </remarks>
     private static bool MoveFromKeyless(
         AppSettings settings,
@@ -120,8 +122,10 @@ internal static class ModelSlotHealing
             return false;
         }
 
-        var moved = ModelFamily.Find(ModelFamily.KeyOf(current), provider, models)
-                    ?? ModelSlotDefaults.Resolve(provider, slot, models);
+        var moved = ModelSlotDefaults.IsShipped(slot, current)
+            ? ModelSlotDefaults.Resolve(provider, slot, models)
+            : ModelFamily.Find(ModelFamily.KeyOf(current), provider, models)
+              ?? ModelSlotDefaults.Resolve(provider, slot, models);
         if (moved.Length == 0)
         {
             return false;

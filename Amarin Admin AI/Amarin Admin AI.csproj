@@ -8,7 +8,7 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.37.0-beta.7</Version>
+    <Version>1.37.0-beta.8</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

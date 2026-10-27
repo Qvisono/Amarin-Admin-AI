@@ -45,8 +45,9 @@ public sealed class ModelBriefingTests
             Model("openai-gpt-56-luna", "GPT-5.6 Luna", 131_072, code: true),
             Model("grok-4-6", "Grok 4.6", 2_000_000, vision: true, code: true));
 
-        var block = ModelBriefing.ForRouter("openai-gpt-56-luna", "grok-4-6", resolve);
+        var block = ModelBriefing.ForRouter("grok-4-6", "openai-gpt-56-luna", "grok-4-6", resolve);
 
+        Assert.Contains("fast -> Grok 4.6", block, StringComparison.Ordinal);
         Assert.Contains("lite -> GPT-5.6 Luna", block, StringComparison.Ordinal);
         Assert.Contains("heavy -> Grok 4.6", block, StringComparison.Ordinal);
         Assert.Contains("2M context", block, StringComparison.Ordinal);
@@ -60,7 +61,7 @@ public sealed class ModelBriefingTests
         var blurb = new string('x', 500);
         var resolve = Catalogue(Model("grok-4-6", "Grok 4.6", 2_000_000, description: blurb));
 
-        var block = ModelBriefing.ForRouter("grok-4-6", "grok-4-6", resolve);
+        var block = ModelBriefing.ForRouter("grok-4-6", "grok-4-6", "grok-4-6", resolve);
 
         Assert.DoesNotContain(blurb, block, StringComparison.Ordinal);
     }
@@ -72,7 +73,7 @@ public sealed class ModelBriefingTests
         // модель без reasoning его и потом не будет — FilterAgentic такие в кеш не кладёт.
         foreach (var resolve in new Func<string, VeniceModelInfo?>?[] { null, _ => null })
         {
-            var block = ModelBriefing.ForRouter("openai-gpt-56-luna", "grok-4-6", resolve);
+            var block = ModelBriefing.ForRouter("openai-gpt-56-luna", "openai-gpt-56-luna", "grok-4-6", resolve);
 
             Assert.Contains("lite -> GPT-5.6 Luna", block, StringComparison.Ordinal);
             Assert.Contains("heavy -> Grok 4.6", block, StringComparison.Ordinal);
@@ -141,12 +142,12 @@ public sealed class ModelBriefingTests
             Model("grok-4-6", "Grok 4.6", 2_000_000, vision: true, code: true));
 
         var chat = ModelBriefing.ForChat("grok-4-6", resolve);
-        var router = ModelBriefing.ForRouter("openai-gpt-56-luna", "grok-4-6", resolve);
+        var router = ModelBriefing.ForRouter("deepseek-v4-flash-0731-fast", "openai-gpt-56-luna", "grok-4-6", resolve);
         var agents = ModelBriefing.ForAgentRouter(
             "deepseek-v4-flash-0731-fast", "openai-gpt-56-luna", "grok-4-6", resolve);
 
         Assert.True(chat.Length < 200, $"chat briefing grew to {chat.Length}");
-        Assert.True(router.Length < 200, $"router briefing grew to {router.Length}");
+        Assert.True(router.Length < 300, $"router briefing grew to {router.Length}");
         Assert.True(agents.Length < 300, $"agent briefing grew to {agents.Length}");
     }
 }

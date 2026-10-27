@@ -31,15 +31,40 @@ internal enum VoiceRoute
 /// модель, если для неё есть ключ.
 /// </para>
 /// <para>
-/// Облачная модель без выбора человека — Whisper Large V3 у Venice, иначе у OpenRouter (1.37.0):
-/// до этого поле модели было пустым, и у человека с ключом, но без распознавателя Windows для
-/// своего языка (русского в Windows нет вовсе) микрофон не появлялся ни при каких настройках.
+/// Облачная модель без выбора человека — Gemini 3.5 Transcribe у OpenRouter, иначе Scribe v2 у
+/// Venice (1.37.0-beta.8: OpenRouter приоритетнее). До 1.37.0 поле модели было пустым, и у
+/// человека с ключом, но без распознавателя Windows для своего языка (русского в Windows нет
+/// вовсе) микрофон не появлялся ни при каких настройках.
 /// </para>
 /// </remarks>
 internal static class VoiceAvailability
 {
     /// <summary>Модели по умолчанию, по порядку: первая, к провайдеру которой есть ключ.</summary>
-    public static readonly string[] DefaultCloudModels = ["openai/whisper-large-v3", "openrouter:openai/whisper-large-v3"];
+    public static readonly string[] DefaultCloudModels = ["openrouter:google/gemini-3.5-transcribe", "elevenlabs/scribe-v2"];
+
+    /// <summary>
+    /// Чем читать вслух: модель озвучки или null — синтезатор Windows. «Авто» — заводская модель
+    /// OpenRouter, если к нему есть ключ, иначе Windows (так решил человек).
+    /// </summary>
+    public static string? SpeechModel(AppSettings settings, Func<string, bool> hasKeyFor)
+    {
+        var chosen = settings.SpeechModel?.Trim() ?? "";
+        if (VeniceModelCatalog.IsAuto(chosen))
+        {
+            return hasKeyFor(AppSettings.FactorySpeechModelId) ? AppSettings.FactorySpeechModelId : null;
+        }
+
+        return chosen.Length > 0 ? chosen : null;
+    }
+
+    /// <summary>
+    /// Голос модели озвучки: выбранный человеком, а у «Авто» без выбора — заводской голос.
+    /// null — первый голос модели.
+    /// </summary>
+    public static string? SpeechVoice(AppSettings settings) =>
+        !string.IsNullOrWhiteSpace(settings.SpeechVoice)
+            ? settings.SpeechVoice
+            : VeniceModelCatalog.IsAuto(settings.SpeechModel ?? "") ? AppSettings.FactorySpeechVoice : null;
 
     /// <summary>Язык речи: из настройки, а пусто — язык интерфейса.</summary>
     public static CultureInfo SpeechCulture(AppSettings settings, string interfaceLanguage)

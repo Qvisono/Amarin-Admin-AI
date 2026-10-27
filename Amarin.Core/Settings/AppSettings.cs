@@ -275,9 +275,15 @@ public sealed class AppSettings : IJsonOnDeserializing
     public Dictionary<string, Dictionary<string, string>>? ModelSlotsByProvider { get; set; }
 
     /// <summary>
-    /// Заводские модели (1.34.0) — идентификаторами Venice. У других провайдеров то же семейство
-    /// находит <see cref="ModelFamily"/>, поэтому имена здесь и есть ключи семейств.
+    /// Семейства заводских моделей — идентификаторами Venice (1.34.0). У других провайдеров то же
+    /// семейство находит <see cref="ModelFamily"/>, поэтому имена здесь и есть ключи семейств.
     /// </summary>
+    /// <remarks>
+    /// С 1.37.0 сами слоты получают модели OpenRouter (<see cref="ShippedLiteModelId"/> и соседи), а
+    /// эти константы остаются запасом там, где в коде нужна модель Venice: <c>LastResort</c>, цепочки
+    /// замены Venice, модель из appsettings.json. Подставь сюда OpenRouter — и ключ Venice получил бы
+    /// в запас модель чужого провайдера.
+    /// </remarks>
     public const string FactoryLiteModelId = "claude-haiku-5-5";
 
     public const string FactoryHeavyModelId = "claude-sonnet-5-5";
@@ -286,22 +292,46 @@ public sealed class AppSettings : IJsonOnDeserializing
 
     public const string FactoryDecisionModelId = "openrouter:typesafe/jev-1.14";
 
-    /// <summary>Заводская модель Розы (1.35.0-beta.2): ролевая и дешёвая, у OpenRouter.</summary>
-    public const string FactoryFoxModelId = "openrouter:aion-labs/aion-3.5-mini";
+    /// <summary>
+    /// Заводские модели слотов (1.37.0, ревизия 4) — у OpenRouter: так решил человек, OpenRouter
+    /// приоритетнее. С ключом OpenRouter модель остаётся у него, а человеку без этого ключа лечение
+    /// слотов переносит её к провайдеру его ключа (<see cref="ModelSlotDefaults"/>).
+    /// </summary>
+    public const string ShippedLiteModelId = "openrouter:anthropic/claude-haiku-5.5";
+
+    public const string ShippedHeavyModelId = "openrouter:anthropic/claude-sonnet-5.5";
 
     /// <summary>
-    /// Заводская модель обхода (1.36.0): сильная и редко отказывает. У OpenRouter то же семейство
-    /// находит <see cref="ModelFamily"/>.
+    /// Быстрая модель чата и агента: MiniMax Flash у самого быстрого провайдера OpenRouter (nitro).
+    /// У Venice — та же модель без nitro (<see cref="ModelSlotDefaults"/>).
     /// </summary>
-    public const string FactoryBypassModelId = "grok-4-7";
+    public const string ShippedFastModelId = "openrouter:minimax/minimax-m3.1-flash:nitro";
+
+    public const string ShippedTitleModelId = "openrouter:deepseek/deepseek-v4-flash-0731";
+
+    /// <summary>Заводская модель Розы (1.37.0): Claude Haiku без размышления.</summary>
+    public const string FactoryFoxModelId = ShippedLiteModelId;
+
+    /// <summary>
+    /// Заводская модель обхода (1.37.0): Grok 4.3 у OpenRouter; у Venice — своя модель обхода
+    /// (<see cref="ModelSlotDefaults"/>).
+    /// </summary>
+    public const string FactoryBypassModelId = "openrouter:x-ai/grok-4.3";
+
+    /// <summary>Заводская озвучка «Авто» (1.37.0): ElevenLabs v4 у OpenRouter.</summary>
+    public const string FactorySpeechModelId = "openrouter:elevenlabs/eleven-v4";
+
+    /// <summary>Голос заводской озвучки, когда человек голос не выбирал.</summary>
+    public const string FactorySpeechVoice = "roger";
 
     /// <summary>
     /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
     /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз. Номер
     /// растёт с каждой новой заменой: 2 — 1.35.0-beta.1 (Claude, Jev 1.13), 3 — beta.2 (Jev 1.14,
-    /// Aion 3.5 Mini у Розы); профиль, прошедший прежнюю, проходит и новую.
+    /// Aion 3.5 Mini у Розы), 4 — 1.37.0-beta.8 (модели OpenRouter, быстрая модель чата, голос);
+    /// профиль, прошедший прежнюю, проходит и новую.
     /// </summary>
-    public const int CurrentFactoryModels = 3;
+    public const int CurrentFactoryModels = 4;
 
     /// <summary>
     /// Какие заводские модели уже стоят у этого профиля. Отметка нужна, потому что заводская
@@ -316,7 +346,7 @@ public sealed class AppSettings : IJsonOnDeserializing
     public int FactoryModelsRevision { get; set; } = CurrentFactoryModels;
 
     /// <summary>
-    /// Модель чата. <c>auto</c> — маршрутизатор выбирает между лёгким и тяжёлым слотом.
+    /// Модель чата. <c>auto</c> — маршрутизатор выбирает между быстрым, лёгким и тяжёлым слотом.
     /// </summary>
     /// <remarks>
     /// Пустая строка — прежний сентинел «модель Venice из appsettings.json». Новые профили с
@@ -327,7 +357,19 @@ public sealed class AppSettings : IJsonOnDeserializing
 
     public ReasoningSettings ChatReasoning { get; set; } = new();
 
-    public string LiteModelId { get; set; } = FactoryLiteModelId;
+    /// <summary>
+    /// Быстрая модель «Авто» (1.37.0): ответ, которому не нужно думать. Слот новый: старый файл без
+    /// поля получает начальное значение свойства.
+    /// </summary>
+    public string FastModelId { get; set; } = ShippedFastModelId;
+
+    public ReasoningSettings FastReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "medium"
+    };
+
+    public string LiteModelId { get; set; } = ShippedLiteModelId;
 
     public ReasoningSettings LiteReasoning { get; set; } = new()
     {
@@ -335,12 +377,12 @@ public sealed class AppSettings : IJsonOnDeserializing
         ReasoningEffort = "medium"
     };
 
-    public string HeavyModelId { get; set; } = FactoryHeavyModelId;
+    public string HeavyModelId { get; set; } = ShippedHeavyModelId;
 
     public ReasoningSettings HeavyReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "low"
+        ReasoningEffort = "medium"
     };
 
     public string RouterModelId { get; set; } = FactoryDecisionModelId;
@@ -355,26 +397,27 @@ public sealed class AppSettings : IJsonOnDeserializing
         DisableThinking = true
     };
 
-    public string TitleModelId { get; set; } = DefaultFastModelId;
+    public string TitleModelId { get; set; } = ShippedTitleModelId;
 
     public ReasoningSettings TitleReasoning { get; set; } = new() { DisableThinking = true };
 
     /// <summary>
-    /// Быстрая дешёвая модель: маршрутизатор, заголовки и быстрый уровень агента.
+    /// Быстрая дешёвая модель Venice — запас заголовков, сводок и Розы, когда слот пуст.
     /// </summary>
     public const string DefaultFastModelId = "deepseek-v4-flash-0731";
 
     /// <summary>
-    /// Быстрый уровень: Claude Haiku без размышления.
+    /// Быстрый уровень агента: та же быстрая модель, что у чата (1.37.0).
     /// </summary>
-    public string AgentFastModelId { get; set; } = FactoryLiteModelId;
+    public string AgentFastModelId { get; set; } = ShippedFastModelId;
 
     public ReasoningSettings AgentFastReasoning { get; set; } = new()
     {
-        DisableThinking = true
+        DisableThinking = false,
+        ReasoningEffort = "medium"
     };
 
-    public string AgentLiteModelId { get; set; } = FactoryLiteModelId;
+    public string AgentLiteModelId { get; set; } = ShippedLiteModelId;
 
     public ReasoningSettings AgentLiteReasoning { get; set; } = new()
     {
@@ -382,7 +425,7 @@ public sealed class AppSettings : IJsonOnDeserializing
         ReasoningEffort = "medium"
     };
 
-    public string AgentHeavyModelId { get; set; } = FactoryAgentHeavyModelId;
+    public string AgentHeavyModelId { get; set; } = ShippedHeavyModelId;
 
     public ReasoningSettings AgentHeavyReasoning { get; set; } = new()
     {
@@ -442,12 +485,12 @@ public sealed class AppSettings : IJsonOnDeserializing
     public string FoxModelId { get; set; } = FactoryFoxModelId;
 
     /// <summary>
-    /// Размышление Розы — нижний уровень. Реплика в пару слов размышления не окупает, но
-    /// заводская модель не думать не умеет, а без уровня думала бы на своём high.
+    /// Размышление Розы — выключено (1.37.0): реплика в пару слов размышления не окупает, а
+    /// заводская модель (Haiku) умеет не думать вовсе.
     /// </summary>
     public ReasoningSettings FoxReasoning { get; set; } = FactoryFoxReasoning();
 
-    internal static ReasoningSettings FactoryFoxReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
+    internal static ReasoningSettings FactoryFoxReasoning() => new() { DisableThinking = true };
 
     /// <summary>
     /// Модель обхода (1.36.0): последняя ступень после отказов — ответа чата (<c>i_refuse</c>) и
@@ -595,8 +638,13 @@ public sealed class AppSettings : IJsonOnDeserializing
 
     /// <summary>
     /// Модель озвучки провайдера (1.37.0), с приставкой, как у моделей чата: Venice — голая,
-    /// OpenRouter — <c>openrouter:…</c>. Пусто — синтезатор Windows на этом ПК.
+    /// OpenRouter — <c>openrouter:…</c>. Пусто — синтезатор Windows на этом ПК. <c>auto</c> —
+    /// <see cref="FactorySpeechModelId"/>, если к OpenRouter есть ключ, иначе синтезатор Windows.
     /// </summary>
+    /// <remarks>
+    /// «Авто» значением, а не пустой строкой: пустая уже значила «Windows», и прежние файлы
+    /// читаются как раньше. Новые профили и ревизия 4 заводских моделей ставят «Авто».
+    /// </remarks>
     public string? SpeechModel { get; set; }
 
     /// <summary>
@@ -708,7 +756,8 @@ public sealed class AppSettings : IJsonOnDeserializing
     {
         DownloadAllowedDomains = [.. new DownloadOptions().AllowedDomains],
         ChatModelId = VeniceModelCatalog.AutoId,
-        SummaryModelId = FactoryLiteModelId,
-        SummaryReasoning = FactorySummaryReasoning()
+        SummaryModelId = ShippedLiteModelId,
+        SummaryReasoning = FactorySummaryReasoning(),
+        SpeechModel = VeniceModelCatalog.AutoId
     };
 }

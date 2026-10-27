@@ -535,6 +535,13 @@ public sealed partial class ComputerAgentTests
         { nameof(ScheduleReport.ComputerRule), ScheduleReport.ComputerRule },
         { nameof(AgentTierRouter.WindowsRule), AgentTierRouter.WindowsRule },
         { nameof(RoutingDecisions.BlindTier), RoutingDecisions.BlindTier },
+        { nameof(BrowserPrompt.AgentRule), BrowserPrompt.AgentRule },
+        { nameof(BrowserPrompt.AgentOffRule), BrowserPrompt.AgentOffRule },
+        { nameof(BrowserPrompt.ChatRules), BrowserPrompt.ChatRules },
+        { nameof(BrowserPrompt.ChatOffRules) + "(mouse)", BrowserPrompt.ChatOffRules(mouse: true) },
+        { nameof(BrowserPrompt.ChatOffRules), BrowserPrompt.ChatOffRules(mouse: false) },
+        { nameof(RoutingDecisions.HurryQuestion), RoutingDecisions.HurryQuestion().ToJsonString() },
+        { nameof(RoutingDecisions.ChatFast), RoutingDecisions.ChatFast + RoutingDecisions.ChatLite + RoutingDecisions.ChatHeavy },
         { "computer", Describe(new ComputerTool(new ComputerSession(new FakeComputer(), null, new ComputerStart(false, ""), new ComputerLease()))) },
         { nameof(SynGuard.ApprovalInstructions), SynGuard.ApprovalInstructions + SynGuard.WithoutApprovalCriteria + SynGuard.ApprovalRequiredCriteria },
         { nameof(SynGuard.DecisionInstructions), SynGuard.DecisionInstructions + SynGuard.SafeCriteria + SynGuard.UnsafeCriteria },
@@ -575,6 +582,34 @@ public sealed partial class ComputerAgentTests
         Assert.DoesNotContain("You CANNOT click", Agent.BaseSystemPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("use_computer", Agent.BaseSystemPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain(LegacyAgentPrompts.All, legacy => legacy == Agent.BaseSystemPrompt);
+    }
+
+    [Fact]
+    public void The_chat_names_the_agent_browser_switch_when_the_browser_is_off()
+    {
+        // 1.37.0-beta.8: при выключенном браузере чат молчал о нём и обещал агенту невозможное.
+        var on = Settings(computerControl: false);
+        on.AgentBrowser = true;
+        var withBrowser = Engine(on).CurrentSystemPrompt(new ChatSession());
+        var without = Engine(Settings(computerControl: false)).CurrentSystemPrompt(new ChatSession());
+        var withMouse = Engine(Settings(computerControl: true)).CurrentSystemPrompt(new ChatSession());
+
+        Assert.Contains(BrowserPrompt.ChatRules, withBrowser, StringComparison.Ordinal);
+        Assert.DoesNotContain("turned off", withBrowser, StringComparison.Ordinal);
+        Assert.Contains(BrowserPrompt.ChatOffRules(mouse: false), without, StringComparison.Ordinal);
+        Assert.DoesNotContain(BrowserPrompt.ChatRules, without, StringComparison.Ordinal);
+        Assert.Contains(BrowserPrompt.ChatOffRules(mouse: true), withMouse, StringComparison.Ordinal);
+
+        static ChatEngine Engine(AppSettings settings)
+        {
+            var options = new AgentOptions { ApiKey = "test", BaseUrl = "https://api.venice.ai/api/v1", Model = "m", MaxToolRounds = 3 };
+            return new ChatEngine(
+                new VeniceClient(new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") }, options),
+                options,
+                () => settings,
+                new ToolRegistry([]),
+                agents: null);
+        }
     }
 
     [Fact]

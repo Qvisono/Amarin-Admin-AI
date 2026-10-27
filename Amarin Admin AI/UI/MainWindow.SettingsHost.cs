@@ -285,6 +285,7 @@ namespace Amarin.UI
                 case SettingsModelsPage models:
                     Wire(models);
                     EnablePageScroll(models.ModelsPageScroll);
+                    models.FastReasoningPicker.SetUsesTools(true);
                     models.LiteReasoningPicker.SetUsesTools(true);
                     models.HeavyReasoningPicker.SetUsesTools(true);
                     models.RouterReasoningPicker.SetUsesTools(false);
@@ -647,6 +648,7 @@ namespace Amarin.UI
         {
             foreach (var (picker, reasoning) in new (ModelPickerField, ReasoningPicker)[]
                      {
+                         (p.FastModelPicker, p.FastReasoningPicker),
                          (p.LiteModelPicker, p.LiteReasoningPicker),
                          (p.HeavyModelPicker, p.HeavyReasoningPicker),
                          (p.RouterModelPicker, p.RouterReasoningPicker),

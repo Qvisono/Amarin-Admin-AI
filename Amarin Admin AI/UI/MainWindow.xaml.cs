@@ -1166,6 +1166,11 @@ namespace Amarin.UI
             var settings = _services.Settings;
             var models = BuiltPage<SettingsModelsPage>();
             var security = BuiltPage<SettingsSecurityPage>();
+            if (ReferenceEquals(sender, models?.FastReasoningPicker))
+            {
+                return settings.FastReasoning ??= new ReasoningSettings();
+            }
+
             if (ReferenceEquals(sender, models?.LiteReasoningPicker))
             {
                 return settings.LiteReasoning ??= new ReasoningSettings();
@@ -1611,6 +1616,7 @@ namespace Amarin.UI
             {
                 slots.AddRange(
                 [
+                    (ModelSlot.Fast, models.FastModelPicker, models.FastReasoningPicker),
                     (ModelSlot.Lite, models.LiteModelPicker, models.LiteReasoningPicker),
                     (ModelSlot.Heavy, models.HeavyModelPicker, models.HeavyReasoningPicker),
                     (ModelSlot.Router, models.RouterModelPicker, models.RouterReasoningPicker),
@@ -3327,6 +3333,7 @@ namespace Amarin.UI
             var settings = _services.Settings;
             if (BuiltPage<SettingsModelsPage>() is { } models)
             {
+                BindSlot(models.FastReasoningPicker, settings.FastModelId, settings.FastReasoning);
                 BindSlot(models.LiteReasoningPicker, settings.LiteModelId, settings.LiteReasoning);
                 BindSlot(models.HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
                 BindSlot(models.RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);

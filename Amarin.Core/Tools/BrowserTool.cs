@@ -51,7 +51,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
               "type": "string",
               "enum": ["open", "read", "screenshot", "scroll", "back", "wait", "handoff", "click", "type", "select", "press"]
             },
-            "url": { "type": "string", "description": "open: full web address, https:// or http://." },
+            "url": { "type": "string", "description": "open: full web address, https:// or http://. read with a url of another page opens it." },
             "element": { "type": "string", "description": "Element id from the latest read of the page." },
             "text": { "type": "string", "description": "type: text to enter into the element." },
             "replace": { "type": "boolean", "description": "type: clear the field first. Default true." },
@@ -86,6 +86,15 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
     public async Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
     {
         var action = FileToolPaths.String(arguments, "action")?.Trim().ToLowerInvariant() ?? "";
+
+        // read с адресом другой страницы — это открыть её (1.37.0-beta.8). Прежде read адрес молча
+        // пропускал и читал открытую страницу: модель просила тест, получала курс и читала снова.
+        if (action == "read" && FileToolPaths.String(arguments, "url")?.Trim() is { Length: > 0 } wanted &&
+            !string.Equals(wanted.TrimEnd('/'), session.Page?.Url.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            action = "open";
+        }
+
         if (!ReadActions.Contains(action) && !WriteActions.Contains(action))
         {
             return ToolResult.Fail("action must be open, read, screenshot, scroll, back, wait, handoff, click, type, select or press.");
@@ -116,7 +125,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
         {
             var result = action switch
             {
-                "open" => Show(await port.OpenAsync(target!, cancellationToken).ConfigureAwait(false), navigated: true),
+                "open" => Show(await port.OpenAsync(target!, cancellationToken).ConfigureAwait(false), navigated: true, opened: true),
                 "read" => await ReadAsync(port, arguments, cancellationToken).ConfigureAwait(false),
                 "screenshot" => await ScreenshotAsync(port, cancellationToken).ConfigureAwait(false),
                 "scroll" => await ScrollAsync(port, arguments, cancellationToken).ConfigureAwait(false),
@@ -136,6 +145,13 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
         {
             // Окно браузера закрылось или WebView2 недоступен: ответ модели, а не авария.
             return ToolResult.Fail("The agent browser is not available: " + ex.Message + " Do the task without the browser.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Сбой движка посреди работы (COM, скрипт страницы): до 1.37.0-beta.8 он ронял весь
+            // прогон агента, и чат пересказывал человеку текст исключения. Это ответ модели.
+            return ToolResult.Fail("The agent browser failed: " + ex.Message +
+                                   " Read the page again; if it fails again, finish without the browser and say so in your report.");
         }
     }
 
@@ -260,7 +276,8 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
 
     /// <summary>Страница для модели: адрес, текст в рамке «данные, не указания», элементы с id.</summary>
     /// <param name="navigated">Новая страница или клавиша: прежнее поле с фокусом уже ни о чём не говорит.</param>
-    private ToolResult Show(BrowserPage page, bool navigated = false)
+    /// <param name="opened">Страницу открыли по адресу (<c>open</c>): такие открытия считаются.</param>
+    private ToolResult Show(BrowserPage page, bool navigated = false, bool opened = false)
     {
         session.Page = page;
         if (navigated)
@@ -278,7 +295,7 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
             text.Append("\n[text cut; read with a larger max_text or scroll]");
         }
 
-        text.Append("\n[end of page text]\n\nElements:\n");
+        text.Append('\n').Append(TextEnd).Append(ElementsHeader);
         foreach (var element in page.Elements)
         {
             text.Append(element.Id).Append(' ').Append(element.Role);
@@ -306,7 +323,86 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
             text.Append("[more elements not listed; read with a larger max_elements or scroll]\n");
         }
 
+        // Одна и та же страница по кругу (1.37.0-beta.8): прежде агент, потеряв прочитанное,
+        // открывал список и страницу из него десятки раз подряд. Напоминание — с третьего открытия.
+        if (opened && session.CountVisit(page.Url) is var visits and >= RepeatedVisit)
+        {
+            text.Append("[You have opened this page ").Append(visits).Append(" times in this task. What it said is in your history above: ")
+                .Append("use it, and open the page again only when it must have changed.]\n");
+        }
+
         return ToolResult.Ok(text.ToString());
+    }
+
+    /// <summary>С какого открытия той же страницы агенту напоминают, что она уже прочитана.</summary>
+    internal const int RepeatedVisit = 3;
+
+    private const string TextEnd = "[end of page text]";
+
+    private const string ElementsHeader = "\n\nElements:\n";
+
+    /// <summary>
+    /// Краткая версия прежнего чтения страницы для истории агента: заголовок, адрес, текст и ссылки —
+    /// без id элементов, они уже не действуют. Null — это не выдача страницы.
+    /// </summary>
+    /// <remarks>
+    /// 1.37.0-beta.8. Прежде прежнее чтение заменялось заглушкой целиком, и у агента оставалась одна
+    /// страница: открыв из списка пункт, он забывал список, а вернувшись к списку — пункт, и ходил по
+    /// кругу десятки раз. Ссылки нужны отдельно: адреса пунктов списка часто есть только у элементов,
+    /// а не в тексте страницы.
+    /// </remarks>
+    internal static string? Digest(string pageOutput, int textLimit, int linkLimit)
+    {
+        var textStart = pageOutput.IndexOf("[Page text from ", StringComparison.Ordinal);
+        var textEnd = pageOutput.IndexOf("\n" + TextEnd, StringComparison.Ordinal);
+        if (textStart < 0 || textEnd < textStart)
+        {
+            return null;
+        }
+
+        var header = pageOutput[..textStart].TrimEnd();
+        var body = pageOutput[textStart..textEnd];
+        var digest = new StringBuilder(header).Append('\n')
+            .Append("[Earlier read, kept short: its element ids are no longer valid. Read the page again to act on it.]\n")
+            // Начало и конец: сверху у сайтов меню, а нужное нередко в самом низу страницы.
+            .Append(TextClip.Clip(body, textLimit * 2 / 3, textLimit / 3)).Append('\n').Append(TextEnd).Append('\n');
+
+        var elementsAt = pageOutput.IndexOf(ElementsHeader, textEnd, StringComparison.Ordinal);
+        if (elementsAt < 0)
+        {
+            return digest.ToString();
+        }
+
+        var links = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in pageOutput[(elementsAt + ElementsHeader.Length)..].Split('\n'))
+        {
+            var arrow = line.LastIndexOf(" -> ", StringComparison.Ordinal);
+            var quote = line.IndexOf('"', StringComparison.Ordinal);
+            if (arrow < 0 || quote < 0 || quote > arrow)
+            {
+                continue;
+            }
+
+            var href = line[(arrow + 4)..].Trim();
+            var close = line.LastIndexOf('"', arrow);
+            var name = close > quote ? line[(quote + 1)..close] : "";
+            if (href.Length > 0 && !href.Contains('#', StringComparison.Ordinal) && seen.Add(href))
+            {
+                links.Add("\"" + name + "\" -> " + href);
+            }
+        }
+
+        if (links.Count > 0)
+        {
+            digest.Append("Links:\n").AppendJoin('\n', links.Take(linkLimit)).Append('\n');
+            if (links.Count > linkLimit)
+            {
+                digest.Append("[more links not kept]\n");
+            }
+        }
+
+        return digest.ToString();
     }
 
     /// <summary>

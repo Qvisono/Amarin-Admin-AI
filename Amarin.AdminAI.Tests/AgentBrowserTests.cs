@@ -118,13 +118,69 @@ public sealed class AgentBrowserTests
         string[] markers = ["e.g.", "for example", "for instance", "such as", "например", "пример"];
         using var session = Session(new FakeBrowser());
         var description = new BrowserTool(session).Description;
-        foreach (var text in new[] { BrowserPrompt.AgentRule, BrowserPrompt.ChatRules, description })
+        foreach (var text in new[]
+                 {
+                     BrowserPrompt.AgentRule, BrowserPrompt.AgentOffRule, BrowserPrompt.ChatRules,
+                     BrowserPrompt.ChatOffRules(mouse: true), BrowserPrompt.ChatOffRules(mouse: false), description
+                 })
         {
             foreach (var marker in markers)
             {
                 Assert.DoesNotContain(marker, text, StringComparison.OrdinalIgnoreCase);
             }
         }
+    }
+
+    /// <summary>
+    /// 1.37.0-beta.8: сбой движка посреди работы — ответ модели, а не исключение, ронявшее весь
+    /// прогон агента; неудача окна при первом действии — отказ, и браузер свободен для других.
+    /// </summary>
+    [Fact]
+    public async Task A_browser_failure_is_an_answer_and_does_not_end_the_run()
+    {
+        // Любой тип, кроме двух прежде пойманных (таймаут и «недоступен»): COM-сбой движка ведёт себя так же.
+        using var session = Session(new FakeBrowser { Fault = new ArgumentException("engine crashed") });
+
+        var failed = await new BrowserTool(session).ExecuteAsync(Args(new { action = "read" }));
+
+        Assert.False(failed.Success);
+        Assert.Contains("engine crashed", failed.Output, StringComparison.Ordinal);
+        Assert.Contains("Read the page again", failed.Output, StringComparison.Ordinal);
+
+        var lease = new ComputerLease();
+        using var broken = new BrowserSession(() => throw new InvalidOperationException("no window"), lease, unattended: false);
+        var refused = await new BrowserTool(broken).ExecuteAsync(Args(new { action = "open", url = "https://example.com" }));
+        Assert.False(refused.Success);
+        Assert.Contains("could not be opened", refused.Output, StringComparison.Ordinal);
+
+        using var next = new BrowserSession(() => new FakeBrowser(), lease, unattended: false);
+        Assert.True((await new BrowserTool(next).ExecuteAsync(Args(new { action = "read" }))).Success);
+    }
+
+    /// <summary>Выбор инструмента назван правилом: поиск, чтение, свой браузер, окна программ, показ человеку.</summary>
+    [Fact]
+    public void The_agent_is_told_which_web_tool_does_what()
+    {
+        foreach (var tool in new[] { "search_web", "scrape_url", "browser tool", "computer tool", "Start-Process" })
+        {
+            Assert.Contains(tool, BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("Security page of Settings", BrowserPrompt.AgentOffRule, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 1.37.0-beta.8, чат «Прорешать тесты»: выбор на странице хранится, только когда его отправляет своя
+    /// кнопка страницы, а шаг, дважды не сработавший, не повторяется тем же способом — сверка со
+    /// снимком, другой путь или остальная работа без него.
+    /// </summary>
+    [Fact]
+    public void The_agent_sends_a_form_with_its_button_and_does_not_repeat_a_step_that_did_not_work()
+    {
+        Assert.Contains("kept only when the page's own button sends it", BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        Assert.Contains("do not repeat it", BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        Assert.Contains("screenshot", BrowserPrompt.AgentRule, StringComparison.Ordinal);
+        Assert.Contains("finish the rest of the task", BrowserPrompt.AgentRule, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -279,19 +335,160 @@ public sealed class AgentBrowserTests
 
     // ───────────────────────── окно истории ─────────────────────────
 
+    /// <summary>
+    /// 1.37.0-beta.8: прежняя страница остаётся кратко — заголовок, адрес, текст и ссылки без id. Прежде её
+    /// заменяла заглушка целиком, и агент, открыв пункт списка, забывал список и ходил по кругу.
+    /// </summary>
     [Fact]
-    public void Only_the_latest_page_read_stays_in_the_history()
+    public async Task An_earlier_page_read_stays_short_with_its_text_and_links_but_no_ids()
     {
-        var messages = new List<ChatMessage>
+        var list = await Read("https://school.example/quiz/index");
+        var item = await Read("https://school.example/quiz/view?id=1");
+
+        var trimmed = Pages(ComputerHistory.Trim(Steps("The person pressed Done.\n" + list, item)));
+        var earlier = trimmed[0];
+
+        Assert.StartsWith("The person pressed Done.\n[page] Example\nhttps://school.example/quiz/index", earlier, StringComparison.Ordinal);
+        Assert.Contains("Welcome.", earlier, StringComparison.Ordinal);
+        Assert.Contains("\"Docs\" -> https://example.com/docs", earlier, StringComparison.Ordinal);
+        Assert.Contains("element ids are no longer valid", earlier, StringComparison.Ordinal);
+        Assert.DoesNotContain("b1_1", earlier, StringComparison.Ordinal);
+        Assert.DoesNotContain("Password", earlier, StringComparison.Ordinal);
+        Assert.Equal(item, trimmed[1]);
+    }
+
+    [Fact]
+    public async Task A_page_read_again_later_and_pages_beyond_the_limit_keep_only_their_address()
+    {
+        var reads = new List<string> { await Read("https://school.example/list") };
+        for (var i = 1; i <= ComputerHistory.KeepPageDigests + 2; i++)
         {
-            Page("call-1", "[page] Old\nhttps://a.example\nold text"),
-            Page("call-2", "[page] New\nhttps://b.example\nnew text")
-        };
+            reads.Add(await Read("https://school.example/item" + i));
+        }
 
-        var trimmed = ComputerHistory.Trim(messages);
+        reads.Add(await Read("https://school.example/list"));
+        var texts = Pages(ComputerHistory.Trim(Steps([.. reads])));
 
-        Assert.Equal(ComputerHistory.PageStub, ChatContent.ReadText(trimmed[0].Content));
-        Assert.Contains("new text", ChatContent.ReadText(trimmed[1].Content), StringComparison.Ordinal);
+        // Тот же адрес прочитан позже — прежнее чтение заглушкой, с адресом.
+        Assert.Contains(ComputerHistory.PageRereadStub, texts[0], StringComparison.Ordinal);
+        Assert.Contains("https://school.example/list", texts[0], StringComparison.Ordinal);
+
+        // Кратко — последние KeepPageDigests разных адресов; старше — адрес и заглушка.
+        Assert.Equal(ComputerHistory.KeepPageDigests, texts.Count(text => text.Contains("kept short", StringComparison.Ordinal)));
+        Assert.Contains(ComputerHistory.PageStub, texts[1], StringComparison.Ordinal);
+        Assert.Contains("https://school.example/item1", texts[1], StringComparison.Ordinal);
+        Assert.Contains("Elements:", texts[^1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Ответы на последний ход модели она ещё не видела — они остаются целиком все. Модель открывает по
+    /// нескольку страниц за ход, и сокращённые раньше, чем она их прочла, она открывала снова той же
+    /// пачкой без конца (чат «Тесты по истории», 1.37.0-beta.8).
+    /// </summary>
+    [Fact]
+    public async Task Pages_the_model_has_not_seen_yet_stay_whole()
+    {
+        var earlier = await Read("https://school.example/list");
+        var batch = new List<string>();
+        for (var i = 1; i <= ComputerHistory.KeepPageDigests + 3; i++)
+        {
+            batch.Add(await Read("https://school.example/item" + i));
+        }
+
+        var messages = Steps(earlier);
+        messages.Add(new ChatMessage { Role = "assistant", Content = ChatContent.Text("") });
+        messages.AddRange(batch.Select((text, index) => Page("batch-" + index, text)));
+
+        var texts = Pages(ComputerHistory.Trim(messages));
+
+        Assert.Contains("kept short", texts[0], StringComparison.Ordinal);
+        Assert.Equal(batch, texts.Skip(1));
+    }
+
+    /// <summary>
+    /// Сколько страниц держит история: полсотни чтений дюжины адресов — не больше 30 000 знаков. Прежние
+    /// версии одной страницы не копятся: остаётся последняя, остальные — строкой с адресом.
+    /// </summary>
+    [Fact]
+    public async Task Many_reads_of_a_few_pages_stay_within_a_small_budget()
+    {
+        var reads = new List<string>();
+        for (var i = 0; i < 50; i++)
+        {
+            reads.Add(await Read("https://school.example/page" + (i % 12)));
+        }
+
+        var full = reads.Sum(text => text.Length);
+        var kept = Pages(ComputerHistory.Trim(Steps([.. reads]))).Sum(text => text.Length);
+
+        Assert.True(kept < 30_000, $"история страниц {kept} знаков из {full}");
+    }
+
+    /// <summary>
+    /// read с адресом другой страницы открывает её: прежде адрес молча пропускался, и модель, прося тест,
+    /// получала открытый курс и читала снова и снова. Шлюз проверяет такой адрес, как у open.
+    /// </summary>
+    [Fact]
+    public async Task Reading_another_address_opens_it_and_the_gate_checks_it_like_open()
+    {
+        var port = new FakeBrowser();
+        using var session = Session(port);
+        var tool = new BrowserTool(session);
+        await tool.ExecuteAsync(Args(new { action = "open", url = "https://example.com/course" }));
+
+        var read = await tool.ExecuteAsync(Args(new { action = "read", url = "https://example.com/quiz" }));
+
+        Assert.True(read.Success, read.Output);
+        Assert.Equal("https://example.com/quiz", port.Opened);
+        Assert.Contains("https://example.com/quiz", read.Output, StringComparison.Ordinal);
+        Assert.True(BrowserSafety.TryGetHardBlockReason(Args(new { action = "read", url = "http://192.168.0.1" }), out _));
+        Assert.False(BrowserSafety.TryGetHardBlockReason(Args(new { action = "read" }), out _));
+    }
+
+    /// <summary>
+    /// Пересадка обрывает вызов прежней попытки; новая пишет в ту же запись. Оборванный — «отменено», и
+    /// выдача новой попытки ложится на свой вызов, а не на вызов раньше (в ленте всё съезжало на один).
+    /// </summary>
+    [Fact]
+    public void A_call_cut_off_by_a_model_switch_is_settled_and_results_land_on_their_own_call()
+    {
+        var record = new AgentRunRecord();
+        var queue = new ConfirmationQueue(() => new AppSettings());
+        var first = new AgentUiAdapter(record, queue, () => { }, "agent");
+        first.ToolCall(BrowserTool.ToolName, """{"action":"open","url":"https://example.com/old"}""");
+
+        var second = new AgentUiAdapter(record, queue, () => { }, "agent");
+        second.ToolCall(BrowserTool.ToolName, """{"action":"open","url":"https://example.com/new"}""");
+        second.ToolResult(BrowserTool.ToolName, ToolResult.Ok("new page"));
+
+        var calls = record.ToolRounds.SelectMany(round => round.Calls).ToList();
+        Assert.Equal(ToolCallStatus.Failed, calls[0].Status);
+        Assert.Equal(EngineLines.Cancelled, calls[0].ResultPreview);
+        Assert.Equal(ToolCallStatus.Done, calls[1].Status);
+        Assert.Contains("new page", calls[1].ResultText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Opening_the_same_page_again_and_again_gets_a_reminder()
+    {
+        using var session = Session(new FakeBrowser());
+        var tool = new BrowserTool(session);
+        var open = Args(new { action = "open", url = "https://example.com/list" });
+
+        for (var i = 1; i < BrowserTool.RepeatedVisit; i++)
+        {
+            Assert.DoesNotContain("times in this task", (await tool.ExecuteAsync(open)).Output, StringComparison.Ordinal);
+        }
+
+        Assert.Contains($"opened this page {BrowserTool.RepeatedVisit} times", (await tool.ExecuteAsync(open)).Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("times in this task", (await tool.ExecuteAsync(Args(new { action = "read" }))).Output, StringComparison.Ordinal);
+    }
+
+    /// <summary>Выдача страницы ровно такой, какой её получает модель: адрес — открытый.</summary>
+    private static async Task<string> Read(string url)
+    {
+        using var session = Session(new FakeBrowser());
+        return (await new BrowserTool(session).ExecuteAsync(Args(new { action = "open", url }))).Output;
     }
 
     // ───────────────────────── данные ─────────────────────────
@@ -314,6 +511,19 @@ public sealed class AgentBrowserTests
 
     private static ChatMessage Page(string id, string text) =>
         new() { Role = "tool", Name = BrowserTool.ToolName, ToolCallId = id, Content = ChatContent.Text(text) };
+
+    /// <summary>Ход модели — ответ браузера, и так по каждой странице: как в настоящей истории агента.</summary>
+    private static List<ChatMessage> Steps(params string[] pages) =>
+    [
+        .. pages.SelectMany((text, index) => new[]
+        {
+            new ChatMessage { Role = "assistant", Content = ChatContent.Text("") },
+            Page("call-" + index, text)
+        })
+    ];
+
+    private static List<string> Pages(IEnumerable<ChatMessage> messages) =>
+        [.. messages.Where(message => message.Role == "tool").Select(message => ChatContent.ReadText(message.Content)!)];
 
     private sealed class FakeBrowser : IWebBrowser
     {
@@ -340,11 +550,14 @@ public sealed class AgentBrowserTests
         public Task<BrowserPage> OpenAsync(Uri url, CancellationToken cancellationToken)
         {
             Opened = url.AbsoluteUri;
-            return Task.FromResult(Current);
+            return Task.FromResult(Current with { Url = url.AbsoluteUri });
         }
 
+        /// <summary>Сбой движка при чтении страницы.</summary>
+        public Exception? Fault { get; init; }
+
         public Task<BrowserPage> ReadAsync(int maxText, int maxElements, CancellationToken cancellationToken) =>
-            Task.FromResult(Current);
+            Fault is { } fault ? Task.FromException<BrowserPage>(fault) : Task.FromResult(Current);
 
         public Task<BrowserElement?> FindAsync(string id, CancellationToken cancellationToken) =>
             Task.FromResult(Elements.FirstOrDefault(element => element.Id == id));

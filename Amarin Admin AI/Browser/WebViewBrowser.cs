@@ -270,9 +270,10 @@ internal sealed partial class WebViewBrowser : IWebBrowser
                 .WaitAsync(PageTimeout).ConfigureAwait(true);
             await window.View.EnsureCoreWebView2Async(environment).WaitAsync(PageTimeout).ConfigureAwait(true);
         }
-        catch (Exception ex) when (ex is WebView2RuntimeNotFoundException or COMException or IOException or
-                                       UnauthorizedAccessException or TimeoutException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Любая неудача запуска — не только перечисленные типы (1.37.0-beta.8): прежде, скажем,
+            // ненайденный загрузчик WebView2 оставлял на экране пустое окно и ронял прогон агента.
             _closingOurselves = true;
             window.Close();
             throw new InvalidOperationException(ex is WebView2RuntimeNotFoundException
@@ -566,7 +567,53 @@ internal sealed partial class WebViewBrowser : IWebBrowser
     [GeneratedRegex(@"^b\d{1,6}_\d{1,5}$")]
     private static partial Regex SafeId();
 
+    /// <summary>
+    /// Общее для чтения и поиска элемента: что человек видит на странице и как элемент называется.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Имя поля и переключателя — его подпись (<c>aria-labelledby</c>, <c>label</c>), а атрибут
+    /// <c>name</c> — последний запас: он служебный и у всей группы переключателей один. До
+    /// 1.37.0-beta.8 варианты ответа теста приходили модели пятью одинаковыми «q…:20_answer», и она
+    /// выбирала их по порядку.
+    /// </para>
+    /// <para>
+    /// Спрятанное от человека в список не идёт: <c>aria-hidden</c>, <c>inert</c> и обрезанное до точки
+    /// (<c>clipped</c>, приём «только для экранного диктора»). Moodle держит в каждом вопросе такой
+    /// переключатель «Очистить мой выбор», отмеченный, пока ответа нет: агент нажал его вместо варианта
+    /// «d», прочитал «checked» и до конца попытки был уверен, что ответил, а на экране отмечено не было
+    /// ничего. Флажок, нарисованный своей подписью (сам спрятан, видна подпись), остаётся в списке и
+    /// нажимается подписью (<c>stand</c>): точка самого флажка обрезана, и нажатие ушло бы мимо.
+    /// </para>
+    /// </remarks>
     private const string Describe = """
+        const visible = e => {
+          const r = e.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) return false;
+          const s = getComputedStyle(e);
+          return s.visibility !== 'hidden' && s.display !== 'none';
+        };
+        const clipped = e => {
+          for (let a = e; a && a !== document.body; a = a.parentElement) {
+            const r = a.getBoundingClientRect();
+            if (r.width <= 1 && r.height <= 1) {
+              const s = getComputedStyle(a);
+              if (s.overflow !== 'visible' || s.clip !== 'auto' || s.clipPath !== 'none') return true;
+            }
+          }
+          return false;
+        };
+        const muted = e => e.closest('[aria-hidden="true"],[inert]') !== null;
+        const shown = e => !muted(e) && visible(e) && !clipped(e);
+        const stand = e => {
+          const toggle = e.tagName === 'INPUT' && ['checkbox', 'radio'].includes((e.type || '').toLowerCase());
+          return toggle && !muted(e) && e.labels ? ([...e.labels].find(shown) || null) : null;
+        };
+        const labelled = e => {
+          const ids = (e.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean);
+          const text = ids.map(id => document.getElementById(id)).filter(Boolean).map(l => l.innerText).join(' ').trim();
+          return text || (e.labels ? [...e.labels].map(l => l.innerText).join(' ').trim() : '');
+        };
         const describe = (e, id) => {
           const tag = e.tagName.toLowerCase();
           const type = (e.getAttribute('type') || '').toLowerCase();
@@ -574,9 +621,10 @@ internal sealed partial class WebViewBrowser : IWebBrowser
             : tag === 'textarea' ? 'textbox' : tag === 'input'
               ? (['checkbox', 'radio', 'submit', 'button', 'reset', 'file'].includes(type) ? type : 'textbox')
               : tag);
-          const name = (e.getAttribute('aria-label') || e.innerText || e.getAttribute('placeholder') ||
-            e.getAttribute('title') || e.getAttribute('alt') || e.getAttribute('name') ||
-            (type === 'submit' || type === 'button' ? e.value : '') || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+          const name = (e.getAttribute('aria-label') || labelled(e) || e.innerText || e.getAttribute('placeholder') ||
+            e.getAttribute('title') || e.getAttribute('alt') ||
+            (type === 'submit' || type === 'button' ? e.value : '') || e.getAttribute('name') || '')
+            .trim().replace(/\s+/g, ' ').slice(0, 120);
           const password = type === 'password' || (e.getAttribute('autocomplete') || '').includes('password');
           let value = null;
           if (!password && (tag === 'input' || tag === 'textarea')) {
@@ -591,19 +639,13 @@ internal sealed partial class WebViewBrowser : IWebBrowser
         (() => {
         """ + Describe + """
           document.querySelectorAll('[data-amarin-id]').forEach(e => e.removeAttribute('data-amarin-id'));
-          const visible = e => {
-            const r = e.getBoundingClientRect();
-            if (r.width === 0 && r.height === 0) return false;
-            const s = getComputedStyle(e);
-            return s.visibility !== 'hidden' && s.display !== 'none';
-          };
           const selector = 'a[href],button,input,select,textarea,summary,[role=button],[role=link],[role=checkbox],' +
             '[role=radio],[role=tab],[role=menuitem],[role=option],[role=combobox],[role=textbox],[role=switch],[contenteditable=""],[contenteditable=true]';
           const elements = [];
           let more = false;
           let n = 0;
           for (const e of document.querySelectorAll(selector)) {
-            if (e.disabled || (e.type || '').toLowerCase() === 'hidden' || !visible(e)) continue;
+            if (e.disabled || (e.type || '').toLowerCase() === 'hidden' || (!shown(e) && !stand(e))) continue;
             if (elements.length >= %MAXEL%) { more = true; break; }
             const id = 'b%GEN%_' + (++n);
             e.setAttribute('data-amarin-id', id);
@@ -622,8 +664,9 @@ internal sealed partial class WebViewBrowser : IWebBrowser
         """ + Describe + """
           const e = document.querySelector('[data-amarin-id="%ID%"]');
           if (!e) return null;
-          e.scrollIntoView({ block: 'center', inline: 'center' });
-          const r = e.getBoundingClientRect();
+          const target = shown(e) ? e : (stand(e) || e);
+          target.scrollIntoView({ block: 'center', inline: 'center' });
+          const r = target.getBoundingClientRect();
           return JSON.stringify(Object.assign(describe(e, '%ID%'), { x: r.left + r.width / 2, y: r.top + r.height / 2 }));
         })()
         """;

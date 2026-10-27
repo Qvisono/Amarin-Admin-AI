@@ -22,7 +22,7 @@ public sealed class AutoRouterTests
     public void Router_prompt_does_not_call_a_pile_of_small_tasks_heavy()
     {
         Assert.DoesNotContain("many steps", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("hardest single step", ChatEngine.RouterSystemPrompt, StringComparison.Ordinal);
+        Assert.Contains("A list of easy questions is still easy", ChatEngine.RouterSystemPrompt, StringComparison.Ordinal);
         Assert.Contains("five easy sums", ChatEngine.RouterSystemPrompt, StringComparison.Ordinal);
     }
 
@@ -35,7 +35,7 @@ public sealed class AutoRouterTests
         Assert.DoesNotContain("classify the work itself", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);
         var flat = string.Join(' ', ChatEngine.RouterSystemPrompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         Assert.Contains("work that goes to an agent does not make the chat reply heavy", flat, StringComparison.Ordinal);
-        Assert.Contains("thinking that reply has to do itself", flat, StringComparison.Ordinal);
+        Assert.Contains("Judge what the reply itself has to know, reason out and get exactly right", flat, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class AutoRouterTests
         var flat = string.Join(' ', ChatEngine.RouterSystemPrompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         Assert.Contains("Safety is the one exception to all of the above", flat, StringComparison.Ordinal);
         Assert.Contains("reply heavy, even when the work itself goes to an agent", flat, StringComparison.Ordinal);
-        Assert.Contains("unless the message may be about the user's safety", flat, StringComparison.Ordinal);
+        Assert.Contains("reply heavy if the message may be about the user's safety", flat, StringComparison.Ordinal);
 
         // lite больше не обещает любую работу на ПК — только ту, что не про безопасность.
         Assert.Contains("any job on this computer that is not about safety", flat, StringComparison.Ordinal);
@@ -136,6 +136,7 @@ public sealed class AutoRouterTests
     }
 
     [Theory]
+    [InlineData("fast", "openrouter:vendor/fast")]
     [InlineData("lite", "openrouter:vendor/lite")]
     [InlineData("heavy", "openrouter:vendor/heavy")]
     [InlineData("unexpected", "openrouter:vendor/lite")]
@@ -152,7 +153,8 @@ public sealed class AutoRouterTests
                 Assert.StartsWith(RoutingDecisions.ChatInstructions, question.GetProperty("instructions").GetString());
                 Assert.DoesNotContain("Reply with exactly one word", question.GetProperty("instructions").GetString());
                 Assert.Equal(RoutingDecisions.ChatLite, question.GetProperty("criteria").GetProperty("lite").GetString());
-                Assert.Equal(["lite", "heavy"], json.RootElement.GetProperty("questions").GetProperty("tier")
+                Assert.Equal(RoutingDecisions.ChatFast, question.GetProperty("criteria").GetProperty("fast").GetString());
+                Assert.Equal(["fast", "lite", "heavy"], json.RootElement.GetProperty("questions").GetProperty("tier")
                     .GetProperty("criteria").EnumerateObject().Select(p => p.Name));
                 return Json("{\"answers\":{\"tier\":{\"type\":\"choice\",\"choice\":\"" + choice +
                     "\"}},\"usage\":{\"cost\":0.003,\"input_tokens\":40,\"output_tokens\":2}}");
@@ -169,7 +171,7 @@ public sealed class AutoRouterTests
         });
         var (engine, session) = Engine(handler, new AppSettings
         {
-            ChatModelId = "auto", LiteModelId = "openrouter:vendor/lite",
+            ChatModelId = "auto", FastModelId = "openrouter:vendor/fast", LiteModelId = "openrouter:vendor/lite",
             HeavyModelId = "openrouter:vendor/heavy", RouterModelId = routerId
         }, new VeniceModelInfo { Id = routerId, Type = "decisions" });
         await engine.RunTurnAsync(session, "user request", new SilentObserver(), CancellationToken.None);

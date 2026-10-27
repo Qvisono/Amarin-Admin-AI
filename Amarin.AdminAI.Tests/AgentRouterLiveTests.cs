@@ -79,17 +79,85 @@ public sealed class AgentRouterLiveTests
         Assert.True(failures == 0, $"{failures} window tasks went to a model that can't see; see evaluation report.");
     }
 
+    /// <summary>
+    /// Задание агента, слова человека и что ждём: просьба поторопиться в последней реплике — fast
+    /// (1.37.0-beta.8, и при угрозе тоже — так решил человек); без неё — не fast там, где нужен
+    /// разбор; <c>?</c> — только смотрим.
+    /// </summary>
+    private static readonly (string Task, string Words, string Expected)[] HurryCases =
+    [
+        ("Переустанови драйвер видеокарты NVIDIA до последней версии и проверь, что он работает",
+            "Переустанови драйвер на видеокарту, только быстро", "fast"),
+        ("Разберись, почему на компьютере пропал звук, и почини",
+            "Почини звук, побыстрее пожалуйста, у меня созвон через пять минут", "fast"),
+        ("Проверь, не майнер ли процесс, который грузит процессор на 100 %, и убери его, если это вредонос",
+            "Быстро проверь, что это за процесс грузит проц, похоже на майнер", "fast"),
+        ("Fix the slow Wi-Fi: find the cause and repair it", "Fix my wifi asap, I need it quick", "fast"),
+        ("Разберись, почему на компьютере пропал звук, и почини", "Почини звук", "?"),
+        ("Проверь, не майнер ли процесс, который грузит процессор на 100 %, и убери его, если это вредонос",
+            "Проверь, что это за процесс грузит проц, похоже на майнер", "!fast"),
+        ("Проверь диск C на ошибки файловой системы и битые сектора",
+            "User (earlier): Очисти корзину, только быстро\nUser (latest): А теперь тщательно проверь диск C на ошибки", "!fast")
+    ];
+
+    [Fact]
+    public async Task Measure_hurry_requests_in_the_users_own_words()
+    {
+        var output = Environment.GetEnvironmentVariable("AMARIN_AGENT_ROUTER_LIVE");
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return;
+        }
+
+        var key = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+        Assert.False(string.IsNullOrWhiteSpace(key), "OPENROUTER_API_KEY is required for a live evaluation.");
+        var model = Environment.GetEnvironmentVariable("AMARIN_ROUTER_MODEL") ?? AppSettings.FactoryDecisionModelId;
+        var models = ModelBriefing.ForAgentRouter(Fast, Lite, Heavy, null);
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        var results = new JsonArray();
+        var failures = 0;
+        foreach (var (task, words, expected) in HurryCases)
+        {
+            var answer = await AskAsync(http, model, task, models, null, words);
+            var wrong = expected switch
+            {
+                "fast" => answer.Tier != "fast",
+                "!fast" => answer.Tier is "fast" or null,
+                _ => false
+            };
+            failures += wrong ? 1 : 0;
+            results.Add(new JsonObject
+            {
+                ["task"] = task, ["words"] = words, ["expected"] = expected, ["tier"] = answer.Tier,
+                ["status"] = answer.Status, ["response"] = answer.Body
+            });
+            await File.WriteAllTextAsync(Path.ChangeExtension(output, ".hurry.json"), results.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            Assert.True(answer.Status == 200, $"Provider error {answer.Status}; see evaluation report.");
+        }
+
+        Assert.True(failures == 0, $"{failures} hurry cases went to the wrong tier; see evaluation report.");
+    }
+
     /// <summary>Как у программы: уровень, чья модель не видит экран, получает запрет в критерий.</summary>
     private static readonly HashSet<string> Blind = ["fast"];
 
     private static async Task<(string? Tier, int Status, string Body)> AskAsync(
-        HttpClient http, string model, string task, string models, IReadOnlySet<string>? blind)
+        HttpClient http, string model, string task, string models, IReadOnlySet<string>? blind, string? words = null)
     {
+        // Как у программы: вопрос о спешке идёт рядом с уровнем, только когда есть слова человека.
+        var questions = new JsonObject { ["tier"] = RoutingDecisions.AgentQuestion(models, blind) };
+        if (!string.IsNullOrWhiteSpace(words))
+        {
+            questions["shortcut"] = RoutingDecisions.HurryQuestion();
+        }
+
         var payload = new JsonObject
         {
             ["model"] = ModelRef.Bare(model),
-            ["state"] = AgentTierRouter.BuildUserMessage(task, null),
-            ["questions"] = new JsonObject { ["tier"] = RoutingDecisions.AgentQuestion(models, blind) }
+            ["state"] = AgentTierRouter.BuildUserMessage(task, null, words),
+            ["questions"] = questions
         };
         using var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await http.PostAsync("https://openrouter.ai/api/alpha/decisions", content);
@@ -99,8 +167,10 @@ public sealed class AgentRouterLiveTests
         {
             try
             {
-                var answer = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterDecisionResponse)?.Answers?.GetValueOrDefault("tier");
-                tier = answer?.Type == "choice" ? answer.Choice : null;
+                var answers = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterDecisionResponse)?.Answers;
+                var answer = answers?.GetValueOrDefault("tier");
+                tier = answers?.GetValueOrDefault("shortcut")?.BooleanValue == true ? "fast"
+                    : answer?.Type == "choice" ? answer.Choice : null;
             }
             catch (JsonException)
             {

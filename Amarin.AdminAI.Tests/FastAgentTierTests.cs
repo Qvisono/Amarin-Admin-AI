@@ -55,11 +55,12 @@ public sealed class FastAgentTierTests
     }
 
     [Fact]
-    public void The_shipped_default_is_haiku_without_thinking()
+    public void The_shipped_default_is_minimax_flash_nitro_on_medium()
     {
-        Assert.Equal("claude-haiku-5-5", AppSettings.CreateDefault().AgentFastModelId);
-        Assert.True(AppSettings.CreateDefault().AgentFastReasoning.DisableThinking);
-        Assert.Null(AppSettings.CreateDefault().AgentFastReasoning.ReasoningEffort);
+        // 1.37.0-beta.8: быстрый агент — та же быстрая модель, что у чата, на среднем уровне.
+        Assert.Equal("openrouter:minimax/minimax-m3.1-flash:nitro", AppSettings.CreateDefault().AgentFastModelId);
+        Assert.False(AppSettings.CreateDefault().AgentFastReasoning.DisableThinking);
+        Assert.Equal("medium", AppSettings.CreateDefault().AgentFastReasoning.ReasoningEffort);
     }
 
     [Fact]

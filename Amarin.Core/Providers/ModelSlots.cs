@@ -26,7 +26,12 @@ public enum ModelSlot
     /// <summary>
     /// Обход (1.36.0): последняя ступень после отказов лёгкой и тяжёлой модели — в чате и у агента.
     /// </summary>
-    Bypass
+    Bypass,
+
+    /// <summary>
+    /// Быстрая модель чата (1.37.0): ступень «Авто» для ответа, которому не нужно думать.
+    /// </summary>
+    Fast
 }
 
 /// <summary>
@@ -52,7 +57,8 @@ public static class ModelSlots
         (ModelSlot.SynGuard, s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v),
         (ModelSlot.Summary, s => s.SummaryModelId, (s, v) => s.SummaryModelId = v),
         (ModelSlot.Fox, s => s.FoxModelId, (s, v) => s.FoxModelId = v),
-        (ModelSlot.Bypass, s => s.BypassModelId, (s, v) => s.BypassModelId = v)
+        (ModelSlot.Bypass, s => s.BypassModelId, (s, v) => s.BypassModelId = v),
+        (ModelSlot.Fast, s => s.FastModelId, (s, v) => s.FastModelId = v)
     ];
 
     /// <summary>

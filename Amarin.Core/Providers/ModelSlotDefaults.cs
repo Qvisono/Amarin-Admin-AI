@@ -21,8 +21,19 @@ public static class ModelSlotDefaults
     private static readonly ModelSlot[] CheapSlots =
     [
         ModelSlot.Lite, ModelSlot.Router, ModelSlot.Title, ModelSlot.AgentFast,
-        ModelSlot.AgentLite, ModelSlot.SynGuard, ModelSlot.Summary, ModelSlot.Fox
+        ModelSlot.AgentLite, ModelSlot.SynGuard, ModelSlot.Summary, ModelSlot.Fox, ModelSlot.Fast
     ];
+
+    /// <summary>
+    /// Заводская модель слота у провайдера, у которого нет самой заводской и семейство её не находит
+    /// (1.37.0): у Venice нет nitro-близнеца MiniMax, а обход там — своя модель, а не тот же Grok.
+    /// </summary>
+    private static readonly Dictionary<(ModelSlot Slot, LlmProvider Provider), string> ShippedElsewhere = new()
+    {
+        [(ModelSlot.Fast, LlmProvider.Venice)] = "minimax-m3-1-flash",
+        [(ModelSlot.AgentFast, LlmProvider.Venice)] = "minimax-m3-1-flash",
+        [(ModelSlot.Bypass, LlmProvider.Venice)] = "abliteration-abliterated-model-large-flash"
+    };
 
     /// <summary>Приметы дешёвой модели в идентификаторе — на случай, когда список не подошёл.</summary>
     private static readonly string[] CheapNeedles =
@@ -57,8 +68,9 @@ public static class ModelSlotDefaults
     /// указана в appsettings.json».
     /// </summary>
     /// <remarks>
-    /// Сначала — заводская модель слота того же семейства у этого провайдера (<see cref="ModelFamily"/>):
-    /// Claude Haiku 5.5 у OpenRouter, Anthropic или перепродавца — та же модель, что у Venice.
+    /// Сначала — сама заводская модель, если она этого провайдера; затем заводская модель слота у
+    /// этого провайдера (<see cref="ShippedElsewhere"/>); затем то же семейство (<see cref="ModelFamily"/>):
+    /// Claude Haiku 5.5 у Venice, Anthropic или перепродавца — та же модель, что у OpenRouter.
     /// Нет её — запасной список OpenRouter, затем приметы.
     /// </remarks>
     /// <param name="catalog">
@@ -71,13 +83,18 @@ public static class ModelSlotDefaults
     {
         catalog = catalog is null ? null : VeniceModelCatalog.ForSlot(catalog, slot);
         var shipped = Shipped(slot);
-        if (provider == LlmProvider.Venice)
+        if (shipped.Length > 0 && ModelRef.Of(shipped) == provider && VeniceModelCatalog.IsSelectable(catalog, shipped))
         {
-            // Умолчания Venice — те же, что и были: они лежат в самих настройках.
-            return VeniceModelCatalog.IsSelectable(catalog, shipped) ? shipped : Pick(slot, catalog);
+            return shipped;
         }
 
-        if (ModelFamily.Find(ModelFamily.KeyOf(shipped), provider, catalog) is { } same)
+        if (ShippedElsewhere.GetValueOrDefault((slot, provider)) is { } own && VeniceModelCatalog.IsSelectable(catalog, own))
+        {
+            return own;
+        }
+
+        if (ModelFamily.Find(ModelFamily.KeyOf(shipped), provider, catalog) is { } same &&
+            VeniceModelCatalog.IsSelectable(catalog, same))
         {
             return same;
         }
@@ -119,6 +136,10 @@ public static class ModelSlotDefaults
     /// </remarks>
     public static string LastResort(LlmProvider provider, ModelSlot slot, string veniceId) =>
         provider == LlmProvider.Venice ? veniceId : Resolve(provider, slot, catalog: null);
+
+    /// <summary>Заводская ли это модель слота — её переносят к другому провайдеру по <see cref="Resolve"/>.</summary>
+    public static bool IsShipped(ModelSlot slot, string? modelId) =>
+        !string.IsNullOrWhiteSpace(modelId) && Shipped(slot).Equals(modelId.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Значение, с которым программа приезжает к человеку впервые.</summary>
     /// <remarks>

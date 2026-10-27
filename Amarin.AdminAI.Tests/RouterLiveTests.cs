@@ -26,9 +26,33 @@ namespace Amarin.AdminAI.Tests;
 /// </remarks>
 public sealed class RouterLiveTests
 {
-    /// <summary>Фраза и уровень, которого от маршрутизатора ждём; <c>?</c> — пограничная, только смотрим.</summary>
+    /// <summary>
+    /// Фраза и уровень, которого от маршрутизатора ждём; <c>?</c> — пограничная, только смотрим;
+    /// <c>!fast</c> — что угодно, кроме быстрой (и так же <c>!heavy</c>).
+    /// </summary>
     private static readonly (string Text, string Expected)[] Phrases =
     [
+        // Пустяки — быстрая модель (1.37.0-beta.8).
+        ("Привет!", "fast"),
+        ("Какая сегодня дата?", "fast"),
+        ("Открой Paint", "fast"),
+        ("Сколько будет 15% от 200?", "fast"),
+        ("Спасибо, всё заработало", "fast"),
+        ("What time is it now?", "fast"),
+
+        // Учёба и задачи, где нужно подумать, — не быстрая.
+        ("Объясни, как решать квадратные уравнения", "!fast"),
+        ("Реши задачу: поезд вышел из А в 9:00 со скоростью 60 км/ч, второй из Б в 10:00 со скоростью 80 км/ч навстречу, между городами 340 км. Когда они встретятся?", "!fast"),
+        ("Помоги разобраться, чем отличается митоз от мейоза, у меня завтра контрольная", "!fast"),
+        ("Напиши письмо начальнику с просьбой перенести отпуск на июль", "!fast"),
+
+        // Наука, исследование, точность — тяжёлая.
+        ("Почему небо голубое? Объясни через рэлеевское рассеяние с формулой зависимости от длины волны", "heavy"),
+        ("Сравни эффективность и безопасность мРНК- и векторных вакцин по данным клинических исследований", "heavy"),
+        ("Рассчитай энергию связи ядра гелия-4 по дефекту масс и объясни каждый шаг", "heavy"),
+        ("Проанализируй, как повышение ключевой ставки влияет на инфляцию и курс рубля в горизонте года", "heavy"),
+        ("Explain how CRISPR-Cas9 off-target effects are measured and what limits the accuracy of these methods", "heavy"),
+
         // Безопасность человека и компьютера — тяжёлая модель чата.
         ("Кажется, у меня вирус: компьютер сам открывает сайты и всё тормозит. Что делать?", "heavy"),
         ("Мне пришло письмо от «банка», я перешёл по ссылке и ввёл пароль от карты", "heavy"),
@@ -46,18 +70,18 @@ public sealed class RouterLiveTests
         ("My password showed up in a data breach list. What should I do now?", "heavy"),
         ("Is this email from PayPal a scam? It asks me to confirm my card details.", "heavy"),
 
-        // Обычная работа на ПК и разговор — лёгкая.
-        ("Поставь последний драйвер на видеокарту NVIDIA", "lite"),
-        ("Почему медленно работает Wi-Fi? Проверь и почини", "lite"),
-        ("Сколько будет 17 * 23 + 5?", "lite"),
-        ("Переведи на английский: доброе утро, коллеги", "lite"),
-        ("Очисти временные файлы и корзину", "lite"),
-        ("Сколько свободного места на диске C?", "lite"),
-        ("Расскажи анекдот про программистов", "lite"),
-        ("Установи 7-Zip и VLC", "lite"),
+        // Работа на ПК уходит агенту и ответ чата тяжёлым не делает; разговор — лёгкий или быстрый.
+        ("Поставь последний драйвер на видеокарту NVIDIA", "!heavy"),
+        ("Почему медленно работает Wi-Fi? Проверь и почини", "!heavy"),
+        ("Сколько будет 17 * 23 + 5?", "fast"),
+        ("Переведи на английский: доброе утро, коллеги", "?"),
+        ("Очисти временные файлы и корзину", "?"),
+        ("Сколько свободного места на диске C?", "fast"),
+        ("Расскажи анекдот про программистов", "?"),
+        ("Установи 7-Zip и VLC", "?"),
         ("Что такое DNS простыми словами?", "lite"),
-        ("Install the latest Chrome", "lite"),
-        ("How much free space is left on my drives?", "lite"),
+        ("Install the latest Chrome", "?"),
+        ("How much free space is left on my drives?", "fast"),
 
         // Тяжёлые по рассуждению — как и раньше.
         ("Докажи, что корень из двух иррационален", "heavy"),
@@ -92,9 +116,11 @@ public sealed class RouterLiveTests
         var settings = new AppSettings
         {
             ChatModelId = "auto",
+            FastModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_FAST")
+                          ?? (provider == LlmProvider.OpenRouter ? AppSettings.ShippedFastModelId : "minimax-m3-1-flash"),
             LiteModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_LITE") ?? "",
             HeavyModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_HEAVY")
-                           ?? (provider == LlmProvider.OpenRouter ? "openrouter:anthropic/claude-sonnet-4.5" : "claude-sonnet-5"),
+                           ?? (provider == LlmProvider.OpenRouter ? AppSettings.ShippedHeavyModelId : "claude-sonnet-5"),
             RouterModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_MODEL") ?? ""
         };
         var options = new AgentOptions
@@ -105,12 +131,25 @@ public sealed class RouterLiveTests
             MaxToolRounds = 1
         };
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(1) };
-        var engine = new ChatEngine(new VeniceClient(http, options), options, () => settings, new ToolRegistry([]));
+
+        // Тип модели программа берёт из каталога; здесь его нет, и без подсказки модель Decisions
+        // ушла бы обычным запросом чата — с отказом и запасным lite на каждой фразе. Текстовый
+        // маршрутизатор — AMARIN_ROUTER_DECISIONS=0.
+        var decisions = Environment.GetEnvironmentVariable("AMARIN_ROUTER_DECISIONS") != "0";
+        var client = new VeniceClient(http, options)
+        {
+            ResolveModelInfo = id => new VeniceModelInfo
+            {
+                Id = id,
+                Type = decisions && id == settings.RouterModelId ? "decisions" : "text"
+            }
+        };
+        var engine = new ChatEngine(client, options, () => settings, new ToolRegistry([]));
         var route = typeof(ChatEngine).GetMethod("RouteAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var heavyId = engine.AutoCandidateModelIds()[1];
+        var routerId = string.IsNullOrWhiteSpace(settings.RouterModelId) ? "lite model" : settings.RouterModelId;
 
         var table = new StringBuilder();
-        table.AppendLine(CultureInfo.InvariantCulture, $"## router live — {DateTime.Now:yyyy-MM-dd HH:mm}, heavy = {heavyId}");
+        table.AppendLine(CultureInfo.InvariantCulture, $"## router live — {DateTime.Now:yyyy-MM-dd HH:mm}, router = {routerId}");
         table.AppendLine("| # | ждали | вышло | фраза |").AppendLine("|---|---|---|---|");
         var counted = 0;
         var matched = 0;
@@ -119,15 +158,21 @@ public sealed class RouterLiveTests
         {
             var (text, expected) = Phrases[i];
             var decision = await (Task<ChatEngine.RouterDecision>)route.Invoke(engine, [text, null, CancellationToken.None])!;
-            var got = string.Equals(decision.ModelId, heavyId, StringComparison.Ordinal) ? "heavy" : "lite";
+            var got = decision.Slot switch
+            {
+                ModelSlot.Fast => "fast",
+                ModelSlot.Heavy => "heavy",
+                _ => "lite"
+            };
             priced += decision.Cost is { HasData: true } ? 1 : 0;
+            var ok = expected.StartsWith('!') ? got != expected[1..] : got == expected;
             if (expected != "?")
             {
                 counted++;
-                matched += got == expected ? 1 : 0;
+                matched += ok ? 1 : 0;
             }
 
-            var mark = expected == "?" ? "" : got == expected ? "" : " ✗";
+            var mark = expected == "?" || ok ? "" : " ✗";
             table.AppendLine(CultureInfo.InvariantCulture, $"| {i + 1} | {expected} | {got}{mark} | {text.ReplaceLineEndings(" ")} |");
         }
 
