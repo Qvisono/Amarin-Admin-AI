@@ -38,6 +38,18 @@ public sealed class PermissionsToolTests : IDisposable
 
     private static readonly SecurityIdentifier Users = new(WellKnownSidType.BuiltinUsersSid, null);
 
+    /// <summary>
+    /// Прогон от администратора с полным токеном (раннер GitHub). Инструмент включает такому
+    /// токену SeBackupPrivilege и SeRestorePrivilege, и запрет на чтение прав его не держит, а
+    /// новый файл получает владельцем группу администраторов, — проверки, рассчитанные на
+    /// обычную учётку, там видят другую систему.
+    /// </summary>
+    private static bool Elevated()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
     [Fact]
     public void System_folders_and_roots_are_protected_but_their_subfolders_are_not()
     {
@@ -163,6 +175,11 @@ public sealed class PermissionsToolTests : IDisposable
     [Fact]
     public async Task A_grant_goes_into_the_snapshot_and_the_rollback_brings_the_permissions_back()
     {
+        if (Elevated())
+        {
+            return;
+        }
+
         var folder = Path.Combine(_temp, "data");
         Assert.True(PermissionTargets.TryParse(folder, out var target, out _));
         var before = AclIo.Sddl(target);
@@ -226,6 +243,12 @@ public sealed class PermissionsToolTests : IDisposable
     {
         // Снимок не читает такие права, а владельца пишут и без чтения: раньше владение менялось
         // без снимка, и ответ уверял, что прежнее сохранено.
+        if (Elevated())
+        {
+            // Право резервного копирования читает такие права, и снимок честно делается.
+            return;
+        }
+
         var file = Path.Combine(_temp, "data", "inner", "file.txt");
         var info = new FileInfo(file);
         var locked = info.GetAccessControl(AccessControlSections.Access);
