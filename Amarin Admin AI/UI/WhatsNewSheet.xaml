@@ -6,43 +6,13 @@
              PreviewKeyDown="Sheet_PreviewKeyDown">
     <UserControl.Resources>
         <!--
-            Вид — концепта «Занавес» (3d-curtain.html) один в один: стеклянная карточка над сценой,
-            его шрифты, цвета текста и состояния. Это рисунок одного окна, а не элементы темы: тема
-            их не меняет, как не меняет она и саму сцену.
+            Вид — концепта «Капля» (1-drop.html, 1-drop-dark.html) один в один (1.37.1). Цвета — в двух
+            палитрах, WhatsNew.Light.xaml и WhatsNew.Dark.xaml: лист берёт ту, что у темы Windows, когда
+            показывается, поэтому всё здесь читает их через DynamicResource.
         -->
-        <SolidColorBrush x:Key="Curtain.Fill" Color="#0B1638"/>
-        <SolidColorBrush x:Key="Curtain.Line" Color="#F2F5FC"/>
-        <SolidColorBrush x:Key="Curtain.Star" Color="#FF3D4F"/>
-        <SolidColorBrush x:Key="Curtain.Shade" Color="#010410"/>
-
-        <SolidColorBrush x:Key="WhatsNew.Glass" Color="#8F0A132A"/>
-        <SolidColorBrush x:Key="WhatsNew.GlassLine" Color="#17FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.GlassTop" Color="#0DFFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Rule" Color="#12FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Text1" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Text2" Color="#C9D2E6"/>
-        <SolidColorBrush x:Key="WhatsNew.Text3" Color="#8F9BB8"/>
-        <SolidColorBrush x:Key="WhatsNew.Text4" Color="#67739A"/>
-        <SolidColorBrush x:Key="WhatsNew.Chip" Color="#13FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Hover" Color="#0DFFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.On" Color="#12FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Pill" Color="#0FFFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.PillOn" Color="#1FFFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Marker" Color="#56679A"/>
-        <SolidColorBrush x:Key="WhatsNew.Code" Color="#E6D7A6"/>
-        <SolidColorBrush x:Key="WhatsNew.CodeBack" Color="#0FFFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Thumb" Color="#29FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.Ok" Color="#EEF2FA"/>
-        <SolidColorBrush x:Key="WhatsNew.OkHover" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="WhatsNew.OkPressed" Color="#D9E0EE"/>
-        <SolidColorBrush x:Key="WhatsNew.OkText" Color="#0A1430"/>
-        <SolidColorBrush x:Key="WhatsNew.FlagEdge" Color="#1AFFFFFF"/>
         <FontFamily x:Key="WhatsNew.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
         <FontFamily x:Key="WhatsNew.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
         <FontFamily x:Key="WhatsNew.Mono">Consolas</FontFamily>
-
-        <!-- Четырёхконечная звезда концепта: у выбранного раздела в колонке и у заголовков разделов. -->
-        <Geometry x:Key="WhatsNew.StarShape">M0,-1 L0.2,-0.2 L1,0 L0.2,0.2 L0,1 L-0.2,0.2 L-1,0 L-0.2,-0.2Z</Geometry>
 
         <!-- Флаги рисуются вручную; цвета у них свои, государственные. Рамка рисунка задана
              обрезкой: штрихи креста иначе раздвинули бы границы картинки за флаг. -->
@@ -85,6 +55,15 @@
             </DrawingImage.Drawing>
         </DrawingImage>
 
+        <!-- Знак раздела (.rg концепта): маленькое красное кольцо — эхо больших колец сцены. -->
+        <Style x:Key="WhatsNewRing" TargetType="Ellipse">
+            <Setter Property="Width" Value="7"/>
+            <Setter Property="Height" Value="7"/>
+            <Setter Property="StrokeThickness" Value="1.4"/>
+            <Setter Property="Stroke" Value="{DynamicResource WhatsNew.Red}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <!-- Тонкая полоса прокрутки концепта: 4 точки, бледный бегунок, без стрелок. -->
         <Style x:Key="WhatsNewScrollBar" TargetType="ScrollBar">
             <Setter Property="Width" Value="4"/>
@@ -97,7 +76,7 @@
                                 <Thumb>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border Background="{StaticResource WhatsNew.Thumb}" CornerRadius="2"/>
+                                            <Border Background="{DynamicResource WhatsNew.Thumb}" CornerRadius="2"/>
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
@@ -128,7 +107,7 @@
             </Setter>
         </Style>
 
-        <!-- Пункт колонки разделов (.toc a): звезда видна только у выбранного. -->
+        <!-- Пункт колонки разделов (.toc a): кольцо видно только у выбранного. -->
         <Style x:Key="WhatsNewTocItem" TargetType="RadioButton">
             <Setter Property="Height" Value="28"/>
             <Setter Property="Margin" Value="0,0,0,1"/>
@@ -143,23 +122,21 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Path x:Name="Star" Data="{StaticResource WhatsNew.StarShape}" Fill="{StaticResource Curtain.Star}"
-                                      Width="8" Height="8" Stretch="Uniform" Margin="0,0,7,0" Opacity="0"
-                                      VerticalAlignment="Center"/>
+                                <Ellipse x:Name="Ring" Style="{StaticResource WhatsNewRing}" Margin="0,0,7,0" Opacity="0"/>
                                 <TextBlock x:Name="Label" Grid.Column="1" Text="{TemplateBinding Content}" FontSize="12.5"
-                                           TextTrimming="CharacterEllipsis" Foreground="{StaticResource WhatsNew.Text3}"
+                                           TextTrimming="CharacterEllipsis" Foreground="{DynamicResource WhatsNew.Text3}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource WhatsNew.Hover}"/>
-                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WhatsNew.Text2}"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource WhatsNew.Hover}"/>
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource WhatsNew.Text2}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource WhatsNew.On}"/>
-                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WhatsNew.Text1}"/>
-                                <Setter TargetName="Star" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource WhatsNew.On}"/>
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource WhatsNew.Text1}"/>
+                                <Setter TargetName="Ring" Property="Opacity" Value="1"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -167,7 +144,8 @@
             </Setter>
         </Style>
 
-        <!-- Кнопка языка заметок (.lang button): флаг из Tag (нет флага — одна подпись) и название. -->
+        <!-- Кнопка языка заметок (.lang button): флаг из Tag (нет флага — одна подпись) и название.
+             Рамка у выбранной есть всегда, только прозрачная: состояние не двигает раскладку. -->
         <Style x:Key="WhatsNewLanguageButton" TargetType="RadioButton">
             <Setter Property="Height" Value="24"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -176,7 +154,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Bg" Background="Transparent" CornerRadius="5" Padding="8,0,10,0">
+                        <Border x:Name="Bg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                CornerRadius="5" Padding="7,0,9,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Grid x:Name="Flag" Width="16" Height="11" Margin="0,0,6,0">
                                     <Image Source="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Stretch="UniformToFill">
@@ -184,10 +163,10 @@
                                             <RectangleGeometry Rect="0,0,16,11" RadiusX="2" RadiusY="2"/>
                                         </Image.Clip>
                                     </Image>
-                                    <Border Margin="-1" BorderBrush="{StaticResource WhatsNew.FlagEdge}" BorderThickness="1" CornerRadius="3"/>
+                                    <Border Margin="-1" BorderBrush="{DynamicResource WhatsNew.FlagEdge}" BorderThickness="1" CornerRadius="3"/>
                                 </Grid>
                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5" FontWeight="Medium"
-                                           Foreground="{StaticResource WhatsNew.Text3}" VerticalAlignment="Center"/>
+                                           Foreground="{DynamicResource WhatsNew.Text3}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -195,14 +174,15 @@
                                 <Setter TargetName="Flag" Property="Visibility" Value="Collapsed"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WhatsNew.Text2}"/>
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource WhatsNew.Text1}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource WhatsNew.PillOn}"/>
-                                <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WhatsNew.Text1}"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource WhatsNew.SegmentOn}"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource WhatsNew.SegmentEdge}"/>
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource WhatsNew.Text1}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bg" Property="Opacity" Value="0.4"/>
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.45"/>
                                 <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -211,24 +191,24 @@
             </Setter>
         </Style>
 
-        <!-- «Понятно» (.ok): светлая кнопка концепта. -->
+        <!-- «Понятно» (.ok): красная кнопка с белой подписью. -->
         <Style x:Key="WhatsNewOkButton" TargetType="Button">
             <Setter Property="Height" Value="28"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{StaticResource WhatsNew.Ok}" CornerRadius="7" Padding="14,0">
+                        <Border x:Name="Bg" Background="{DynamicResource WhatsNew.Red}" CornerRadius="7" Padding="14,0">
                             <TextBlock Text="{TemplateBinding Content}" FontSize="12.5" FontWeight="SemiBold"
-                                       Foreground="{StaticResource WhatsNew.OkText}"
+                                       Foreground="{DynamicResource WhatsNew.OkText}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource WhatsNew.OkHover}"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource WhatsNew.RedHover}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource WhatsNew.OkPressed}"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource WhatsNew.RedPressed}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -238,23 +218,21 @@
     </UserControl.Resources>
 
     <!--
-        «Что нового» (1.37.0): сцена «Занавес» во весь слой и стеклянная карточка над ней. Слева —
-        разделы заметок, справа — сами заметки; наведённый раздел подсвечен в колонке. Язык
-        заметок — переключателем в подвале: перевод делает модель ИИ, если есть ключ.
+        «Что нового» (1.37.1): сцена «Капля» во весь слой и карточка над ней. Слева — разделы заметок,
+        справа — сами заметки; наведённый раздел подсвечен в колонке. Язык заметок — переключателем в
+        подвале: перевод делает модель ИИ, если есть ключ.
     -->
     <Grid x:Name="Stage" SizeChanged="Stage_SizeChanged">
-        <local:WhatsNewCurtain x:Name="Curtain" Fill="{StaticResource Curtain.Fill}" Line="{StaticResource Curtain.Line}"
-                               Star="{StaticResource Curtain.Star}" Shade="{StaticResource Curtain.Shade}"
-                               MouseLeftButtonDown="Scrim_MouseLeftButtonDown"/>
+        <local:WhatsNewDrop x:Name="Scene" Fill="{DynamicResource WhatsNew.Back}" Ring="{DynamicResource WhatsNew.Red}"
+                            Feather="{DynamicResource WhatsNew.Feather}" Sheen="{DynamicResource WhatsNew.Sheen}"
+                            Shaft="{DynamicResource WhatsNew.Shaft}" Shadow="{DynamicResource WhatsNew.Shadow}"
+                            MouseLeftButtonDown="Scrim_MouseLeftButtonDown"/>
 
-        <!-- Карточка растрируется один раз (BitmapCache) и дальше только накладывается: фон под
-             ней меняется каждый кадр, и без кэша WPF каждый кадр заново рисовал бы весь её текст. -->
+        <!-- Карточка рисуется вживую, без кэша картинкой и без эффектов: у «Занавеса» растровый кэш
+             поверх стекла давал мыло. Непрозрачная, с округлением раскладки до точек экрана. -->
         <Grid x:Name="Card" Width="680" MaxHeight="600" HorizontalAlignment="Center" VerticalAlignment="Center"
               RenderTransformOrigin="0.5,0.5" TextElement.FontFamily="{StaticResource WhatsNew.Font}"
-              UseLayoutRounding="True">
-            <Grid.CacheMode>
-                <BitmapCache EnableClearType="False" RenderAtScale="1" SnapsToDevicePixels="True"/>
-            </Grid.CacheMode>
+              UseLayoutRounding="True" SnapsToDevicePixels="True">
             <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="CardScale"/>
@@ -262,13 +240,8 @@
                 </TransformGroup>
             </Grid.RenderTransform>
 
-            <!-- Стекло: размытую сцену и тень под карточкой рисует сама сцена (SetGlass), здесь —
-                 тонировка, рамка и светлая кромка сверху. -->
-            <Grid x:Name="Glass">
-                <Border Background="{StaticResource WhatsNew.Glass}" BorderBrush="{StaticResource WhatsNew.GlassLine}"
-                        BorderThickness="1" CornerRadius="12"/>
-                <Border Margin="1" BorderBrush="{StaticResource WhatsNew.GlassTop}" BorderThickness="0,1,0,0" CornerRadius="11"/>
-            </Grid>
+            <Border Background="{DynamicResource WhatsNew.Card}" BorderBrush="{DynamicResource WhatsNew.Edge}"
+                    BorderThickness="1" CornerRadius="12"/>
 
             <Grid Margin="17,15,17,13">
                 <Grid.RowDefinitions>
@@ -290,11 +263,11 @@
                            Margin="0,0,8,0" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="1" Text="{DynamicResource S.Updates.WhatsNewHeading}" FontSize="15"
                                FontWeight="SemiBold" FontFamily="{StaticResource WhatsNew.Display}"
-                               Foreground="{StaticResource WhatsNew.Text1}" VerticalAlignment="Center"/>
-                    <Border Grid.Column="2" Background="{StaticResource WhatsNew.Chip}" CornerRadius="4" Padding="6,4"
+                               Foreground="{DynamicResource WhatsNew.Text1}" VerticalAlignment="Center"/>
+                    <Border Grid.Column="2" Background="{DynamicResource WhatsNew.RedTint}" CornerRadius="4" Padding="6,4"
                             Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock x:Name="VersionText" FontSize="11" FontWeight="Medium" LineHeight="11"
-                                   LineStackingStrategy="BlockLineHeight" Foreground="{StaticResource WhatsNew.Text3}"/>
+                        <TextBlock x:Name="VersionText" FontSize="11" FontWeight="SemiBold" LineHeight="11"
+                                   LineStackingStrategy="BlockLineHeight" Foreground="{DynamicResource WhatsNew.RedInk}"/>
                     </Border>
                 </Grid>
 
@@ -304,11 +277,11 @@
                 <!-- .split -->
                 <Grid x:Name="Split" Grid.Row="2" Margin="0,2,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="TocColumn" Width="164"/>
+                        <ColumnDefinition x:Name="TocColumn" Width="200"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border x:Name="TocBorder" BorderBrush="{StaticResource WhatsNew.Rule}" BorderThickness="0,0,1,0"
+                    <Border x:Name="TocBorder" BorderBrush="{DynamicResource WhatsNew.Line}" BorderThickness="0,0,1,0"
                             Padding="0,2,10,0" Margin="0,0,14,0">
                         <ScrollViewer x:Name="TocScroll" Style="{StaticResource WhatsNewScroll}" VerticalScrollBarVisibility="Hidden">
                             <StackPanel x:Name="TocPanel"
@@ -324,7 +297,7 @@
                 </Grid>
 
                 <!-- .foot -->
-                <Border Grid.Row="3" Margin="0,10,0,0" Padding="0,10,0,0" BorderBrush="{StaticResource WhatsNew.Rule}"
+                <Border Grid.Row="3" Margin="0,10,0,0" Padding="0,10,0,0" BorderBrush="{DynamicResource WhatsNew.Line}"
                         BorderThickness="0,1,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -332,7 +305,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Border x:Name="LanguageSwitch" Background="{StaticResource WhatsNew.Pill}" CornerRadius="7" Padding="2"
+                        <Border x:Name="LanguageSwitch" Background="{DynamicResource WhatsNew.On}" CornerRadius="7" Padding="2"
                                 Margin="0,0,12,0" VerticalAlignment="Center"
                                 AutomationProperties.Name="{DynamicResource S.Updates.WhatsNewLanguages}">
                             <StackPanel Orientation="Horizontal">
@@ -342,7 +315,7 @@
                                              Content="English" Tag="{StaticResource Flag.En}" Checked="EnglishButton_Checked"/>
                             </StackPanel>
                         </Border>
-                        <TextBlock x:Name="LanguageStatus" Grid.Column="1" FontSize="11.5" Foreground="{StaticResource WhatsNew.Text4}"
+                        <TextBlock x:Name="LanguageStatus" Grid.Column="1" FontSize="11.5" Foreground="{DynamicResource WhatsNew.Text4}"
                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <Button x:Name="OkButton" Grid.Column="2" Style="{StaticResource WhatsNewOkButton}"
                                 Content="{DynamicResource S.Updates.WhatsNewOk}" Click="Close_Click"/>

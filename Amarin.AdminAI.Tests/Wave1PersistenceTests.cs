@@ -121,26 +121,27 @@ public sealed class Wave1PersistenceTests
             Assert.False(loaded.LiteReasoning.DisableThinking);
             Assert.Equal(SessionMode.Isolated, loaded.SessionMode);
             Assert.Equal("custom", loaded.MainPrompt);
-            // Заводские модели 1.37.0-beta.8 — у OpenRouter.
-            Assert.Equal("openrouter:minimax/minimax-m3.1-flash:nitro", loaded.FastModelId);
-            Assert.Equal("medium", loaded.FastReasoning.ReasoningEffort);
+            // Заводские модели 1.37.0-beta.8 — у OpenRouter; 1.37.1 — модели и размышление профиля человека.
+            Assert.Equal("openrouter:deepseek/deepseek-v4-flash-0731", loaded.FastModelId);
+            Assert.True(loaded.FastReasoning.DisableThinking);
             Assert.Equal("openrouter:anthropic/claude-sonnet-5.5", loaded.HeavyModelId);
-            Assert.Equal("medium", loaded.HeavyReasoning.ReasoningEffort);
+            Assert.Equal("low", loaded.HeavyReasoning.ReasoningEffort);
             Assert.Equal("openrouter:anthropic/claude-haiku-5.5", loaded.LiteModelId);
             Assert.Equal("medium", loaded.LiteReasoning.ReasoningEffort);
             Assert.Equal(AppSettings.FactoryDecisionModelId, loaded.RouterModelId);
             Assert.True(loaded.RouterReasoning.DisableThinking);
             Assert.Equal("openrouter:deepseek/deepseek-v4-flash-0731", loaded.TitleModelId);
             Assert.True(loaded.TitleReasoning.DisableThinking);
-            Assert.Equal(AppSettings.ShippedFastModelId, loaded.AgentFastModelId);
-            Assert.Equal("medium", loaded.AgentFastReasoning.ReasoningEffort);
+            Assert.Equal(AppSettings.ShippedAgentFastModelId, loaded.AgentFastModelId);
+            Assert.Equal("low", loaded.AgentFastReasoning.ReasoningEffort);
             Assert.Equal("openrouter:anthropic/claude-haiku-5.5", loaded.AgentLiteModelId);
             Assert.Equal("medium", loaded.AgentLiteReasoning.ReasoningEffort);
             Assert.Equal(AppSettings.ShippedHeavyModelId, loaded.AgentHeavyModelId);
-            Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
+            Assert.Equal("medium", loaded.AgentHeavyReasoning.ReasoningEffort);
             Assert.Equal("openrouter:anthropic/claude-haiku-5.5", loaded.SummaryModelId);
             Assert.Equal("low", loaded.SummaryReasoning.ReasoningEffort);
-            Assert.Null(loaded.WebSearchProvider);
+            Assert.Equal(LlmProvider.OpenRouter, loaded.WebSearchProvider);
+            Assert.Equal(AgentMemory.Chat, loaded.AgentMemory);
 
             // Защита включена с самого начала: в этом её смысл, а стоит она одного дешёвого
             // запроса на раунд инструментов агента.

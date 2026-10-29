@@ -204,7 +204,9 @@ internal sealed class BrowserTool(BrowserSession session, bool canSee = true) : 
 
         if (!await port.HandoffAsync(caption, HandoffWait, cancellationToken).ConfigureAwait(false))
         {
-            return ToolResult.Fail("The person did not press Done in time. Report what is left for them to do.");
+            return ToolResult.Fail(port.ClosedByHuman
+                ? BrowserSafety.ClosedByHuman
+                : "The person did not press Done in time. Report what is left for them to do.");
         }
 
         var page = Show(await port.ReadAsync(TextDefault, ElementsDefault, cancellationToken).ConfigureAwait(false));

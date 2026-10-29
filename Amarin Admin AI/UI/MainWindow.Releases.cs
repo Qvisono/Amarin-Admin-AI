@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
 using Amarin.Core;
 
 namespace Amarin.UI
@@ -196,6 +195,12 @@ namespace Amarin.UI
         /// Раз в версию показывает её заметки. Только в настоящей программе: оконные тесты
         /// поднимают это же окно, и открытое уведомление перехватывало бы их клики.
         /// </summary>
+        /// <remarks>
+        /// Сразу, до первого кадра (1.37.1): зовётся из <c>OnWindowLoaded</c>, и лист — на первом же
+        /// кадре окна. До этого он ждал простоя окна и чтения заметок на рабочем потоке, и человек
+        /// сначала видел программу, а заметки всплывали поверх. Заметки — вшитый ресурс в десяток
+        /// килобайт: прочитать его на месте дешевле, чем переход на другой поток.
+        /// </remarks>
         private void ScheduleWhatsNew()
         {
             if (!IsRealApp || _services is not { } services)
@@ -219,19 +224,7 @@ namespace Amarin.UI
             settings.LastSeenVersion = current.ToString();
             services.SettingsStore.Save(settings);
 
-            if (!show)
-            {
-                return;
-            }
-
-            Dispatcher.BeginInvoke(new Action(() => Detached.Run(ShowWhatsNewAsync(current), "whats_new")), DispatcherPriority.ApplicationIdle);
-        }
-
-        private async Task ShowWhatsNewAsync(ReleaseVersion version)
-        {
-            // Читать ресурс — на рабочем потоке: заметки к большому выпуску — это десятки килобайт.
-            var notes = await Task.Run(WhatsNew.Embedded);
-            if (notes is null || Exit.Exiting)
+            if (!show || WhatsNew.Embedded() is not { } notes || Exit.Exiting)
             {
                 return;
             }
@@ -242,14 +235,15 @@ namespace Amarin.UI
                 return;
             }
 
-            ShowWhatsNew(version, notes);
+            ShowWhatsNew(current, notes);
         }
 
         /// <summary>
-        /// Карточка «Что нового» (1.37.0) — своя, а не общее уведомление. Создаётся при первом
-        /// показе: раз на версию её и видно.
+        /// Карточка «Что нового» — своя, а не общее уведомление. Создаётся при первом показе: раз на
+        /// версию её и видно.
         /// </summary>
-        internal void ShowWhatsNew(ReleaseVersion version, string notes)
+        /// <param name="dark">Тёмная палитра; <c>null</c> — как у темы приложений Windows (1.37.1).</param>
+        internal void ShowWhatsNew(ReleaseVersion version, string notes, bool? dark = null)
         {
             if (_whatsNew is null)
             {
@@ -272,7 +266,7 @@ namespace Amarin.UI
             }
 
             WhatsNewHost.Visibility = Visibility.Visible;
-            _whatsNew.Show(version, notes, WhatsNewTranslationFor());
+            _whatsNew.Show(version, notes, WhatsNewTranslationFor(), dark ?? !ThemeManager.IsSystemLight());
         }
 
         /// <summary>

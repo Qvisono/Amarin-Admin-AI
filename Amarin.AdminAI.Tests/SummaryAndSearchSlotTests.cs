@@ -102,13 +102,22 @@ public sealed class WebSearchTargetTests
         return (new VeniceClient(new HttpClient(recorder), options), recorder);
     }
 
-    /// <summary>Заводское состояние — прежнее поведение: искать там же, где идёт разговор.</summary>
+    /// <summary>
+    /// «Авто» — искать там же, где идёт разговор. Заводское с 1.37.1 — OpenRouter (выбрал человек),
+    /// а «Авто», выбранное человеком, переживает запись: пустое в файл не пишется.
+    /// </summary>
     [Fact]
     public void Without_a_provider_nothing_is_pinned()
     {
+        Assert.Equal(LlmProvider.OpenRouter, AppSettings.CreateDefault().WebSearchProvider);
+
         var settings = AppSettings.CreateDefault();
-        Assert.Null(settings.WebSearchProvider);
+        settings.WebSearchProvider = null;
         Assert.Equal("", ModelSlots.WebSearch(settings).Binding.ModelId);
+
+        var reread = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+            System.Text.Json.JsonSerializer.Serialize(settings, AppJson.Options), AppJson.Options)!;
+        Assert.Null(reread.WebSearchProvider);
     }
 
     /// <summary>

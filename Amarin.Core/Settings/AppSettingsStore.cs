@@ -207,6 +207,10 @@ public sealed class AppSettingsStore
     /// просили, и выключенный человеком SynGuard не должен включаться сам. Профиль, не прошедший
     /// ревизию 3, получает их, как получил бы ею.
     /// </para>
+    /// <para>
+    /// Ревизия 5 (1.37.1) ставит модели и размышление профиля человека, а с ними — так он решил —
+    /// поиск через OpenRouter и разговор с агентом, сохраняемый в чате. SynGuard не трогает.
+    /// </para>
     /// </remarks>
     internal static bool MigrateFactoryModels(AppSettings settings)
     {
@@ -237,10 +241,12 @@ public sealed class AppSettingsStore
         settings.ModelKeys = null;
         if (settings.FactoryModelsRevision < 3)
         {
-            settings.WebSearchProvider = null;
-            settings.WebSearchKeyId = null;
             settings.SynGuardEnabled = true;
         }
+
+        settings.WebSearchProvider = defaults.WebSearchProvider;
+        settings.WebSearchKeyId = null;
+        settings.AgentMemory = defaults.AgentMemory;
 
         // Голос (1.37.0-beta.8): распознавание и озвучка — «Авто», они берут OpenRouter, когда к
         // нему есть ключ (VoiceAvailability).

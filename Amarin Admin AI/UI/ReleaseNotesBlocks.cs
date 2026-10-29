@@ -12,8 +12,8 @@ using Inline = System.Windows.Documents.Inline;
 namespace Amarin.UI;
 
 /// <summary>
-/// Заметки к выпуску видом концепта «Занавес» (1.37.0): абзацы, пункты с короткой чертой вместо
-/// точки, полужирное и код жёлтым на подложке, строка в полтора кегля.
+/// Заметки к выпуску видом концепта «Капля» (1.37.1): абзацы, пункты с короткой чертой вместо
+/// точки, полужирное цветом заголовков, код на бледной подложке, строка в полтора кегля.
 /// </summary>
 /// <remarks>
 /// Не <see cref="ChatMarkdown"/>: тот рисует ответ модели — точки списков, отступы и шрифты ленты,
@@ -164,6 +164,13 @@ internal static class ReleaseNotesBlocks
 
                 case EmphasisInline emphasis:
                     var span = emphasis.DelimiterCount >= 2 ? (Span)new Bold() : new Italic();
+                    if (span is Bold)
+                    {
+                        // .notes b концепта: полужирное — цветом заголовков, оно и выделяет названия.
+                        span.FontWeight = FontWeights.SemiBold;
+                        span.SetResourceReference(TextElement.ForegroundProperty, "WhatsNew.Text1");
+                    }
+
                     Add(span.Inlines, emphasis);
                     target.Add(span);
                     break;
@@ -176,7 +183,7 @@ internal static class ReleaseNotesBlocks
         }
     }
 
-    /// <summary>Код в строке (.notes code): моноширинный, жёлтый, на бледной подложке со скруглением.</summary>
+    /// <summary>Код в строке (.notes code): моноширинный, цветом заголовков, на бледной подложке со скруглением.</summary>
     private static Inline Code(string content)
     {
         var text = new TextBlock { Text = content, FontSize = 11.5 };

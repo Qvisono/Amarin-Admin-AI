@@ -20,19 +20,44 @@ internal sealed record WhatsNewTranslation(
     Func<ReleaseNotesOutline, CancellationToken, Task<ReleaseNotesOutline?>>? Translate);
 
 /// <summary>
-/// «Что нового» (1.37.0): заметки к версии поверх окна, раз на версию — сцена «Занавес», над ней
+/// «Что нового»: заметки к версии поверх окна, раз на версию — сцена «Капля» (1.37.1), над ней
 /// карточка с колонкой разделов и переключателем языка заметок.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Колонка разделов строится из «##» заметок (<see cref="ReleaseNotesOutline"/>). Подсвечен в ней
 /// раздел под мышью, а когда мышь вне заметок — раздел у верха прокрутки. Каждый раздел — свой
 /// блок, а не кусок одного документа: так у раздела есть границы, по которым его узнаёт мышь и
-/// к которым листает колонка. Создаётся при первом показе: на первом кадре её не видно.
+/// к которым листает колонка.
+/// </para>
+/// <para>
+/// Тема — Windows, а не программы (1.37.1): светлая или тёмная палитра концепта берётся при показе.
+/// Перевод оплачивается один раз: пока он идёт, язык не переключить ни мышью, ни клавиатурой, и
+/// второй запрос не уходит; готовый перевод не запрашивается заново.
+/// </para>
 /// </remarks>
 public partial class WhatsNewSheet : UserControl
 {
     /// <summary>Длительность доезда к разделу по щелчку в колонке.</summary>
     private static readonly TimeSpan GlideTime = TimeSpan.FromMilliseconds(260);
+
+    /// <summary>
+    /// Когда карточка начинает проявляться и сколько это длится. Быстрее концепта (0,9 и 0,75 с):
+    /// окно должно появляться сразу (1.37.1).
+    /// </summary>
+    private const double CardAt = .12;
+
+    private const double CardIn = .4;
+
+    /// <summary>На сколько точек карточка поднимается при появлении.</summary>
+    private const double CardRise = 10;
+
+    // С именем сборки, как у палитр темы: голый pack URI разрешается от Application.ResourceAssembly,
+    // а у программы в чужом процессе (тесты) это не наша сборка.
+    private static readonly string PalettePrefix =
+        "pack://application:,,,/" +
+        Uri.EscapeDataString(typeof(WhatsNewSheet).Assembly.GetName().Name ?? "") +
+        ";component/UI/WhatsNew.";
 
     private readonly List<RadioButton> _tocItems = [];
     private readonly List<FrameworkElement> _sections = [];
@@ -40,7 +65,9 @@ public partial class WhatsNewSheet : UserControl
     private ReleaseNotesOutline? _translated;
     private WhatsNewTranslation? _translation;
     private CancellationTokenSource? _translating;
+    private bool _busy;
     private bool _choosingLanguage;
+    private bool? _dark;
     private int _highlighted = -1;
 
     /// <summary>
@@ -58,7 +85,8 @@ public partial class WhatsNewSheet : UserControl
     public WhatsNewSheet()
     {
         InitializeComponent();
-        Curtain.Ticked += RevealCard;
+        UsePalette(dark: false);
+        Scene.Ticked += RevealCard;
         NotesScroll.PreviewMouseWheel += (_, _) =>
         {
             // Человек листает сам: доезд и выбранный щелчком раздел уступают ему.
@@ -80,9 +108,14 @@ public partial class WhatsNewSheet : UserControl
     /// <summary>Подсвеченный в колонке раздел; −1 — разделов нет.</summary>
     internal int HighlightedSection => _highlighted;
 
+    /// <summary>Лист в тёмной палитре.</summary>
+    internal bool Dark => _dark == true;
+
     /// <param name="translation">Перевод на язык интерфейса; <c>null</c> — интерфейс по-английски, переключателя нет.</param>
-    internal void Show(ReleaseVersion version, string notes, WhatsNewTranslation? translation)
+    /// <param name="dark">Тёмная палитра: у Windows тёмная тема приложений.</param>
+    internal void Show(ReleaseVersion version, string notes, WhatsNewTranslation? translation, bool dark)
     {
+        UsePalette(dark);
         _original = ReleaseNotesOutline.Parse(notes);
         _translated = null;
         _translation = translation;
@@ -108,27 +141,27 @@ public partial class WhatsNewSheet : UserControl
         SmoothScroll.SetIsEnabled(NotesScroll, true);
         SmoothScroll.SetPanScroll(NotesScroll, true);
         SmoothScroll.SetIsEnabled(TocScroll, true);
-        Curtain.Start();
+        Scene.Start();
         Dispatcher.BeginInvoke(() => OkButton.Focus(), DispatcherPriority.Input);
     }
 
     /// <summary>
-    /// Закрывает лист. С анимациями — уходом: карточка гаснет и чуть оседает, линии втягиваются
-    /// вниз, фон гаснет; мышь и клавиши уже отпущены окну, а <see cref="Closed"/> приходит в конце.
+    /// Закрывает лист. С анимациями — уходом: карточка гаснет и чуть оседает, кольца стягиваются в
+    /// точку удара, фон гаснет; мышь и клавиши уже отпущены окну, а <see cref="Closed"/> приходит в конце.
     /// </summary>
     internal void Close()
     {
-        if (Visibility != Visibility.Visible || Curtain.LeaveAt is not null)
+        if (Visibility != Visibility.Visible || Scene.LeaveAt is not null)
         {
             return;
         }
 
         CancelTranslation();
         StopGlide();
-        if (UiMotion.Enabled && IsVisible && Curtain.Running)
+        if (UiMotion.Enabled && IsVisible && Scene.Running)
         {
             IsHitTestVisible = false;
-            Curtain.Leave();
+            Scene.Leave();
             return;
         }
 
@@ -136,7 +169,26 @@ public partial class WhatsNewSheet : UserControl
     }
 
     /// <summary>Уход начат и ещё не кончен.</summary>
-    internal bool Leaving => Curtain.LeaveAt is not null && Visibility == Visibility.Visible;
+    internal bool Leaving => Scene.LeaveAt is not null && Visibility == Visibility.Visible;
+
+    /// <summary>
+    /// Палитра концепта: светлая или тёмная. Цвета листа — DynamicResource, поэтому смена словаря
+    /// перекрашивает и разметку, и сцену.
+    /// </summary>
+    private void UsePalette(bool dark)
+    {
+        if (_dark == dark)
+        {
+            return;
+        }
+
+        _dark = dark;
+        Resources.MergedDictionaries.Clear();
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri(PalettePrefix + (dark ? "Dark" : "Light") + ".xaml", UriKind.Absolute)
+        });
+    }
 
     private void Finish()
     {
@@ -146,9 +198,8 @@ public partial class WhatsNewSheet : UserControl
         SmoothScroll.SetIsEnabled(NotesScroll, false);
         SmoothScroll.SetPanScroll(NotesScroll, false);
         SmoothScroll.SetIsEnabled(TocScroll, false);
-        Curtain.Stop();
-        Curtain.SetGlass(null, 0);
-        Curtain.Opacity = 1;
+        Scene.Stop();
+        Scene.Opacity = 1;
         IsHitTestVisible = true;
         Visibility = Visibility.Collapsed;
         Closed?.Invoke();
@@ -244,7 +295,7 @@ public partial class WhatsNewSheet : UserControl
             _tocItems.Add(item);
             TocPanel.Children.Add(item);
 
-            // .notes section: заголовок со звездой (h3), под ним пункты.
+            // .notes section: заголовок с кольцом (h3), под ним пункты.
             var block = new StackPanel { Background = Brushes.Transparent, Margin = new Thickness(0, 2, 0, 6) };
             block.Children.Add(Heading(section.Title, first: i == 0));
             AddBlocks(block, section.Body, "WhatsNew.Text2");
@@ -267,16 +318,11 @@ public partial class WhatsNewSheet : UserControl
 
     private FrameworkElement Heading(string title, bool first)
     {
-        var star = new System.Windows.Shapes.Path
+        var ring = new System.Windows.Shapes.Ellipse
         {
-            Data = (Geometry)FindResource("WhatsNew.StarShape"),
-            Width = 8,
-            Height = 8,
-            Stretch = Stretch.Uniform,
-            Margin = new Thickness(0, 0, 7, 0),
-            VerticalAlignment = VerticalAlignment.Center
+            Style = (Style)FindResource("WhatsNewRing"),
+            Margin = new Thickness(0, 0, 7, 0)
         };
-        star.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Curtain.Star");
 
         var text = new TextBlock
         {
@@ -289,8 +335,8 @@ public partial class WhatsNewSheet : UserControl
         text.SetResourceReference(TextBlock.ForegroundProperty, "WhatsNew.Text1");
 
         var row = new DockPanel { Margin = new Thickness(0, first ? 2 : 8, 0, 5) };
-        DockPanel.SetDock(star, Dock.Left);
-        row.Children.Add(star);
+        DockPanel.SetDock(ring, Dock.Left);
+        row.Children.Add(ring);
         row.Children.Add(text);
         return row;
     }
@@ -365,31 +411,44 @@ public partial class WhatsNewSheet : UserControl
 
     // ---- Появление ----
 
-    /// <summary>Карточка проявляется и поднимается после того, как линии сцены начали расти.</summary>
+    /// <summary>
+    /// Карточка проявляется и поднимается, пока расходятся кольца. В конце масштаб ровно 1 и сдвиг
+    /// ровно 0: остаток плавающей точки сдвинул бы текст на долю точки экрана, и он размылся бы.
+    /// </summary>
     private void RevealCard(double t)
     {
-        if (Curtain.LeaveAt is { } leave)
+        if (Scene.LeaveAt is { } leave)
         {
             Depart(t - leave);
             return;
         }
 
-        var p = Math.Clamp((t - .9) / .75, 0, 1);
-        p = 1 - Math.Pow(1 - p, 3);
-        Card.Opacity = p;
-        CardShift.Y = (1 - p) * 14;
-        CardScale.ScaleX = CardScale.ScaleY = .985 + .015 * p;
-        Curtain.Opacity = 1;
-        UpdateGlass();
+        var p = Math.Clamp((t - CardAt) / CardIn, 0, 1);
+        if (p >= 1)
+        {
+            Card.Opacity = 1;
+            CardShift.Y = 0;
+            CardScale.ScaleX = CardScale.ScaleY = 1;
+        }
+        else
+        {
+            p = 1 - Math.Pow(1 - p, 3);
+            Card.Opacity = p;
+            CardShift.Y = (1 - p) * CardRise;
+            CardScale.ScaleX = CardScale.ScaleY = .985 + .015 * p;
+        }
+
+        Scene.Opacity = 1;
+        UpdateCard();
     }
 
     /// <summary>
     /// Уход: карточка за 0,22 с гаснет, оседает на 10 точек и чуть сжимается — обратное появлению;
-    /// линии сцены тем временем стекают вниз, а с 0,25 с гаснет и сам фон, открывая окно.
+    /// кольца тем временем стягиваются в точку удара, а с 0,25 с гаснет и сам фон, открывая окно.
     /// </summary>
     private void Depart(double elapsed)
     {
-        if (elapsed >= WhatsNewCurtain.LeaveTime)
+        if (elapsed >= WhatsNewDrop.LeaveTime)
         {
             Finish();
             return;
@@ -400,24 +459,24 @@ public partial class WhatsNewSheet : UserControl
         Card.Opacity = 1 - q;
         CardShift.Y = q * 10;
         CardScale.ScaleX = CardScale.ScaleY = 1 - .03 * q;
-        Curtain.Opacity = 1 - Math.Clamp((elapsed - .25) / (WhatsNewCurtain.LeaveTime - .25), 0, 1);
-        UpdateGlass();
+        Scene.Opacity = 1 - Math.Clamp((elapsed - .25) / (WhatsNewDrop.LeaveTime - .25), 0, 1);
+        UpdateCard();
     }
 
     /// <summary>
-    /// Стекло карточки (backdrop-filter концепта): под ней та же сцена, размытая. Кисть смотрит на
-    /// то место сцены, над которым лежит карточка, — и пока она проявляется и поднимается.
+    /// Где карточка — сцене: по месту раскладки (без сдвига появления) встают кольца и перья, а тень
+    /// идёт за карточкой и проявляется вместе с ней.
     /// </summary>
-    private void Card_LayoutUpdated(object? sender, EventArgs e) => UpdateGlass();
+    private void Card_LayoutUpdated(object? sender, EventArgs e) => UpdateCard();
 
-    private void UpdateGlass()
+    private void UpdateCard()
     {
-        if (Card.ActualWidth <= 0 || Card.ActualHeight <= 0 || !Curtain.IsVisible)
+        if (Card.ActualWidth <= 0 || Card.ActualHeight <= 0)
         {
             return;
         }
 
-        Curtain.SetGlass(Card.TransformToVisual(Curtain).TransformBounds(new Rect(Card.RenderSize)), Card.Opacity);
+        Scene.SetCard(new Rect((Point)VisualTreeHelper.GetOffset(Card), Card.RenderSize), Card.Opacity, CardShift.Y);
     }
 
     /// <summary>Карточка — не шире 680 и не выше 600, с полями 24 по бокам и 150 по высоте, как в концепте.</summary>
@@ -468,11 +527,21 @@ public partial class WhatsNewSheet : UserControl
 
     private void EnglishButton_Checked(object sender, RoutedEventArgs e)
     {
-        if (!_choosingLanguage)
+        if (_choosingLanguage)
         {
-            Render(_original);
-            UpdateHighlight();
+            return;
         }
+
+        // Пока идёт перевод, язык не переключить: мышь до переключателя не доходит, а клавиатура
+        // дошла бы, и пришедший перевод лёг бы поверх выбранного английского.
+        if (_busy)
+        {
+            Choose(NativeButton);
+            return;
+        }
+
+        Render(_original);
+        UpdateHighlight();
     }
 
     private void NativeButton_Checked(object sender, RoutedEventArgs e)
@@ -492,12 +561,19 @@ public partial class WhatsNewSheet : UserControl
         Detached.Run(TranslateAsync(translate), "whats_new_translate");
     }
 
+    /// <summary>
+    /// Перевод — один за раз и не отменяется сменой языка (1.37.1): до этого повторный выбор языка с
+    /// клавиатуры отменял уже оплаченный запрос и отправлял новый. Отменяет его только закрытие листа.
+    /// </summary>
     private async Task TranslateAsync(Func<ReleaseNotesOutline, CancellationToken, Task<ReleaseNotesOutline?>> translate)
     {
-        CancelTranslation();
+        if (_busy)
+        {
+            return;
+        }
+
         var cancellation = new CancellationTokenSource();
         _translating = cancellation;
-
         SetBusy(true);
         LanguageStatus.Text = Loc.Get("S.Updates.WhatsNewTranslating");
 
@@ -549,6 +625,7 @@ public partial class WhatsNewSheet : UserControl
     /// <summary>Пока идёт перевод, заметки приглушены, а язык не переключить: ответ лёг бы поверх выбора.</summary>
     private void SetBusy(bool busy)
     {
+        _busy = busy;
         // .notes.busy концепта: приглушение за четверть секунды.
         var opacity = busy ? .35 : 1;
         Split.IsHitTestVisible = !busy;

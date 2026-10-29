@@ -27,10 +27,10 @@ public static class ModelSlotDefaults
     /// <summary>
     /// Заводская модель слота у провайдера, у которого нет самой заводской и семейство её не находит
     /// (1.37.0): у Venice нет nitro-близнеца MiniMax, а обход там — своя модель, а не тот же Grok.
+    /// Быстрой модели чата (DeepSeek Flash, 1.37.1) строка не нужна: её Venice находит семейством.
     /// </summary>
     private static readonly Dictionary<(ModelSlot Slot, LlmProvider Provider), string> ShippedElsewhere = new()
     {
-        [(ModelSlot.Fast, LlmProvider.Venice)] = "minimax-m3-1-flash",
         [(ModelSlot.AgentFast, LlmProvider.Venice)] = "minimax-m3-1-flash",
         [(ModelSlot.Bypass, LlmProvider.Venice)] = "abliteration-abliterated-model-large-flash"
     };

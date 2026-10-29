@@ -279,6 +279,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootSectionE(window, folder, language == "ru");
             }
 
+            if (Wanted(only, "whatsnew"))
+            {
+                await ShootWhatsNew(window, folder);
+            }
+
             if (Wanted(only, "section-g"))
             {
                 await ShootSectionG(window, folder);
@@ -709,8 +714,49 @@ public sealed class UiShotTests : IDisposable
     }
 
     /// <summary>
-    /// Раздел E и H 1.37.0: палитра команд (пустая и с запросом), журнал, «Что нового», подсказки
-    /// поля ввода и окно быстрого вопроса с готовым ответом.
+    /// «Что нового» (1.37.1): сцена «Капля» в светлой и тёмной палитре, кадр покоя (7 с, как у снимков
+    /// концепта) в обычном масштабе и в полтора, и маленькое окно 900×640. Сцена ставится кадром, а не
+    /// ждётся: окно снимков неактивно, и живые кадры бы не шли.
+    /// </summary>
+    private static async Task ShootWhatsNew(MainWindow window, string folder)
+    {
+        if (WhatsNew.Embedded() is not { } notes)
+        {
+            return;
+        }
+
+        var host = (Grid)window.FindSetting("WhatsNewHost");
+        foreach (var (dark, small) in new[] { (false, false), (true, false), (false, true), (true, true) })
+        {
+            var (width, height) = (window.Width, window.Height);
+            if (small)
+            {
+                window.Width = 900;
+                window.Height = 640;
+            }
+
+            window.ShowWhatsNew(RuntimeContext.AppRelease, notes, dark);
+            var sheet = host.Children.OfType<WhatsNewSheet>().Single();
+            await Settle(300);
+            sheet.Scene.Freeze(7);
+            await Settle(200);
+            var name = "w-whatsnew" + (dark ? "-dark" : "-light") + (small ? "-small" : "");
+            Save((FrameworkElement)window.Content, Path.Combine(folder, name + ".png"), null);
+            if (!small)
+            {
+                Save((FrameworkElement)window.Content, Path.Combine(folder, name + "-x1.png"), null, scale: 1);
+            }
+
+            sheet.Close();
+            window.Width = width;
+            window.Height = height;
+            await Settle(200);
+        }
+    }
+
+    /// <summary>
+    /// Раздел E и H 1.37.0: палитра команд (пустая и с запросом), журнал, подсказки поля ввода и окно
+    /// быстрого вопроса с готовым ответом. «Что нового» снимает <see cref="ShootWhatsNew"/>.
     /// </summary>
     private async Task ShootSectionE(MainWindow window, string folder, bool russian)
     {
@@ -727,14 +773,6 @@ public sealed class UiShotTests : IDisposable
         await Settle(600);
         Save((FrameworkElement)window.Content, Path.Combine(folder, "e-journal.png"), null);
         Call(window, "CloseJournal");
-
-        if (WhatsNew.Embedded() is { } notes)
-        {
-            window.ShowWhatsNew(RuntimeContext.AppRelease, notes);
-            await Settle(400);
-            Save((FrameworkElement)window.Content, Path.Combine(folder, "e-whatsnew.png"), null);
-            ((Grid)window.FindSetting("WhatsNewHost")).Children.OfType<WhatsNewSheet>().Single().Close();
-        }
 
         // Подсказки поля ввода — их содержимым: открытая подсказка живёт в своём окне.
         var balance = (BalanceBadge)typeof(MainWindow).GetField("_balance", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;

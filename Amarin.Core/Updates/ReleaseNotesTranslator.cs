@@ -16,14 +16,22 @@ namespace Amarin.Core;
 /// терпимый разбор JSON и та же замена тире, что у перевода интерфейса.
 /// </para>
 /// <para>
-/// Партии по нескольку разделов уходят разом: заметки большого выпуска — десяток килобайт, и
-/// одним ответом человек ждал бы минуту, а длинный ответ лёгкой модели обрывается чаще.
+/// Заметки делятся по объёму на ровные части, не больше <see cref="MaxParts"/>, и все части
+/// уходят разом (1.37.1): время перевода — время самой длинной части. До 1.37.1 партии были по
+/// 3000 знаков без предела числа, и неровные: последняя часто была крошечной, а первые — у
+/// предела, так что ждать приходилось их.
 /// </para>
 /// </remarks>
 internal static class ReleaseNotesTranslator
 {
-    /// <summary>Сколько знаков исходника уходит в одной партии.</summary>
-    internal const int BatchChars = 3000;
+    /// <summary>Сколько запросов переводят заметки одновременно, самое большее.</summary>
+    internal const int MaxParts = 4;
+
+    /// <summary>
+    /// Сколько знаков исходника стоит отдельного запроса: короче — не делится, у каждого запроса
+    /// своё ожидание ответа и свой системный промпт.
+    /// </summary>
+    internal const int PartChars = 1500;
 
     internal const string LeadKey = "lead";
 
@@ -64,9 +72,9 @@ internal static class ReleaseNotesTranslator
         // Цена перевода — не цена хода чата: счёт открытого разговора трогать нельзя.
         using var isolated = VeniceTurnScope.Suppress();
 
-        var batches = Batches(ToStrings(outline));
-        var replies = await Task.WhenAll(batches.Select(batch =>
-                TranslateBatchAsync(client, modelId, credential, batch, languageName, cancellationToken)))
+        var parts = Parts(ToStrings(outline));
+        var replies = await Task.WhenAll(parts.Select(part =>
+                TranslatePartAsync(client, modelId, credential, part, languageName, cancellationToken)))
             .ConfigureAwait(false);
 
         var translated = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -116,39 +124,49 @@ internal static class ReleaseNotesTranslator
     }
 
     /// <summary>
-    /// Партии по порядку заметок. Раздел не делится: заголовок и тело переводятся вместе, иначе
-    /// модель назвала бы одно и то же разными словами.
+    /// Части по порядку заметок: их число растёт с объёмом (по части на <see cref="PartChars"/>
+    /// знаков, не больше <see cref="MaxParts"/>), и каждая набирается до своей доли объёма. Раздел
+    /// не делится: заголовок и тело переводятся вместе, иначе модель назвала бы одно и то же
+    /// разными словами.
     /// </summary>
-    internal static List<Dictionary<string, string>> Batches(IReadOnlyDictionary<string, string> strings)
+    internal static List<Dictionary<string, string>> Parts(IReadOnlyDictionary<string, string> strings)
     {
-        var batches = new List<Dictionary<string, string>>();
-        var batch = new Dictionary<string, string>(StringComparer.Ordinal);
-        var size = 0;
+        var units = strings
+            .GroupBy(pair => UnitOf(pair.Key))
+            .Select(unit => (Pairs: unit.ToList(), Length: unit.Sum(pair => pair.Value.Length)))
+            .ToList();
+        var total = units.Sum(unit => unit.Length);
+        var count = Math.Clamp((total + PartChars - 1) / PartChars, 1, Math.Min(MaxParts, Math.Max(1, units.Count)));
+        var share = (double)total / count;
 
-        foreach (var unit in strings.GroupBy(pair => UnitOf(pair.Key)))
+        var parts = new List<Dictionary<string, string>>();
+        var part = new Dictionary<string, string>(StringComparer.Ordinal);
+        var size = 0;
+        foreach (var (pairs, length) in units)
         {
-            var length = unit.Sum(pair => pair.Value.Length);
-            if (batch.Count > 0 && size + length > BatchChars)
+            // Раздел уходит в следующую часть, если больше его половины не влезло бы в долю этой:
+            // так части выходят ровными, а не «полная, полная и остаток».
+            if (part.Count > 0 && parts.Count < count - 1 && size + length / 2.0 > share)
             {
-                batches.Add(batch);
-                batch = new Dictionary<string, string>(StringComparer.Ordinal);
+                parts.Add(part);
+                part = new Dictionary<string, string>(StringComparer.Ordinal);
                 size = 0;
             }
 
-            foreach (var (key, value) in unit)
+            foreach (var (key, value) in pairs)
             {
-                batch[key] = value;
+                part[key] = value;
             }
 
             size += length;
         }
 
-        if (batch.Count > 0)
+        if (part.Count > 0)
         {
-            batches.Add(batch);
+            parts.Add(part);
         }
 
-        return batches;
+        return parts;
     }
 
     private static string TitleKey(int index) => "s" + index.ToString(CultureInfo.InvariantCulture) + ".title";
@@ -157,18 +175,18 @@ internal static class ReleaseNotesTranslator
 
     private static string UnitOf(string key) => key.Split('.')[0];
 
-    private static async Task<Dictionary<string, string>> TranslateBatchAsync(
+    private static async Task<Dictionary<string, string>> TranslatePartAsync(
         VeniceClient client,
         string modelId,
         ApiCredential? credential,
-        Dictionary<string, string> batch,
+        Dictionary<string, string> part,
         string languageName,
         CancellationToken cancellationToken)
     {
         var payload = new StringBuilder()
             .Append("Target language: ").AppendLine(languageName)
             .AppendLine("Translate the values of this object:")
-            .Append(JsonSerializer.Serialize(batch, AppJson.Options))
+            .Append(JsonSerializer.Serialize(part, AppJson.Options))
             .ToString();
 
         using var charge = VeniceClient.ChargeAs(VeniceSku.Translate);
@@ -195,7 +213,7 @@ internal static class ReleaseNotesTranslator
                 .ConfigureAwait(false);
 
             var text = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "";
-            return LanguageTranslator.Accept(batch, ReasoningSplit.Split(text).Answer);
+            return LanguageTranslator.Accept(part, ReasoningSplit.Split(text).Answer);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -204,7 +222,7 @@ internal static class ReleaseNotesTranslator
         catch (Exception)
         {
             // Ловится целиком: перевод заметок — удобство, и отказ провайдера, обрыв сети или
-            // тайм-аут клиента значат лишь, что эта партия останется английской.
+            // тайм-аут клиента значат лишь, что эта часть останется английской.
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
     }

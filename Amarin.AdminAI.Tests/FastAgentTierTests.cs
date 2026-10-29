@@ -55,12 +55,12 @@ public sealed class FastAgentTierTests
     }
 
     [Fact]
-    public void The_shipped_default_is_minimax_flash_nitro_on_medium()
+    public void The_shipped_default_is_minimax_flash_nitro_on_low()
     {
-        // 1.37.0-beta.8: быстрый агент — та же быстрая модель, что у чата, на среднем уровне.
+        // 1.37.0-beta.8: быстрый агент — MiniMax Flash nitro; 1.37.1 — на низком уровне, как у человека.
         Assert.Equal("openrouter:minimax/minimax-m3.1-flash:nitro", AppSettings.CreateDefault().AgentFastModelId);
         Assert.False(AppSettings.CreateDefault().AgentFastReasoning.DisableThinking);
-        Assert.Equal("medium", AppSettings.CreateDefault().AgentFastReasoning.ReasoningEffort);
+        Assert.Equal("low", AppSettings.CreateDefault().AgentFastReasoning.ReasoningEffort);
     }
 
     [Fact]

@@ -10,6 +10,10 @@ public partial class AgentBrowserWindow : Window
     public AgentBrowserWindow()
     {
         InitializeComponent();
+
+        // Человек закрыл окно, пока его ждали: ждать «Готово» больше нечего. До 1.37.1 ожидание
+        // тянулось до своего срока, десять минут, и агент всё это время стоял.
+        Closed += (_, _) => EndHandoff();
     }
 
     internal void ShowAddress(string? url) => AddressText.Text = url ?? "";

@@ -1,0 +1,36 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        «Что нового» (1.37.1), тёмная тема Windows: цвета концепта «Капля» (1-drop-dark.html). Фон почти
+        чёрный, карточка на тон светлее, перья белые; красный ярче — на тёмном тот же оттенок темнел бы
+        и терял контур. У белого пера блик темнее тела: свет и тень меняются местами вместе с цветом.
+    -->
+    <SolidColorBrush x:Key="WhatsNew.Back" Color="#111114"/>
+    <SolidColorBrush x:Key="WhatsNew.Card" Color="#19191D"/>
+    <SolidColorBrush x:Key="WhatsNew.Edge" Color="#17FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Line" Color="#12FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Text1" Color="#F3F3F5"/>
+    <SolidColorBrush x:Key="WhatsNew.Text2" Color="#C9C9D1"/>
+    <SolidColorBrush x:Key="WhatsNew.Text3" Color="#8F8F9A"/>
+    <SolidColorBrush x:Key="WhatsNew.Text4" Color="#6C6C77"/>
+    <SolidColorBrush x:Key="WhatsNew.Red" Color="#F0384B"/>
+    <SolidColorBrush x:Key="WhatsNew.RedHover" Color="#FF4D5F"/>
+    <SolidColorBrush x:Key="WhatsNew.RedPressed" Color="#D42E40"/>
+    <SolidColorBrush x:Key="WhatsNew.RedTint" Color="#26F0384B"/>
+    <SolidColorBrush x:Key="WhatsNew.RedInk" Color="#FF8592"/>
+    <SolidColorBrush x:Key="WhatsNew.OkText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Hover" Color="#0AFFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.On" Color="#12FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Marker" Color="#4B4B55"/>
+    <SolidColorBrush x:Key="WhatsNew.Thumb" Color="#29FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Code" Color="#F3F3F5"/>
+    <SolidColorBrush x:Key="WhatsNew.CodeBack" Color="#12FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.SegmentOn" Color="#1FFFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.SegmentEdge" Color="#00000000"/>
+    <SolidColorBrush x:Key="WhatsNew.FlagEdge" Color="#24FFFFFF"/>
+    <SolidColorBrush x:Key="WhatsNew.Feather" Color="#F2F2F5"/>
+    <SolidColorBrush x:Key="WhatsNew.Sheen" Color="#DCDCE3"/>
+    <SolidColorBrush x:Key="WhatsNew.Shaft" Color="#A3A3AE"/>
+    <!-- Тень карточки: прозрачность цвета — густота у середины (rgba(0,0,0,.7) концепта). -->
+    <SolidColorBrush x:Key="WhatsNew.Shadow" Color="#B3000000"/>
+</ResourceDictionary>

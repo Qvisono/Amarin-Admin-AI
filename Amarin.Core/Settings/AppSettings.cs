@@ -302,10 +302,16 @@ public sealed class AppSettings : IJsonOnDeserializing
     public const string ShippedHeavyModelId = "openrouter:anthropic/claude-sonnet-5.5";
 
     /// <summary>
-    /// Быстрая модель чата и агента: MiniMax Flash у самого быстрого провайдера OpenRouter (nitro).
-    /// У Venice — та же модель без nitro (<see cref="ModelSlotDefaults"/>).
+    /// Быстрая модель чата (1.37.1, ревизия 5): DeepSeek V4 Flash без размышления — как в профиле
+    /// человека. У Venice — та же модель семейством.
     /// </summary>
-    public const string ShippedFastModelId = "openrouter:minimax/minimax-m3.1-flash:nitro";
+    public const string ShippedFastModelId = "openrouter:deepseek/deepseek-v4-flash-0731";
+
+    /// <summary>
+    /// Быстрая модель агента: MiniMax Flash у самого быстрого провайдера OpenRouter (nitro). У Venice —
+    /// та же модель без nitro (<see cref="ModelSlotDefaults"/>).
+    /// </summary>
+    public const string ShippedAgentFastModelId = "openrouter:minimax/minimax-m3.1-flash:nitro";
 
     public const string ShippedTitleModelId = "openrouter:deepseek/deepseek-v4-flash-0731";
 
@@ -328,10 +334,11 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
     /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз. Номер
     /// растёт с каждой новой заменой: 2 — 1.35.0-beta.1 (Claude, Jev 1.13), 3 — beta.2 (Jev 1.14,
-    /// Aion 3.5 Mini у Розы), 4 — 1.37.0-beta.8 (модели OpenRouter, быстрая модель чата, голос);
-    /// профиль, прошедший прежнюю, проходит и новую.
+    /// Aion 3.5 Mini у Розы), 4 — 1.37.0-beta.8 (модели OpenRouter, быстрая модель чата, голос),
+    /// 5 — 1.37.1 (модели и размышление профиля человека, разговор с агентом в чате, поиск через
+    /// OpenRouter); профиль, прошедший прежнюю, проходит и новую.
     /// </summary>
-    public const int CurrentFactoryModels = 4;
+    public const int CurrentFactoryModels = 5;
 
     /// <summary>
     /// Какие заводские модели уже стоят у этого профиля. Отметка нужна, потому что заводская
@@ -363,11 +370,8 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </summary>
     public string FastModelId { get; set; } = ShippedFastModelId;
 
-    public ReasoningSettings FastReasoning { get; set; } = new()
-    {
-        DisableThinking = false,
-        ReasoningEffort = "medium"
-    };
+    /// <summary>Быстрой модели думать незачем (1.37.1): в этот слот уходят ответы, которым размышление не нужно.</summary>
+    public ReasoningSettings FastReasoning { get; set; } = new() { DisableThinking = true };
 
     public string LiteModelId { get; set; } = ShippedLiteModelId;
 
@@ -382,7 +386,7 @@ public sealed class AppSettings : IJsonOnDeserializing
     public ReasoningSettings HeavyReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "medium"
+        ReasoningEffort = "low"
     };
 
     public string RouterModelId { get; set; } = FactoryDecisionModelId;
@@ -407,14 +411,15 @@ public sealed class AppSettings : IJsonOnDeserializing
     public const string DefaultFastModelId = "deepseek-v4-flash-0731";
 
     /// <summary>
-    /// Быстрый уровень агента: та же быстрая модель, что у чата (1.37.0).
+    /// Быстрый уровень агента: MiniMax Flash (1.37.0). С 1.37.1 у чата своя быстрая модель — агенту
+    /// нужны инструменты, а ответу без размышления хватает DeepSeek Flash.
     /// </summary>
-    public string AgentFastModelId { get; set; } = ShippedFastModelId;
+    public string AgentFastModelId { get; set; } = ShippedAgentFastModelId;
 
     public ReasoningSettings AgentFastReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "medium"
+        ReasoningEffort = "low"
     };
 
     public string AgentLiteModelId { get; set; } = ShippedLiteModelId;
@@ -430,7 +435,7 @@ public sealed class AppSettings : IJsonOnDeserializing
     public ReasoningSettings AgentHeavyReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "high"
+        ReasoningEffort = "medium"
     };
 
     /// <summary>
@@ -567,10 +572,10 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// <summary>Сколько живёт разговор чата с агентом (1.37.0).</summary>
     /// <remarks>
     /// До 1.37.0 разговор кончался вместе с ответом, в котором агента запустили; теперь это
-    /// <see cref="AgentMemory.Answer"/>. Заводское — пока открыта программа: так чат может
-    /// написать агенту прошлого ответа, а на диск история агентов не ложится.
+    /// <see cref="AgentMemory.Answer"/>. Заводское с 1.37.1 — сохранять в чате, как у человека: чат
+    /// пишет агентам прошлых ответов и после перезапуска (до 1.37.1 — пока открыта программа).
     /// </remarks>
-    public AgentMemory AgentMemory { get; set; } = AgentMemory.Session;
+    public AgentMemory AgentMemory { get; set; } = AgentMemory.Chat;
 
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();
@@ -758,6 +763,10 @@ public sealed class AppSettings : IJsonOnDeserializing
         ChatModelId = VeniceModelCatalog.AutoId,
         SummaryModelId = ShippedLiteModelId,
         SummaryReasoning = FactorySummaryReasoning(),
-        SpeechModel = VeniceModelCatalog.AutoId
+        SpeechModel = VeniceModelCatalog.AutoId,
+
+        // Поиск через OpenRouter (1.37.1), как у человека. Не значением свойства: пустое в файле —
+        // это выбор «Авто», и прочитанный старый файл должен его сохранить.
+        WebSearchProvider = LlmProvider.OpenRouter
     };
 }

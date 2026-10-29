@@ -76,22 +76,74 @@ public sealed class ReleaseNotesOutlineTests
     }
 
     [Fact]
-    public void Batches_never_split_a_section_and_stay_near_the_size_limit()
+    public void Short_notes_go_in_one_request()
     {
-        var body = new string('x', ReleaseNotesTranslator.BatchChars / 2);
-        var notes = "# 1.0.0\n\nIntro.\n" + string.Concat(Enumerable.Range(0, 5).Select(i => $"\n## S{i}\n\n{body}\n"));
-        var batches = ReleaseNotesTranslator.Batches(ReleaseNotesTranslator.ToStrings(ReleaseNotesOutline.Parse(notes)));
+        var notes = "# 1.0.0\n\nIntro.\n\n## Chat\n\n- One.\n\n## Voice\n\n- Two.";
 
-        Assert.True(batches.Count >= 3);
-        foreach (var batch in batches)
+        var parts = ReleaseNotesTranslator.Parts(ReleaseNotesTranslator.ToStrings(ReleaseNotesOutline.Parse(notes)));
+
+        Assert.Single(parts);
+        Assert.Equal(5, parts[0].Count);
+    }
+
+    [Theory]
+    [InlineData(3, 2)]
+    [InlineData(5, 3)]
+    [InlineData(13, 4)]
+    [InlineData(40, 4)]
+    public void Long_notes_are_shared_by_up_to_four_requests_in_even_parts(int sections, int expected)
+    {
+        // Раздел по ~700 знаков: по части на 1500, но не больше четырёх.
+        var body = string.Concat(Enumerable.Range(0, 15).Select(k => $"- Point {k} of a section, long enough to count.\n"));
+        var notes = "# 1.0.0\n\nIntro.\n" + string.Concat(Enumerable.Range(0, sections).Select(i => $"\n## S{i}\n\n{body}"));
+        var strings = ReleaseNotesTranslator.ToStrings(ReleaseNotesOutline.Parse(notes));
+
+        var parts = ReleaseNotesTranslator.Parts(strings);
+
+        Assert.Equal(expected, parts.Count);
+        Assert.InRange(parts.Count, 1, ReleaseNotesTranslator.MaxParts);
+
+        // Ничего не потеряно, и порядок заметок сохранён.
+        Assert.Equal(strings.Keys, parts.SelectMany(part => part.Keys));
+
+        // Раздел не делится: заголовок и тело — в одной части.
+        foreach (var part in parts)
         {
-            foreach (var key in batch.Keys.Where(key => key.EndsWith(".title", StringComparison.Ordinal)))
+            foreach (var key in part.Keys.Where(key => key.EndsWith(".title", StringComparison.Ordinal)))
             {
-                Assert.Contains(key.Replace(".title", ".body", StringComparison.Ordinal), batch.Keys);
+                Assert.Contains(key.Replace(".title", ".body", StringComparison.Ordinal), part.Keys);
             }
         }
 
-        Assert.Equal(11, batches.Sum(batch => batch.Count));
+        // Части ровные: самая длинная больше самой короткой не больше чем на два раздела.
+        var sizes = parts.Select(part => part.Values.Sum(value => value.Length)).ToList();
+        Assert.True(sizes.Max() - sizes.Min() <= 2 * (body.Length + 10), string.Join(", ", sizes));
+    }
+
+    [Fact]
+    public async Task Every_part_is_its_own_request_and_all_come_back_together()
+    {
+        var body = string.Concat(Enumerable.Range(0, 15).Select(k => $"- Point {k} of a section, long enough to count.\n"));
+        var outline = ReleaseNotesOutline.Parse(
+            "# 1.0.0\n" + string.Concat(Enumerable.Range(0, 8).Select(i => $"\n## S{i}\n\n{body}")));
+        var requests = 0;
+        using var http = Client(asked =>
+        {
+            Interlocked.Increment(ref requests);
+
+            // Ответ — заголовки той части, что пришла: ключи s<N>.title из самого запроса.
+            var titles = System.Text.RegularExpressions.Regex.Matches(asked, @"s(\d+)\.title")
+                .Select(match => match.Groups[1].Value)
+                .Distinct()
+                .ToDictionary(index => $"s{index}.title", index => $"Раздел {index}");
+            return Reply(JsonSerializer.Serialize(titles));
+        });
+
+        var result = await ReleaseNotesTranslator.TranslateAsync(http.Client, "model", null, outline, "Русский", CancellationToken.None);
+
+        Assert.Equal(ReleaseNotesTranslator.MaxParts, requests);
+        Assert.NotNull(result);
+        Assert.Equal(Enumerable.Range(0, 8).Select(i => $"Раздел {i}"), result.Sections.Select(section => section.Title));
     }
 
     [Fact]

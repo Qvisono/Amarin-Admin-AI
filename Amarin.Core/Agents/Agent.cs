@@ -217,6 +217,14 @@ These rules hold whatever the instructions above say about refusing, asking or g
     internal Func<IReadOnlyList<JsonElement>, string?>? GuardPage { get; init; }
 
     /// <summary>
+    /// Что сказать модели, которая собралась закончить работу: не <c>null</c> — текст уходит ей
+    /// сообщением, и работа продолжается. Спрашивается один раз за прогон (1.37.1): так браузер
+    /// агента напоминает о странице входа, которую модель бросала, написав «войдите сами», — окно
+    /// закрывалось вместе с работой.
+    /// </summary>
+    internal Func<string?>? BeforeFinish { get; init; }
+
+    /// <summary>
     /// Вызовы раунда, помеченные защитником: которые человек не разрешил и которые разрешил.
     /// Оба множества пусты, когда защита выключена или ничего не помечено.
     /// </summary>
@@ -509,6 +517,11 @@ These rules hold whatever the instructions above say about refusing, asking or g
                     if (!string.IsNullOrWhiteSpace(text))
                     {
                         _ui.AssistantMessage(text);
+                        if (round < rounds && RemindBeforeFinish(messages))
+                        {
+                            continue;
+                        }
+
                         return OkResult(text);
                     }
 
@@ -744,6 +757,11 @@ These rules hold whatever the instructions above say about refusing, asking or g
                     return OkResult(null);
                 }
 
+                if (round < _options.MaxToolRounds && RemindBeforeFinish(messages))
+                {
+                    continue;
+                }
+
                 finalAssistantText = assistantText;
                 CompleteRequest();
                 SaveSessionHistory(messages);
@@ -858,6 +876,24 @@ These rules hold whatever the instructions above say about refusing, asking or g
                     : ToolResult.Fail("Not run: you refused the task in the same reply.")));
         }
     }
+
+    /// <summary>
+    /// Напоминание <see cref="BeforeFinish"/> перед концом работы, один раз за прогон: true — оно
+    /// ушло модели сообщением, и цикл продолжается, как после пустого ответа.
+    /// </summary>
+    private bool RemindBeforeFinish(List<ChatMessage> messages)
+    {
+        if (_finishReminded || BeforeFinish?.Invoke() is not { Length: > 0 } reminder)
+        {
+            return false;
+        }
+
+        _finishReminded = true;
+        messages.Add(new ChatMessage { Role = "user", Content = ChatContent.Text(reminder) });
+        return true;
+    }
+
+    private bool _finishReminded;
 
     private static string? ExtractAssistantText(ChatMessage message, string? finishReason)
     {

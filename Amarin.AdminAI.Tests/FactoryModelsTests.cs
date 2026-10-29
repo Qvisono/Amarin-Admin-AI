@@ -57,22 +57,23 @@ public sealed class FactoryModelsTests : IDisposable
     {
         var settings = AppSettings.CreateDefault();
 
-        // 1.37.0-beta.8: модели OpenRouter — он приоритетнее.
+        // 1.37.0-beta.8: модели OpenRouter — он приоритетнее. 1.37.1: модели и размышление профиля человека.
         Assert.Equal(VeniceModelCatalog.AutoId, settings.ChatModelId);
-        Assert.Equal(("openrouter:minimax/minimax-m3.1-flash:nitro", "medium"), (settings.FastModelId, settings.FastReasoning.ReasoningEffort));
+        Assert.Equal(("openrouter:deepseek/deepseek-v4-flash-0731", true), (settings.FastModelId, settings.FastReasoning.DisableThinking));
         Assert.Equal(("openrouter:anthropic/claude-haiku-5.5", "medium"), (settings.LiteModelId, settings.LiteReasoning.ReasoningEffort));
-        Assert.Equal(("openrouter:anthropic/claude-sonnet-5.5", "medium"), (settings.HeavyModelId, settings.HeavyReasoning.ReasoningEffort));
+        Assert.Equal(("openrouter:anthropic/claude-sonnet-5.5", "low"), (settings.HeavyModelId, settings.HeavyReasoning.ReasoningEffort));
         Assert.Equal(("openrouter:typesafe/jev-1.14", true), (settings.RouterModelId, settings.RouterReasoning.DisableThinking));
         Assert.Equal(("openrouter:typesafe/jev-1.14", true), (settings.SynGuardModelId, settings.SynGuardReasoning.DisableThinking));
         Assert.Equal(("openrouter:anthropic/claude-haiku-5.5", true), (settings.FoxModelId, settings.FoxReasoning.DisableThinking));
-        Assert.Equal(("openrouter:minimax/minimax-m3.1-flash:nitro", "medium"), (settings.AgentFastModelId, settings.AgentFastReasoning.ReasoningEffort));
+        Assert.Equal(("openrouter:minimax/minimax-m3.1-flash:nitro", "low"), (settings.AgentFastModelId, settings.AgentFastReasoning.ReasoningEffort));
         Assert.False(settings.AgentFastReasoning.DisableThinking);
         Assert.Equal(("openrouter:anthropic/claude-haiku-5.5", "medium"), (settings.AgentLiteModelId, settings.AgentLiteReasoning.ReasoningEffort));
-        Assert.Equal(("openrouter:anthropic/claude-sonnet-5.5", "high"), (settings.AgentHeavyModelId, settings.AgentHeavyReasoning.ReasoningEffort));
+        Assert.Equal(("openrouter:anthropic/claude-sonnet-5.5", "medium"), (settings.AgentHeavyModelId, settings.AgentHeavyReasoning.ReasoningEffort));
         Assert.Equal(("openrouter:deepseek/deepseek-v4-flash-0731", true), (settings.TitleModelId, settings.TitleReasoning.DisableThinking));
         Assert.Equal(("openrouter:anthropic/claude-haiku-5.5", "low"), (settings.SummaryModelId, settings.SummaryReasoning.ReasoningEffort));
         Assert.Equal(("openrouter:x-ai/grok-4.3", "low"), (settings.BypassModelId, settings.BypassReasoning.ReasoningEffort));
-        Assert.Null(settings.WebSearchProvider);
+        Assert.Equal(LlmProvider.OpenRouter, settings.WebSearchProvider);
+        Assert.Equal(AgentMemory.Chat, settings.AgentMemory);
         Assert.Null(settings.VoiceModel);
         Assert.Equal((VeniceModelCatalog.AutoId, (string?)null, 0), (settings.SpeechModel, settings.SpeechVoice, settings.SpeechRate));
         Assert.Equal(AppSettings.CurrentFactoryModels, settings.FactoryModelsRevision);
@@ -107,13 +108,13 @@ public sealed class FactoryModelsTests : IDisposable
         Assert.Equal(AppSettings.CreateDefault().LiteModelId, settings.LiteModelId);
         Assert.Equal("medium", settings.LiteReasoning.ReasoningEffort);
         Assert.Equal(AppSettings.ShippedHeavyModelId, settings.HeavyModelId);
-        Assert.Equal("medium", settings.HeavyReasoning.ReasoningEffort);
+        Assert.Equal("low", settings.HeavyReasoning.ReasoningEffort);
         Assert.Equal(AppSettings.FactoryDecisionModelId, settings.RouterModelId);
         Assert.True(settings.RouterReasoning.DisableThinking);
-        Assert.Equal(AppSettings.ShippedFastModelId, settings.AgentFastModelId);
-        Assert.Equal("medium", settings.AgentFastReasoning.ReasoningEffort);
+        Assert.Equal(AppSettings.ShippedAgentFastModelId, settings.AgentFastModelId);
+        Assert.Equal("low", settings.AgentFastReasoning.ReasoningEffort);
         Assert.Equal(AppSettings.ShippedHeavyModelId, settings.AgentHeavyModelId);
-        Assert.Equal("high", settings.AgentHeavyReasoning.ReasoningEffort);
+        Assert.Equal("medium", settings.AgentHeavyReasoning.ReasoningEffort);
         Assert.Equal(AppSettings.ShippedLiteModelId, settings.SummaryModelId);
         Assert.Equal("low", settings.SummaryReasoning.ReasoningEffort);
         Assert.Equal(AppSettings.ShippedFastModelId, settings.FastModelId);
@@ -134,11 +135,11 @@ public sealed class FactoryModelsTests : IDisposable
         var settings = LoadFile(json);
 
         Assert.Equal(AppSettings.ShippedHeavyModelId, settings.HeavyModelId);
-        Assert.Equal("medium", settings.HeavyReasoning.ReasoningEffort);
+        Assert.Equal("low", settings.HeavyReasoning.ReasoningEffort);
 
         // В этой миграции ручное размышление тоже заменяется.
         Assert.Equal(AppSettings.ShippedHeavyModelId, settings.AgentHeavyModelId);
-        Assert.Equal("high", settings.AgentHeavyReasoning.ReasoningEffort);
+        Assert.Equal("medium", settings.AgentHeavyReasoning.ReasoningEffort);
     }
 
     /// <summary>Вернувший себе прежнюю модель после замены её не теряет на следующем запуске.</summary>
@@ -185,13 +186,15 @@ public sealed class FactoryModelsTests : IDisposable
 
     /// <remarks>
     /// Ревизия 2 — профиль, уже прошедший замену beta.1: beta.2 меняет его модели ещё раз. Ревизия 3 —
-    /// прошедший и её: ревизия 4 (1.37.0-beta.8) меняет модели и голос, но SynGuard и поиск не трогает.
+    /// прошедший и её: ревизия 4 (1.37.0-beta.8) меняет модели и голос, но SynGuard не трогает.
+    /// Ревизия 5 (1.37.1) ставит всем поиск через OpenRouter и разговор с агентом в чате.
     /// </remarks>
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    [InlineData(4)]
     public void Beta_resets_every_slot_in_each_profile_once_and_preserves_other_settings(int revision)
     {
         foreach (var profile in new[] { "first", "second" })
@@ -209,6 +212,7 @@ public sealed class FactoryModelsTests : IDisposable
             settings.SpeechModel = "tts-kokoro";
             settings.SpeechVoice = "af_sky";
             settings.SpeechRate = 3;
+            settings.AgentMemory = AgentMemory.Answer;
             foreach (var (slot, _, write) in ModelSlots.All)
             {
                 write(settings, "custom-model");
@@ -225,12 +229,13 @@ public sealed class FactoryModelsTests : IDisposable
             }
             Assert.Equal("keep my instructions", loaded.MainPrompt);
             Assert.Equal(ApprovalMode.ReadOnly, loaded.ApprovalMode);
-            Assert.Equal(revision < 3 ? null : LlmProvider.OpenRouter, loaded.WebSearchProvider);
-            Assert.Equal(revision < 3 ? null : "old-search-key", loaded.WebSearchKeyId);
+            Assert.Equal(LlmProvider.OpenRouter, loaded.WebSearchProvider);
+            Assert.Null(loaded.WebSearchKeyId);
+            Assert.Equal(AgentMemory.Chat, loaded.AgentMemory);
             Assert.Equal(revision < 3, loaded.SynGuardEnabled);
             Assert.Null(loaded.VoiceModel);
             Assert.Equal((VeniceModelCatalog.AutoId, (string?)null, 0), (loaded.SpeechModel, loaded.SpeechVoice, loaded.SpeechRate));
-            Assert.Equal("medium", loaded.FastReasoning.ReasoningEffort);
+            Assert.True(loaded.FastReasoning.DisableThinking);
             Assert.True(loaded.SynGuardReasoning.DisableThinking);
             Assert.Equal(AppSettings.CurrentFactoryModels, loaded.FactoryModelsRevision);
 
@@ -350,7 +355,7 @@ public sealed class FactoryModelsTests : IDisposable
 
     /// <summary>
     /// 1.37.0-beta.8: у человека только с ключом Venice заводские модели OpenRouter переезжают к Venice:
-    /// та же модель семейством, а у быстрой и обхода своя модель Venice.
+    /// та же модель семейством, а у быстрого агента и обхода своя модель Venice.
     /// </summary>
     [Fact]
     public void Openrouter_defaults_move_to_venice_for_a_venice_only_key()
@@ -365,7 +370,7 @@ public sealed class FactoryModelsTests : IDisposable
             provider => provider == LlmProvider.Venice, _ => true);
 
         Assert.True(changed);
-        Assert.Equal("minimax-m3-1-flash", settings.FastModelId);
+        Assert.Equal("deepseek-v4-flash-0731", settings.FastModelId);
         Assert.Equal("minimax-m3-1-flash", settings.AgentFastModelId);
         Assert.Equal("claude-haiku-5-5", settings.LiteModelId);
         Assert.Equal("claude-sonnet-5-5", settings.HeavyModelId);

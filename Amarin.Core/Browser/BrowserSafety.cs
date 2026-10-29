@@ -66,8 +66,9 @@ internal static class BrowserSafety
     /// <summary>Отказ ввода: поле пароля.</summary>
     public static string? TypeRefusal(BrowserElement element) =>
         element.Password
-            ? "This is a password field: the browser never types passwords. Ask the person to sign in themselves: " +
-              "call the browser with action=handoff and a caption that says what to do, then continue."
+            ? "This is a password field: the browser never types passwords, the person signs in. Call the browser " +
+              "with action=handoff and a caption that says what to do, wait for Done, then continue. Do not end your " +
+              "work to ask for the sign-in: the browser window closes when your work ends."
             : null;
 
     /// <summary>Отказ, когда рядом нет человека, а действие ждёт его.</summary>

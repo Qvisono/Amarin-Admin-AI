@@ -178,6 +178,16 @@ internal sealed class BrowserSession : IDisposable
     /// <summary>Сколько знаков значения поля видит защитник.</summary>
     private const int FieldValueLimit = 600;
 
+    /// <summary>
+    /// Напоминание агенту перед концом работы, если окно осталось на странице входа (1.37.1):
+    /// рядом человек, окно открыто, а на последней прочитанной странице есть поле пароля. Иначе
+    /// <c>null</c> — напоминать не о чем.
+    /// </summary>
+    public string? SignInLeftOpen() =>
+        !Unattended && !_disposed && _port is { ClosedByHuman: false } && Page?.Elements.Any(element => element.Password) == true
+            ? BrowserPrompt.SignInPending
+            : null;
+
     public void Dispose()
     {
         if (_disposed)

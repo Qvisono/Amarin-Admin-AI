@@ -2,14 +2,17 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Amarin.Core;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Окно «Что нового» (1.37.0): колонка разделов из заметок, подсветка раздела под мышью,
-/// переход по щелчку, язык заметок и закрытие.
+/// Окно «Что нового»: колонка разделов из заметок, подсветка раздела под мышью, переход по щелчку,
+/// язык заметок и закрытие; с 1.37.1 — сцена «Капля», палитра по теме Windows, чёткость карточки и
+/// перевод, который нельзя оплатить дважды.
 /// </summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
@@ -58,7 +61,7 @@ public sealed class WhatsNewSheetTests : IDisposable
             Assert.Empty(window.WhatsNewHost.Children);
             Assert.Equal(Visibility.Collapsed, window.WhatsNewHost.Visibility);
             Assert.Null(typeof(MainWindow).GetField("_whatsNew", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window));
-            Assert.False(sheet.Curtain.Running);
+            Assert.False(sheet.Scene.Running);
         }
         finally
         {
@@ -154,7 +157,7 @@ public sealed class WhatsNewSheetTests : IDisposable
     [Fact]
     public void Escape_starts_the_leave_and_the_scene_stops_drawing_when_it_ends() => With(null, sheet =>
     {
-        Assert.True(sheet.Curtain.Running);
+        Assert.True(sheet.Scene.Running);
         var closed = false;
         sheet.Closed += () => closed = true;
 
@@ -166,17 +169,17 @@ public sealed class WhatsNewSheetTests : IDisposable
         Assert.False(closed);
 
         // Второй Esc уход не перезапускает.
-        var leaveAt = sheet.Curtain.LeaveAt;
+        var leaveAt = sheet.Scene.LeaveAt;
         Escape(sheet);
-        Assert.Equal(leaveAt, sheet.Curtain.LeaveAt);
+        Assert.Equal(leaveAt, sheet.Scene.LeaveAt);
 
-        sheet.Curtain.Freeze(leaveAt!.Value + WhatsNewCurtain.LeaveTime / 2);
+        sheet.Scene.Freeze(leaveAt!.Value + WhatsNewDrop.LeaveTime / 2);
         Assert.InRange(sheet.Card.Opacity, 0, .01);
         Assert.False(closed);
 
-        sheet.Curtain.Freeze(leaveAt.Value + WhatsNewCurtain.LeaveTime);
+        sheet.Scene.Freeze(leaveAt.Value + WhatsNewDrop.LeaveTime);
         Assert.True(closed);
-        Assert.False(sheet.Curtain.Running);
+        Assert.False(sheet.Scene.Running);
         Assert.Equal(Visibility.Collapsed, sheet.Visibility);
         Assert.True(sheet.IsHitTestVisible);
     }, animations: true);
@@ -202,14 +205,135 @@ public sealed class WhatsNewSheetTests : IDisposable
     [Fact]
     public void Without_animations_the_card_is_shown_at_once() => With(null, sheet =>
     {
-        Assert.False(sheet.Curtain.Running);
+        Assert.False(sheet.Scene.Running);
         Assert.Equal(1, sheet.Card.Opacity, 3);
     });
+
+    /// <summary>
+    /// 1.37.1: окно было мыльным — карточка шла растровым кэшем поверх стекла. Теперь она рисуется
+    /// вживую, без кэша и эффектов, и в покое её масштаб и сдвиг ровно единичные.
+    /// </summary>
+    [Fact]
+    public void The_card_is_drawn_live_and_rests_exactly_on_the_pixel_grid() => With(null, sheet =>
+    {
+        sheet.Scene.Freeze(5);
+
+        Assert.Null(sheet.Card.CacheMode);
+        Assert.Null(sheet.Card.Effect);
+        Assert.True(sheet.Card.UseLayoutRounding);
+        Assert.Equal(1, sheet.Card.Opacity);
+        Assert.Equal(1, sheet.CardScale.ScaleX);
+        Assert.Equal(1, sheet.CardScale.ScaleY);
+        Assert.Equal(0, sheet.CardShift.Y);
+    }, animations: true);
+
+    /// <summary>1.37.1: окно должно появляться сразу — карточка видна меньше чем через полсекунды.</summary>
+    [Fact]
+    public void The_card_appears_within_half_a_second() => With(null, sheet =>
+    {
+        sheet.Scene.Freeze(0);
+        Assert.Equal(0, sheet.Card.Opacity, 3);
+
+        sheet.Scene.Freeze(.3);
+        Assert.InRange(sheet.Card.Opacity, .5, 1);
+
+        sheet.Scene.Freeze(.52);
+        Assert.Equal(1, sheet.Card.Opacity);
+    }, animations: true);
+
+    [Theory]
+    [InlineData(false, "#FFFFFFFF", "#FF141416")]
+    [InlineData(true, "#FF111114", "#FFF2F2F5")]
+    public void The_sheet_takes_the_light_or_dark_palette_of_the_concept(bool dark, string back, string feather) =>
+        With(null, sheet =>
+        {
+            Assert.Equal(dark, sheet.Dark);
+            Assert.Equal(back, ((SolidColorBrush)sheet.Scene.Fill!).Color.ToString());
+            Assert.Equal(feather, ((SolidColorBrush)sheet.Scene.Feather!).Color.ToString());
+        }, dark: dark);
+
+    [Fact]
+    public void Both_palettes_have_the_same_keys() => _wpf.Ui.Invoke(() =>
+    {
+        var light = Palette("Light");
+        var dark = Palette("Dark");
+
+        Assert.Equal(light.Keys.Cast<string>().Order(), dark.Keys.Cast<string>().Order());
+        Assert.All(light.Keys.Cast<string>(), key => Assert.StartsWith("WhatsNew.", key, StringComparison.Ordinal));
+        return true;
+    });
+
+    /// <summary>
+    /// 1.37.1: пока перевод идёт, язык не переключить — ни мышью, ни клавиатурой, — и второй запрос
+    /// не уходит. До этого пробел на кнопке языка отменял уже оплаченный запрос и отправлял новый.
+    /// </summary>
+    [Fact]
+    public void A_translation_in_progress_is_paid_once_whatever_is_pressed()
+    {
+        var calls = 0;
+        var answer = new TaskCompletionSource<ReleaseNotesOutline?>();
+        var translation = new WhatsNewTranslation("Русский", true, (outline, _) =>
+        {
+            calls++;
+            return answer.Task.ContinueWith(
+                _ => (ReleaseNotesOutline?)ReleaseNotesTranslator.FromStrings(
+                    outline, new Dictionary<string, string> { ["s0.title"] = "Раздел 0" }),
+                TaskScheduler.Default);
+        });
+
+        With(translation, sheet =>
+        {
+            sheet.NativeButton.IsChecked = true;
+            for (var i = 0; i < 5; i++)
+            {
+                // Клавиатура мимо заблокированной мыши: английский возвращается к «Русскому».
+                sheet.EnglishButton.IsChecked = true;
+                Assert.True(sheet.NativeButton.IsChecked);
+                sheet.NativeButton.IsChecked = true;
+            }
+
+            Assert.Equal(1, calls);
+            Assert.Equal("Section 0", FirstItem(sheet));
+            Assert.False(sheet.LanguageSwitch.IsHitTestVisible);
+
+            answer.SetResult(null);
+            PumpUntil(() => FirstItem(sheet) == "Раздел 0");
+
+            // Готовый перевод заново не запрашивается.
+            sheet.EnglishButton.IsChecked = true;
+            sheet.NativeButton.IsChecked = true;
+            Assert.Equal("Раздел 0", FirstItem(sheet));
+            Assert.Equal(1, calls);
+            Assert.True(sheet.LanguageSwitch.IsHitTestVisible);
+        });
+    }
+
+    private static ResourceDictionary Palette(string name) => new()
+    {
+        Source = new Uri(
+            "pack://application:,,,/" + Uri.EscapeDataString(typeof(WhatsNewSheet).Assembly.GetName().Name!) +
+            ";component/UI/WhatsNew." + name + ".xaml",
+            UriKind.Absolute)
+    };
+
+    /// <summary>Крутит очередь окна, пока ответ перевода не вернётся на её поток.</summary>
+    private static void PumpUntil(Func<bool> done)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!done())
+        {
+            Assert.True(watch.ElapsedMilliseconds < 10000, "перевод не вернулся");
+            var frame = new DispatcherFrame();
+            _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.SystemIdle, () => frame.Continue = false);
+            Dispatcher.PushFrame(frame);
+            Thread.Sleep(5);
+        }
+    }
 
     private static string FirstItem(WhatsNewSheet sheet) =>
         (string)sheet.TocPanel.Children.OfType<RadioButton>().First().Content;
 
-    private void With(WhatsNewTranslation? translation, Action<WhatsNewSheet> body, bool animations = false) =>
+    private void With(WhatsNewTranslation? translation, Action<WhatsNewSheet> body, bool animations = false, bool dark = false) =>
         _wpf.Ui.Invoke(() =>
         {
             var motion = UiMotion.Enabled;
@@ -230,7 +354,7 @@ public sealed class WhatsNewSheetTests : IDisposable
             try
             {
                 host.Show();
-                sheet.Show(ReleaseVersion.Parse("1.37.0")!.Value, Notes, translation);
+                sheet.Show(ReleaseVersion.Parse("1.37.0")!.Value, Notes, translation, dark);
                 host.UpdateLayout();
                 body(sheet);
             }

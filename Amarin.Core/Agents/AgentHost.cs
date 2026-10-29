@@ -392,6 +392,7 @@ internal sealed class AgentHost : IAgentHost
                 }.OfType<string>()),
                 GuardScreen = session is null ? null : session.DescribeForGuard,
                 GuardPage = browser is null ? null : browser.DescribeForGuard,
+                BeforeFinish = browser is null ? null : browser.SignInLeftOpen,
                 Prepare = session is null && browser is null ? null : static messages => ComputerHistory.Trim(messages)
             };
 

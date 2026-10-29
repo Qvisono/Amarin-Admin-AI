@@ -117,7 +117,7 @@ public sealed class RouterLiveTests
         {
             ChatModelId = "auto",
             FastModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_FAST")
-                          ?? (provider == LlmProvider.OpenRouter ? AppSettings.ShippedFastModelId : "minimax-m3-1-flash"),
+                          ?? (provider == LlmProvider.OpenRouter ? AppSettings.ShippedFastModelId : AppSettings.DefaultFastModelId),
             LiteModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_LITE") ?? "",
             HeavyModelId = Environment.GetEnvironmentVariable("AMARIN_ROUTER_HEAVY")
                            ?? (provider == LlmProvider.OpenRouter ? AppSettings.ShippedHeavyModelId : "claude-sonnet-5"),

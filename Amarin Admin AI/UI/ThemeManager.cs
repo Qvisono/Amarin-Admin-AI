@@ -181,7 +181,8 @@ internal static class ThemeManager
     /// </summary>
     internal static ResourceDictionary LoadPrintPalette() => Load("Palette.Light");
 
-    private static bool IsSystemLight()
+    /// <summary>У Windows светлая тема приложений. По ней же выбирает палитру «Что нового» (1.37.1).</summary>
+    internal static bool IsSystemLight()
     {
         try
         {

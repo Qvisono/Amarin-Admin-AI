@@ -84,7 +84,7 @@ public sealed class ModelSlotDefaultsTests
     public void Venice_gets_the_same_models_as_the_openrouter_defaults_or_its_own()
     {
         // 1.37.0-beta.8: заводские модели — у OpenRouter; у Venice — та же модель семейством, а у
-        // быстрой и обхода — своя (ShippedElsewhere).
+        // быстрого агента и обхода — своя (ShippedElsewhere). Быстрая чата (1.37.1) — DeepSeek Flash.
         var venice = new[]
         {
             Model("deepseek-v4-flash-0731"), Model("claude-sonnet-5-5"), Model("claude-haiku-5-5"),
@@ -94,7 +94,7 @@ public sealed class ModelSlotDefaultsTests
         Assert.Equal("deepseek-v4-flash-0731", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Title, venice));
         Assert.Equal("claude-sonnet-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Heavy, venice));
         Assert.Equal("claude-haiku-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Fox, venice));
-        Assert.Equal("minimax-m3-1-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Fast, venice));
+        Assert.Equal("deepseek-v4-flash-0731", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Fast, venice));
         Assert.Equal("minimax-m3-1-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.AgentFast, venice));
         Assert.Equal("abliteration-abliterated-model-large-flash", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Bypass, venice));
         Assert.Equal("claude-haiku-5-5", ModelSlotDefaults.Resolve(LlmProvider.Venice, ModelSlot.Lite, catalog: null));

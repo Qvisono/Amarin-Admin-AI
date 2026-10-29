@@ -208,6 +208,43 @@ public sealed class AgentConversationTests
             line.Contains(Refusals.ToolName, StringComparison.Ordinal) || line.Contains("reasons-one", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// 1.37.1: агент, который собрался закончить, получает напоминание один раз и продолжает, а
+    /// второй окончательный ответ принимается. Так браузер напоминает о брошенной странице входа.
+    /// </summary>
+    [Fact]
+    public async Task A_reminder_before_finishing_goes_to_the_model_once_and_the_work_goes_on()
+    {
+        var asked = 0;
+        var options = new AgentOptions { ApiKey = "test", BaseUrl = "https://api.venice.ai/api/v1", Model = "m", MaxToolRounds = 5 };
+        var agent = new Agent(
+            new VeniceClient(
+                new HttpClient(new SequenceHandler([Final("sign in yourself"), Final("done after reminder")], _bodies))
+                {
+                    BaseAddress = new Uri("https://api.venice.ai/api/v1/")
+                },
+                options),
+            new ToolRegistry([new StubTool("fetch_image")]),
+            options,
+            new SilentUi(),
+            new SessionUndoTracker())
+        {
+            Settings = AppSettings.CreateDefault,
+            BeforeFinish = () =>
+            {
+                asked++;
+                return "reminder-text";
+            }
+        };
+
+        var result = await agent.RunAsync("task-text");
+
+        Assert.Equal("done after reminder", result.AssistantText);
+        Assert.Equal(1, asked);
+        Assert.Equal(2, _bodies.Count);
+        Assert.Contains("reminder-text", _bodies[1], StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_new_answer_does_not_see_the_agents_of_the_previous_one()
     {
