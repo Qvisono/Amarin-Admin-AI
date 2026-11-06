@@ -3,7 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace Amarin.Core;
 
-public sealed class ChatCompletionRequest
+/// <remarks>
+/// Запись, а не класс, ради копий через <c>with</c>: копия обязана нести каждое поле, а
+/// перечисление полей руками однажды уже потеряло <c>stream_options</c> в повторе.
+/// </remarks>
+public sealed record ChatCompletionRequest
 {
     [JsonPropertyName("model")]
     public required string Model { get; init; }
@@ -107,6 +111,29 @@ public sealed class ChatCompletionRequest
     /// </summary>
     [JsonIgnore]
     public ReasoningChoice? ReasoningChoice { get; init; }
+
+    /// <summary>
+    /// Чей это разговор: чат или агент. Пусто — запрос разовый (заголовок, маршрутизатор): хвост у
+    /// него больше не повторится, и записывать его в кэш значит платить наценку впустую.
+    /// </summary>
+    /// <remarks>
+    /// Не сериализуется: как назвать разговор, решает описание провайдера
+    /// (<see cref="ProviderSpec.Caching"/>), а прочим серверам поле незнакомо.
+    /// </remarks>
+    [JsonIgnore]
+    public string? CacheKey { get; init; }
+
+    /// <summary>Ключ разговора на проводе (<see cref="PromptCaching.KeyField"/>).</summary>
+    [JsonPropertyName("prompt_cache_key")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PromptCacheKey { get; init; }
+
+    /// <summary>
+    /// Те же сообщения без меток кэша: на них уходит повтор, если сервер меток не знает.
+    /// <c>null</c> — меток в теле нет.
+    /// </summary>
+    [JsonIgnore]
+    public List<ChatMessage>? UnmarkedMessages { get; init; }
 }
 
 /// <summary>Выключатель размышления в виде <c>{"type": "enabled" | "disabled"}</c>.</summary>
@@ -205,6 +232,58 @@ public sealed class VeniceUsage
     /// </remarks>
     [JsonPropertyName("cost")]
     public decimal? Cost { get; set; }
+
+    /// <summary>
+    /// Разбивка токенов запроса. Необязательным разбором, а не типом: у посредников здесь бывает
+    /// что угодно, и ответ модели не должен пропасть из-за поля для учёта.
+    /// </summary>
+    [JsonPropertyName("prompt_tokens_details")]
+    public JsonElement? PromptTokensDetails { get; init; }
+
+    /// <summary>Токены из кэша у DeepSeek.</summary>
+    [JsonPropertyName("prompt_cache_hit_tokens")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? PromptCacheHitTokens { get; init; }
+
+    /// <summary>Токены из кэша верхним полем: так их называют старые модели Kimi.</summary>
+    [JsonPropertyName("cached_tokens")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? TopCachedTokens { get; init; }
+
+    /// <summary>
+    /// Сколько токенов из <see cref="PromptTokens"/> прочитано из кэша. Значение задаёт переводчик
+    /// протокола Anthropic: у него эти числа лежат не в <c>prompt_tokens_details</c>.
+    /// </summary>
+    [JsonIgnore]
+    public int CacheReadTokens
+    {
+        get => _cacheRead ?? Detail("cached_tokens") ?? Count(PromptCacheHitTokens) ?? Count(TopCachedTokens) ?? 0;
+        init => _cacheRead = value;
+    }
+
+    /// <summary>
+    /// Сколько токенов из <see cref="PromptTokens"/> записано в кэш: у части провайдеров запись
+    /// дороже обычного входа.
+    /// </summary>
+    [JsonIgnore]
+    public int CacheWriteTokens
+    {
+        get => _cacheWrite ?? Detail("cache_write_tokens") ?? Detail("cache_creation_input_tokens") ?? 0;
+        init => _cacheWrite = value;
+    }
+
+    private readonly int? _cacheRead;
+    private readonly int? _cacheWrite;
+
+    private static int? Count(decimal? value) =>
+        value is { } number && number >= 0m && number <= int.MaxValue ? (int)number : null;
+
+    private int? Detail(string name) =>
+        PromptTokensDetails is { ValueKind: JsonValueKind.Object } details &&
+        details.TryGetProperty(name, out var value) &&
+        value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var count)
+            ? count
+            : null;
 }
 
 public sealed class VeniceParameters
@@ -610,6 +689,14 @@ public sealed class VeniceModelPricing
 
     [JsonPropertyName("output")]
     public VeniceUnitPrice? Output { get; init; }
+
+    /// <summary>Чтение из кэша. <c>null</c> — каталог не назвал, и токен считается обычным входом.</summary>
+    [JsonPropertyName("cache_input")]
+    public VeniceUnitPrice? CacheInput { get; init; }
+
+    /// <summary>Запись в кэш. <c>null</c> — отдельной цены у записи нет.</summary>
+    [JsonPropertyName("cache_write")]
+    public VeniceUnitPrice? CacheWrite { get; init; }
 }
 
 public sealed class VeniceUnitPrice

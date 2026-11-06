@@ -24,7 +24,14 @@ namespace Amarin.Core;
 /// Правится только копия для запроса: хранимая история (<c>session.ApiMessages</c>), отпечаток
 /// сжатия и экспорт не меняются ни на байт. Последние два хода человека не трогаются — над ними
 /// модель работает прямо сейчас. Всё детерминировано: одна и та же история даёт один и тот же
-/// запрос, и кэш провайдера ломается не чаще, чем сообщение выходит из защищённой части.
+/// запрос.
+/// </para>
+/// <para>
+/// Любая замена меняет начало запроса, и всё за ней записывается в кэш провайдера заново. Чистка на
+/// каждом ходе делала это, стоило старому ходу выйти из защищённых, даже при живом кэше: на чате в
+/// 90 тысяч токенов заново записывалось 70 % запроса вместо 16 %. Поэтому чистится только история до
+/// границы (<see cref="Apply(List{ChatMessage}, int)"/>), а двигается граница, когда кэш и так истёк
+/// (<see cref="MayMoveBoundary"/>).
 /// </para>
 /// </remarks>
 internal static partial class ContextHygiene
@@ -44,10 +51,44 @@ internal static partial class ContextHygiene
     /// <summary>Сворачивать ли прежние версии блоков кода. Самое смелое из правил — отдельной ручкой.</summary>
     internal const bool CollapseCodeVersions = true;
 
+    /// <summary>Сколько живёт кэш провайдера: после такой паузы менять начало запроса уже ничего не стоит.</summary>
+    internal static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Сколько новых ходов человека граница стоит и при живом кэше: в быстром разговоре старые версии
+    /// файла иначе не уходили бы никогда, а ради этого чистка и заведена.
+    /// </summary>
+    internal const int MaxHeldTurns = 4;
+
     private static readonly HashSet<string> Writers = new(StringComparer.OrdinalIgnoreCase)
     {
         "write_file", "edit_file", "edit_document", "create_document", "save_image"
     };
+
+    /// <summary>
+    /// Пора ли сдвинуть границу чистки на конец истории.
+    /// </summary>
+    /// <param name="sinceAnswer">Сколько прошло с конца последнего законченного ответа; null — ответов ещё нет.</param>
+    /// <param name="heldTurns">Сколько ходов человека прошло за границей.</param>
+    internal static bool MayMoveBoundary(TimeSpan? sinceAnswer, int heldTurns) =>
+        sinceAnswer is not { } pause || pause >= CacheLifetime || heldTurns >= MaxHeldTurns;
+
+    /// <summary>Чистит только первые <paramref name="count"/> сообщений: за ними всё уходит как есть.</summary>
+    /// <remarks>
+    /// Срез, а не вся история с запретом трогать хвост: новая запись в файл превратила бы чтение перед
+    /// границей в заглушку, и начало запроса снова изменилось бы. На том же срезе чистка даёт то же,
+    /// что и в прошлый раз, байт в байт.
+    /// </remarks>
+    public static void Apply(List<ChatMessage> outgoing, int count)
+    {
+        ArgumentNullException.ThrowIfNull(outgoing);
+        var head = outgoing.GetRange(0, count);
+        Apply(head);
+        for (var i = 0; i < count; i++)
+        {
+            outgoing[i] = head[i];
+        }
+    }
 
     /// <summary>Чистит отправляемую копию истории на месте: заменяет элементы списка новыми сообщениями.</summary>
     public static void Apply(List<ChatMessage> outgoing)

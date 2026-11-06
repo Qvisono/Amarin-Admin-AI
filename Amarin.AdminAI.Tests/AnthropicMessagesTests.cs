@@ -91,7 +91,7 @@ public sealed class AnthropicMessagesTests
     {
         var body = Body([System("rule one"), User("hi"), System("rule two")]);
 
-        Assert.Equal("rule one\n\nrule two", (string?)body["system"]);
+        Assert.Equal("rule one\n\nrule two", (string?)body["system"]![0]!["text"]);
         Assert.Null(body["temperature"]);
         Assert.Equal("claude-sonnet-5-5", (string?)body["model"]);
         Assert.All(body["messages"]!.AsArray(), message => Assert.NotEqual("system", (string?)message!["role"]));
@@ -168,7 +168,7 @@ public sealed class AnthropicMessagesTests
     }
 
     [Fact]
-    public void A_custom_server_gets_neither_beta_fields_nor_cache()
+    public void A_custom_server_gets_no_beta_fields()
     {
         var thinking = JsonDocument.Parse("""[{"type":"thinking","thinking":"plan","signature":"sig"}]""").RootElement.Clone();
         var built = AnthropicMessages.Build(
@@ -185,7 +185,6 @@ public sealed class AnthropicMessagesTests
             official: false);
 
         Assert.False(built.NeedsBindingBeta);
-        Assert.Null(built.Json["cache_control"]);
         Assert.Null(built.Json["thinking"]!["block_binding"]);
     }
 

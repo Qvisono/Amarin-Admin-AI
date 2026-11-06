@@ -94,6 +94,12 @@ internal sealed class ChatStreamAccumulator
 
     public int TotalTokens { get; private set; }
 
+    /// <summary>Сколько токенов запроса прочитано из кэша.</summary>
+    public int CacheReadTokens { get; private set; }
+
+    /// <summary>Сколько токенов запроса записано в кэш.</summary>
+    public int CacheWriteTokens { get; private set; }
+
     /// <summary>Каким уровнем обслужили ответ (1.37.0); пусто — провайдер не сказал.</summary>
     public string? ServiceTier { get; private set; }
 
@@ -124,6 +130,16 @@ internal sealed class ChatStreamAccumulator
         if (chunk.Usage?.TotalTokens > 0)
         {
             TotalTokens = chunk.Usage.TotalTokens.Value;
+        }
+
+        if (chunk.Usage?.CacheReadTokens > 0)
+        {
+            CacheReadTokens = chunk.Usage.CacheReadTokens;
+        }
+
+        if (chunk.Usage?.CacheWriteTokens > 0)
+        {
+            CacheWriteTokens = chunk.Usage.CacheWriteTokens;
         }
 
         if (!string.IsNullOrWhiteSpace(chunk.ServiceTier))

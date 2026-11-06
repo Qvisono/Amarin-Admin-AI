@@ -22,7 +22,7 @@ internal sealed class AnthropicStream
 {
     private readonly Dictionary<int, (StringBuilder Thinking, StringBuilder Signature)> _thinking = [];
     private readonly JsonArray _replay = [];
-    private int _promptTokens;
+    private AnthropicTokens _start;
 
     /// <summary>Блоки размышления ответа, готовые к возврату серверу. <c>null</c> — их не было.</summary>
     public JsonElement? ReplayBlocks => _replay.Count > 0 ? AnthropicMessages.ToElement(_replay) : null;
@@ -39,10 +39,15 @@ internal sealed class AnthropicStream
         switch (AnthropicMessages.Text(root, "type"))
         {
             case "message_start" when root.TryGetProperty("message", out var message):
-                _promptTokens = AnthropicMessages.Tokens(message).Prompt;
+                _start = AnthropicMessages.Tokens(message);
                 return new ChatCompletionChunk
                 {
-                    Usage = new VeniceUsage { PromptTokens = _promptTokens },
+                    Usage = new VeniceUsage
+                    {
+                        PromptTokens = _start.Prompt,
+                        CacheReadTokens = _start.CacheRead,
+                        CacheWriteTokens = _start.CacheWrite
+                    },
                     ServiceTier = AnthropicMessages.ServedTier(message)
                 };
 
@@ -157,9 +162,9 @@ internal sealed class AnthropicStream
             Choices = stop is null ? [] : [new ChatChunkChoice { FinishReason = AnthropicMessages.FinishReason(stop) }],
             Usage = new VeniceUsage
             {
-                PromptTokens = _promptTokens,
+                PromptTokens = _start.Prompt,
                 CompletionTokens = output,
-                TotalTokens = _promptTokens + output
+                TotalTokens = _start.Prompt + output
             },
             ServiceTier = AnthropicMessages.ServedTier(root)
         };

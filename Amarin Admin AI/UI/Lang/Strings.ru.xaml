@@ -1115,6 +1115,12 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">Правила работы, которые программа даёт чату и агенту</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">Модель {0} сейчас перегружена или упёрлась в лимит запросов. Повторите чуть позже или выберите другую модель.</system:String>
+    <system:String x:Key="S.FileBlock.Missing" xml:space="preserve">Файл не показан: {0} не найден.</system:String>
+    <system:String x:Key="S.FileBlock.Forbidden" xml:space="preserve">Файл не показан: {0} может содержать секреты, программа его не открывает.</system:String>
+    <system:String x:Key="S.FileBlock.Unknown" xml:space="preserve">Файл не показан: модель не открывала {0} в этом чате.</system:String>
+    <system:String x:Key="S.FileBlock.NotText" xml:space="preserve">Файл не показан: {0} не текстовый файл.</system:String>
+    <system:String x:Key="S.FileBlock.Failed" xml:space="preserve">Файл не показан: не удалось прочитать {0}.</system:String>
+    <system:String x:Key="S.FileBlock.Cut" xml:space="preserve">Показаны первые {0} знаков: файл длиннее.</system:String>
     <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">У этой модели в OpenRouter нет провайдеров без хранения данных, а в «Безопасности» включено «Только провайдеры без хранения данных». Выберите другую модель или выключите эту настройку.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">Модель отказалась отвечать на этот запрос: сработала защита провайдера. Переформулируйте запрос или выберите другую модель.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">Я, {0}, отказываюсь выполнять эту задачу по причинам: {1}</system:String>

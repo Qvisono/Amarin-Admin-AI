@@ -15,6 +15,7 @@ internal sealed class VeniceTurnContext
 {
     private readonly Lock _gate = new();
     private VeniceCost _total = VeniceCost.Zero;
+    private VeniceCost _messageTotal = VeniceCost.Zero;
 
     /// <summary>
     /// Модель, которую ход запросил. Это корень цепочки fallback, и он не меняется: без него
@@ -37,12 +38,15 @@ internal sealed class VeniceTurnContext
 
     public ReasoningChoice Reasoning { get; set; } = ReasoningChoice.Disabled;
 
-    /// <summary>Во что обошёлся маршрутизатор этого хода; null, когда «Авто» не выбрана.</summary>
+    /// <summary>
+    /// Ключ кэша провайдера — id чата. Пусто у разовой работы (инфографика): её запрос не повторится.
+    /// </summary>
+    public string? CacheKey { get; init; }
+
+    /// <summary>Цена маршрутизатора, относящаяся к текущему сообщению.</summary>
     /// <remarks>
-    /// На ходе, а не на сообщении: маршрутизатор работает один раз, а ответов ход может дать
-    /// два (дописанное сообщение), и обоим в счёт уходит накопленный итог хода — то есть деньги
-    /// маршрутизатора сидят в обоих. Показать строку только первому значило бы, что у второго
-    /// они молча вернулись в «Модель» и строки перестали складываться в «Итого» под ними.
+    /// Маршрутизатор работает один раз за ход. Следующий ответ из очереди использует уже
+    /// выбранную модель, поэтому его счёт и строка маршрутизатора начинаются с нуля.
     /// </remarks>
     public VeniceCost? RouterCost { get; set; }
 
@@ -76,12 +80,39 @@ internal sealed class VeniceTurnContext
         }
     }
 
+    /// <summary>Расходы текущего ответа, без уже закрытых сообщений этого же хода.</summary>
+    public VeniceCost MessageTotal
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _messageTotal;
+            }
+        }
+    }
+
     public void Add(VeniceCost cost)
     {
         lock (_gate)
         {
             _total = _total.Add(cost);
+            _messageTotal = _messageTotal.Add(cost);
         }
+    }
+
+    /// <summary>Открывает отдельный счёт для следующего ответа на сообщение из очереди.</summary>
+    public void BeginNextMessage()
+    {
+        lock (_gate)
+        {
+            // Вычитание снимка общего итога не восстановило бы HasData и Estimated:
+            // эти признаки складываются через OR и иначе протекли бы из предыдущего ответа.
+            _messageTotal = VeniceCost.Zero;
+        }
+
+        RouterCost = null;
+        ElapsedBefore = TimeSpan.Zero;
     }
 }
 

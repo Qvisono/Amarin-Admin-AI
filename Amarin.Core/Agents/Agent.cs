@@ -1412,7 +1412,8 @@ These rules hold whatever the instructions above say about refusing, asking or g
                 "auto",
                 BuildVeniceParameters(_options),
                 timeoutCts.Token,
-                _options.Reasoning).ConfigureAwait(false);
+                _options.Reasoning,
+                cacheKey: CacheKey).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
@@ -1451,7 +1452,8 @@ These rules hold whatever the instructions above say about refusing, asking or g
             toolChoice: "none",
             BuildVeniceParameters(_options),
             timeoutCts.Token,
-            _options.Reasoning).ConfigureAwait(false);
+            _options.Reasoning,
+            cacheKey: CacheKey).ConfigureAwait(false);
 
         var choice = response.Choices.FirstOrDefault();
         return choice is null
@@ -1480,6 +1482,12 @@ These rules hold whatever the instructions above say about refusing, asking or g
     /// уходит вся. Агенту с мышью здесь оставляют последний снимок (<see cref="ComputerHistory"/>).
     /// </summary>
     internal Func<IReadOnlyList<ChatMessage>, List<ChatMessage>>? Prepare { get; init; }
+
+    /// <summary>
+    /// Ключ кэша провайдера: свой у каждого агента. Задаётся после создания: номер агента становится
+    /// известен позже него.
+    /// </summary>
+    internal string? CacheKey { get; set; }
 
     private string GetSystemPrompt()
     {

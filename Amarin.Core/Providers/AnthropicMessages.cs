@@ -15,6 +15,9 @@ internal sealed record AnthropicBody(JsonObject Json, bool NeedsBindingBeta, boo
     }.Where(beta => beta is not null));
 }
 
+/// <summary>Расход токенов ответа; <see cref="Prompt"/> включает прочитанное из кэша и записанное в него.</summary>
+internal readonly record struct AnthropicTokens(int Prompt, int Completion, int CacheRead, int CacheWrite);
+
 /// <summary>
 /// Перевод между запросом программы (OpenAI-совместимым по форме) и Messages API Anthropic.
 /// </summary>
@@ -37,6 +40,8 @@ internal sealed record AnthropicBody(JsonObject Json, bool NeedsBindingBeta, boo
 /// включается само. Выключатель свой у каждой модели, и каталог его называет
 /// (<see cref="VeniceModelCapabilities.ThinkingModes"/>).</item>
 /// <item>Температура не уходит никогда: модели 5.5 отвечают на неё отказом.</item>
+/// <item>Метки кэша — на блоках, а не верхним полем: оно ставит одну метку на конец запроса, а
+/// нужны ещё две (см. <see cref="PromptCacheMarks"/>), и посредник его может не знать.</item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -57,12 +62,16 @@ internal static class AnthropicMessages
     private const int PlainMaxTokens = 16_000;
 
     /// <param name="official">
-    /// Запрос уходит самой Anthropic, а не своему серверу человека: только ей шлются бета-поля и
-    /// кэш. Посредник мог бы их не пропустить, и отказ ему был бы непонятен.
+    /// Запрос уходит самой Anthropic, а не своему серверу человека: только ей шлются бета-поля.
+    /// Посредник мог бы их не пропустить, и отказ ему был бы непонятен.
     /// </param>
     /// <param name="relaxed">
     /// Повтор после отказа: без размышления, уровня и блоков с подписью — у модели не того
     /// поколения или на посреднике, которому они незнакомы.
+    /// </param>
+    /// <param name="cache">
+    /// Ставить ли метки кэша. Без них Claude не кэшируется вовсе, поэтому они уходят и своему
+    /// серверу; не знает их сервер — повтор без них, и размышление при этом остаётся.
     /// </param>
     public static AnthropicBody Build(
         ChatCompletionRequest request,
@@ -70,7 +79,8 @@ internal static class AnthropicMessages
         VeniceModelInfo? info,
         bool stream,
         bool official,
-        bool relaxed = false)
+        bool relaxed = false,
+        bool cache = true)
     {
         var messages = request.Messages;
         var lastTurn = LastTurnStart(messages);
@@ -129,7 +139,15 @@ internal static class AnthropicMessages
 
         if (system.Count > 0)
         {
-            body["system"] = string.Join("\n\n", system);
+            var prompt = string.Join("\n\n", system);
+            body["system"] = cache
+                ? new JsonArray(new JsonObject { ["type"] = "text", ["text"] = prompt, ["cache_control"] = CacheControl() })
+                : prompt;
+        }
+
+        if (cache && request.CacheKey is not null)
+        {
+            MarkHistory(turns);
         }
 
         var list = new JsonArray();
@@ -160,10 +178,6 @@ internal static class AnthropicMessages
                 fast = true;
             }
 
-            // Кэш продолжения разговора: без него прямой Anthropic выходил бы дороже той же
-            // модели через Venice, где кэш ставит сам посредник.
-            body["cache_control"] = new JsonObject { ["type"] = "ephemeral" };
-
             if (thinksAdaptively && replayed && body["thinking"] is JsonObject thinking)
             {
                 thinking["block_binding"] = new JsonObject { ["prefix_mismatch_behavior"] = "drop_block" };
@@ -192,6 +206,32 @@ internal static class AnthropicMessages
          error.Contains("block_binding", StringComparison.OrdinalIgnoreCase) ||
          error.Contains("cache_control", StringComparison.OrdinalIgnoreCase) ||
          error.Contains("speed", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Отказ называет метки кэша: повторить стоит без одних меток, не трогая размышление.</summary>
+    public static bool NamesCacheMarks(string error) =>
+        error.Contains("cache_control", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Метка кэша на обычный срок, пять минут.</summary>
+    internal static JsonObject CacheControl() => new() { ["type"] = "ephemeral" };
+
+    /// <summary>
+    /// Метки конца истории и последнего ответа модели: зачем их две, сказано в
+    /// <see cref="PromptCacheMarks"/>.
+    /// </summary>
+    private static void MarkHistory(List<(string Role, JsonArray Blocks)> turns)
+    {
+        foreach (var (_, blocks) in turns.TakeLast(2))
+        {
+            // Блок размышления метку не несёт: Anthropic ответил бы отказом.
+            if (blocks.OfType<JsonObject>().LastOrDefault(block => !IsThinking(block)) is { } block)
+            {
+                block["cache_control"] = CacheControl();
+            }
+        }
+    }
+
+    private static bool IsThinking(JsonObject block) =>
+        (string?)block["type"] is "thinking" or "redacted_thinking";
 
     /// <summary>Ответ без потока в форме <c>/chat/completions</c>.</summary>
     public static ChatCompletionResponse ParseResponse(string json)
@@ -241,7 +281,7 @@ internal static class AnthropicMessages
         }
 
         var finish = FinishReason(Text(root, "stop_reason"));
-        var (prompt, completion) = Tokens(root);
+        var tokens = Tokens(root);
 
         return new ChatCompletionResponse
         {
@@ -262,9 +302,11 @@ internal static class AnthropicMessages
             ],
             Usage = new VeniceUsage
             {
-                PromptTokens = prompt,
-                CompletionTokens = completion,
-                TotalTokens = prompt + completion
+                PromptTokens = tokens.Prompt,
+                CompletionTokens = tokens.Completion,
+                TotalTokens = tokens.Prompt + tokens.Completion,
+                CacheReadTokens = tokens.CacheRead,
+                CacheWriteTokens = tokens.CacheWrite
             },
             ServiceTier = ServedTier(root)
         };
@@ -296,19 +338,18 @@ internal static class AnthropicMessages
             ? Text(error, "message") ?? "Unknown Anthropic error."
             : "Unknown Anthropic error.";
 
-    internal static (int Prompt, int Completion) Tokens(JsonElement holder)
+    internal static AnthropicTokens Tokens(JsonElement holder)
     {
         if (!holder.TryGetProperty("usage", out var usage) || usage.ValueKind != JsonValueKind.Object)
         {
-            return (0, 0);
+            return default;
         }
 
         // Прочитанное моделью — всё, что ушло в запрос: и свежее, и записанное в кэш, и
         // прочитанное из кэша. Так считает и кольцо контекста, и перепродавец токенов.
-        var prompt = Number(usage, "input_tokens") +
-                     Number(usage, "cache_creation_input_tokens") +
-                     Number(usage, "cache_read_input_tokens");
-        return (prompt, Number(usage, "output_tokens"));
+        var written = Number(usage, "cache_creation_input_tokens");
+        var read = Number(usage, "cache_read_input_tokens");
+        return new AnthropicTokens(Number(usage, "input_tokens") + written + read, Number(usage, "output_tokens"), read, written);
     }
 
     private static int LastTurnStart(IReadOnlyList<ChatMessage> messages)

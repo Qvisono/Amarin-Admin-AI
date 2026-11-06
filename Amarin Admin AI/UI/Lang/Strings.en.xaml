@@ -1115,6 +1115,12 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">The working rules the app gives the chat and the agent</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">{0} is overloaded or has hit its rate limit right now. Try again a little later or pick another model.</system:String>
+    <system:String x:Key="S.FileBlock.Missing" xml:space="preserve">File not shown: {0} was not found.</system:String>
+    <system:String x:Key="S.FileBlock.Forbidden" xml:space="preserve">File not shown: {0} may contain secrets, so the program does not open it.</system:String>
+    <system:String x:Key="S.FileBlock.Unknown" xml:space="preserve">File not shown: the model has not opened {0} in this chat.</system:String>
+    <system:String x:Key="S.FileBlock.NotText" xml:space="preserve">File not shown: {0} is not a text file.</system:String>
+    <system:String x:Key="S.FileBlock.Failed" xml:space="preserve">File not shown: {0} could not be read.</system:String>
+    <system:String x:Key="S.FileBlock.Cut" xml:space="preserve">Showing the first {0} characters: the file is longer.</system:String>
     <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">None of this model's providers on OpenRouter keep no data, and “Only providers that keep no data” is on in Security. Choose another model or turn that setting off.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">The model declined this request: the provider's safeguards stopped it. Rephrase the request or pick another model.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">I, {0}, refuse to carry out this task for these reasons: {1}</system:String>

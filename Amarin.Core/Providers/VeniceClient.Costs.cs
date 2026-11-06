@@ -26,7 +26,9 @@ public sealed partial class VeniceClient
             model,
             usage?.PromptTokens ?? 0,
             usage?.CompletionTokens ?? 0,
-            result.ServiceTier);
+            result.ServiceTier,
+            usage?.CacheReadTokens ?? 0,
+            usage?.CacheWriteTokens ?? 0);
 
         // Посчитанную цену — и в сам ответ: восемь побочных запросов (заголовок, сводка,
         // маршрутизатор…) читают её через ReportedCost и ставят свою строку в разбивку.
@@ -59,12 +61,16 @@ public sealed partial class VeniceClient
     /// Каким уровнем ответ обслужили (1.37.0). Каталог знает только обычную цену, а Flex, Fast и
     /// Ultrafast стоят иначе: без поправки оценка врала бы вдвое и больше, а по ней держатся лимиты.
     /// </param>
+    /// <param name="cacheRead">Токены запроса, прочитанные из кэша: они в разы дешевле обычных.</param>
+    /// <param name="cacheWrite">Токены запроса, записанные в кэш: у части провайдеров дороже обычных.</param>
     private VeniceCost CostOf(
         VeniceCost reported,
         string model,
         int promptTokens,
         int completionTokens,
-        string? servedTier = null)
+        string? servedTier = null,
+        int cacheRead = 0,
+        int cacheWrite = 0)
     {
         var cost = new VeniceCost
         {
@@ -85,8 +91,7 @@ public sealed partial class VeniceClient
             return cost;
         }
 
-        var usd = (cost.InputTokens * price.InputPerMillion + cost.OutputTokens * price.OutputPerMillion) / 1_000_000m
-                  * ModelSpeeds.PriceFactor(servedTier);
+        var usd = price.Usd(cost.InputTokens, cost.OutputTokens, cacheRead, cacheWrite) * ModelSpeeds.PriceFactor(servedTier);
         if (usd > 0m)
         {
             cost.Usd = usd;

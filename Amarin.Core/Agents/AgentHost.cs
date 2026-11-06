@@ -307,6 +307,9 @@ internal sealed class AgentHost : IAgentHost
         // записываются все попытки, чтобы «стоп» человека и сообщение чата говорили об одном агенте.
         var agentId = conversation?.Id;
 
+        // Прогон по расписанию идёт без чата: ключу кэша нужно своё начало.
+        var cacheOwner = scope?.SessionId ?? Guid.NewGuid().ToString("N");
+
         while (true)
         {
             var modelId = ResolveModel(currentComplexity, settings);
@@ -328,9 +331,10 @@ internal sealed class AgentHost : IAgentHost
 
             // Свой клиент на прогон: VeniceClient копит потраченное в своём RequestCost, и
             // агент читает оттуда цену именно своей работы. На общем с чатом клиенте он забрал
-            // бы себе и деньги чужого хода.
+            // бы себе и деньги чужого хода. Каталог нужен ему так же, как клиенту чата: прямые
+            // провайдеры цену не называют, и без него работа агента не стоила бы ничего.
             using var http = CreateHttp(TimeSpan.FromMinutes(5));
-            var venice = new VeniceClient(http, options);
+            var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
 
@@ -408,6 +412,7 @@ internal sealed class AgentHost : IAgentHost
             entry = _agents?.Register(
                 scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt, agentId);
             agentId ??= entry?.Id;
+            agent.CacheKey = cacheOwner + ":" + agentId;
             if (entry is not null)
             {
                 foreach (var note in carried)

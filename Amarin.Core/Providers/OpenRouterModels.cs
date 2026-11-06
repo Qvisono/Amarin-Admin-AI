@@ -75,6 +75,15 @@ internal sealed class OpenRouterPricing
     [JsonPropertyName("completion")]
     [JsonConverter(typeof(LenientDecimalConverter))]
     public decimal? Completion { get; init; }
+
+    [JsonPropertyName("input_cache_read")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? InputCacheRead { get; init; }
+
+    /// <summary>Запись на обычный срок кэша, пять минут.</summary>
+    [JsonPropertyName("input_cache_write")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? InputCacheWrite { get; init; }
 }
 
 internal sealed class OpenRouterArchitecture
@@ -285,9 +294,14 @@ internal static class OpenRouterMapper
             ? new VeniceModelPricing
             {
                 Input = new VeniceUnitPrice { Usd = pricing.Prompt * 1_000_000m },
-                Output = new VeniceUnitPrice { Usd = pricing.Completion * 1_000_000m }
+                Output = new VeniceUnitPrice { Usd = pricing.Completion * 1_000_000m },
+                CacheInput = PerMillion(pricing.InputCacheRead),
+                CacheWrite = PerMillion(pricing.InputCacheWrite)
             }
             : null;
+
+    private static VeniceUnitPrice? PerMillion(decimal? perToken) =>
+        perToken is >= 0m ? new VeniceUnitPrice { Usd = perToken * 1_000_000m } : null;
 
     /// <summary>
     /// Имя для списка. OpenRouter пишет его как «Anthropic: Claude Sonnet 4.5», а в выпадашке

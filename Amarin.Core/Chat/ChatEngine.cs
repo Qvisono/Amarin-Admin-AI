@@ -381,6 +381,10 @@ internal sealed partial class ChatEngine
           from this chat are saved with save_image.
         - Questions about the data of a CSV or Excel table -- filters, groups, sums, averages, counts --
           are answered with analyze_table, which works over every row; never add up rows yourself.
+        - To show the user a text or code file you read or wrote in this conversation, never retype it.
+          Put a fenced block with the language file holding the line path: <full path> and, for a part of
+          the file, the line lines: <first>-<last>. The program replaces the block with the text of the
+          file when your reply ends. Text and code that are not in a file are written out as usual.
         - A chart in your reply is a fenced block with the language chart holding one JSON object: type
           (bar, line or pie), title, labels, and series as a list of objects with name and values, one
           value per label; a pie has one series. analyze_table returns such a block ready to use: put it
@@ -724,6 +728,7 @@ internal sealed partial class ChatEngine
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
         using var turnScope = VeniceTurnScope.Push(turn);
@@ -904,6 +909,7 @@ internal sealed partial class ChatEngine
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
 
@@ -971,6 +977,7 @@ internal sealed partial class ChatEngine
                 : session.Reasoning,
             RouterCost = assistant.RouterCost,
             ElapsedBefore = assistant.Duration,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
 
@@ -1069,6 +1076,7 @@ internal sealed partial class ChatEngine
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                turn.BeginNextMessage();
                 clock.Restart();
                 assistant = new ChatDisplayMessage
                 {
@@ -1405,7 +1413,8 @@ internal sealed partial class ChatEngine
                 turn.Credential,
                 // Запасная модель — только под «Авто»: там модель и так выбирает программа.
                 // Выбранную человеком не подменяем: перегрузка кончается понятной строкой.
-                fallback: VeniceModelCatalog.IsAuto(turn.RequestedModelId))
+                fallback: VeniceModelCatalog.IsAuto(turn.RequestedModelId),
+                cacheKey: turn.CacheKey)
             .ConfigureAwait(false);
 
         // Сработавшую модель ход запоминает сам — следующий раунд начнёт с неё, а не с той,
@@ -1426,7 +1435,7 @@ internal sealed partial class ChatEngine
         return streamed;
     }
 
-    private static void FinishAssistant(
+    private void FinishAssistant(
         ChatSession session,
         ChatDisplayMessage assistant,
         Stopwatch clock,
@@ -1434,19 +1443,22 @@ internal sealed partial class ChatEngine
         VeniceTurnContext turn)
     {
         clock.Stop();
-        assistant.Text = string.IsNullOrWhiteSpace(streamed.Text)
+        var answer = string.IsNullOrWhiteSpace(streamed.Text)
             ? (string.IsNullOrWhiteSpace(assistant.Text)
                 ? EmptyCompletionMessage(streamed)
                 : assistant.Text)
             : streamed.Text;
+
+        // Человеку — текст файла, модели в историю — короткая запись (FileBlocks).
+        assistant.Text = FileBlocks.Expand(answer, path => KnowsFile(session, path));
         assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
-        // streamed.Cost - запасной путь на случай, если ход почему-то не накопил своего счёта.
+        // streamed.Cost - запасной путь на случай, если сообщение не накопило своего счёта.
         assistant.RouterCost ??= turn.RouterCost;
         ChatTitleCost.Attach(session, assistant);
-        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
+        ApplyCosts(assistant, MessageCost(turn, streamed.Cost));
         assistant.Status = AssistantStatus.Complete;
 
         // prompt_tokens считает то, что нёс этот запрос, поэтому отметка ставится до того, как ответ
@@ -1462,9 +1474,23 @@ internal sealed partial class ChatEngine
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "assistant",
-            Content = ChatContent.Text(assistant.Text)
+            Content = ChatContent.Text(answer)
         });
         session.UpdatedAt = DateTime.Now;
+    }
+
+    /// <summary>Открывала ли модель этот файл в этом чате: сейчас или, судя по истории, до перезапуска.</summary>
+    private bool KnowsFile(ChatSession session, string path)
+    {
+        if (Files?.Knows(session.Id, path) == true)
+        {
+            return true;
+        }
+
+        lock (session.Gate)
+        {
+            return FileBlocks.InHistory(session.ApiMessages, path);
+        }
     }
 
     /// <remarks>

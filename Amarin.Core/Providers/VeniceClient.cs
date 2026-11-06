@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -18,6 +19,11 @@ public sealed partial class VeniceClient
 
     /// <summary>Охраняет накопленную сумму: параллельные вызовы инструментов делят один клиент.</summary>
     private readonly Lock _costGate = new();
+
+    /// <summary>
+    /// Модели, чей сервер отказал полям кэша. Без памяти каждый их запрос уходил бы дважды.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, bool> _cacheRefused = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Чем пометить следующее списание, если это не просто ответ модели.
@@ -272,6 +278,7 @@ public sealed partial class VeniceClient
     /// обслуживает слоты разных провайдеров сразу, и ключ обязан ехать на запросе, а не жить
     /// полем клиента: два хода перетоптали бы поле друг другу.
     /// </param>
+    /// <param name="cacheKey">Чей это разговор (<see cref="ChatCompletionRequest.CacheKey"/>).</param>
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
         string model,
         IReadOnlyList<ChatMessage> messages,
@@ -280,7 +287,8 @@ public sealed partial class VeniceClient
         VeniceParameters veniceParameters,
         CancellationToken cancellationToken = default,
         ReasoningChoice? reasoning = null,
-        ApiCredential? credential = null) =>
+        ApiCredential? credential = null,
+        string? cacheKey = null) =>
         CreateChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
@@ -288,7 +296,8 @@ public sealed partial class VeniceClient
             Tools = tools,
             ToolChoice = toolChoice,
             VeniceParameters = veniceParameters,
-            ReasoningChoice = reasoning
+            ReasoningChoice = reasoning,
+            CacheKey = cacheKey
         }, prepareMessages: true, credential, cancellationToken);
 
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
@@ -357,6 +366,7 @@ public sealed partial class VeniceClient
     /// Можно ли при перегрузке уйти на запасную модель. Нельзя, когда модель выбрал человек: в
     /// чате замена шла молча, и на месте выбранной лёгкой модели отвечала тяжёлая голова цепочки.
     /// </param>
+    /// <param name="cacheKey">Чей это разговор (<see cref="ChatCompletionRequest.CacheKey"/>).</param>
     public Task<StreamedChatCompletion> StreamChatCompletionAsync(
         string model,
         string primaryModel,
@@ -368,7 +378,8 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default,
         ReasoningChoice? reasoning = null,
         ApiCredential? credential = null,
-        bool fallback = true) =>
+        bool fallback = true,
+        string? cacheKey = null) =>
         StreamChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
@@ -377,7 +388,8 @@ public sealed partial class VeniceClient
             ToolChoice = toolChoice,
             Stream = true,
             VeniceParameters = veniceParameters,
-            ReasoningChoice = reasoning
+            ReasoningChoice = reasoning,
+            CacheKey = cacheKey
         }, primaryModel, prepareMessages: true, onText, credential, fallback, cancellationToken);
 
     private async Task<StreamedChatCompletion> StreamChatCompletionAsync(
@@ -634,7 +646,8 @@ public sealed partial class VeniceClient
             }
 
             var cost = CostOf(
-                accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier);
+                accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier,
+                accumulator.CacheReadTokens, accumulator.CacheWriteTokens);
             Book(cost, model, credential);
 
             return new StreamedChatCompletion
@@ -704,6 +717,10 @@ public sealed partial class VeniceClient
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
         var httpRequest = Request(HttpMethod.Post, "chat/completions", credential);
         httpRequest.Content = content;
+        if (payload.CacheKey is { } conversation && SpecFor(model, credential).Caching == PromptCaching.KeyHeader)
+        {
+            httpRequest.Headers.TryAddWithoutValidation("x-grok-conv-id", conversation);
+        }
 
         var httpWatch = Stopwatch.StartNew();
         var response = await _http.SendAsync(
@@ -774,25 +791,16 @@ public sealed partial class VeniceClient
         Copy(request, request.ReasoningEffort, serviceTier: null);
 
     private static ChatCompletionRequest Copy(ChatCompletionRequest request, string? effort, string? serviceTier) =>
-        new()
+        request with { ReasoningEffort = effort, ServiceTier = serviceTier };
+
+    /// <summary>То же тело без ключа разговора и меток: повтор после отказа полям кэша.</summary>
+    private static ChatCompletionRequest WithoutPromptCache(ChatCompletionRequest request) =>
+        request with
         {
-            Model = request.Model,
-            Messages = request.Messages,
-            Tools = request.Tools,
-            ToolChoice = request.ToolChoice,
-            Temperature = request.Temperature,
-            Stream = request.Stream,
-            StreamOptions = request.StreamOptions,
-            ReasoningEffort = effort,
-            Reasoning = request.Reasoning,
-            Thinking = request.Thinking,
-            EnableThinking = request.EnableThinking,
-            VeniceParameters = request.VeniceParameters,
-            Usage = request.Usage,
-            Plugins = request.Plugins,
-            ServiceTier = serviceTier,
-            Provider = request.Provider,
-            ReasoningChoice = request.ReasoningChoice
+            Messages = request.UnmarkedMessages ?? request.Messages,
+            UnmarkedMessages = null,
+            CacheKey = null,
+            PromptCacheKey = null
         };
 
     /// <summary>
@@ -809,7 +817,10 @@ public sealed partial class VeniceClient
             Temperature = null,
             Stream = request.Stream,
             StreamOptions = null,
-            ReasoningChoice = request.ReasoningChoice
+            ReasoningChoice = request.ReasoningChoice,
+            CacheKey = request.CacheKey,
+            PromptCacheKey = request.PromptCacheKey,
+            UnmarkedMessages = request.UnmarkedMessages
         };
 
     /// <summary>
@@ -826,15 +837,52 @@ public sealed partial class VeniceClient
         bool stream,
         ApiCredential credential)
     {
-        // Описание — по ключу запроса, если он того же провайдера, что и модель: у своего
-        // сервера человека адрес и протоколы живут рядом с ключом, а не в описании провайдера.
-        var provider = ModelRef.Of(model, _options.Provider);
-        var spec = credential.Provider == provider ? ProviderSpec.Of(credential) : ProviderSpec.For(provider);
-        return spec.Dialect switch
+        var spec = SpecFor(model, credential);
+        var payload = spec.Dialect switch
         {
             PayloadDialect.Venice => BuildVenicePayload(request, model, prepareMessages, stream),
             PayloadDialect.OpenRouter => BuildOpenRouterPayload(request, model, prepareMessages, stream),
             _ => BuildGenericPayload(request, model, spec, prepareMessages, stream)
+        };
+
+        return WithPromptCache(payload, request.CacheKey, model, spec);
+    }
+
+    /// <summary>
+    /// Описание провайдера — по ключу запроса, если он того же провайдера, что и модель: у своего
+    /// сервера человека адрес и протоколы живут рядом с ключом, а не в описании провайдера.
+    /// </summary>
+    private ProviderSpec SpecFor(string model, ApiCredential credential)
+    {
+        var provider = ModelRef.Of(model, _options.Provider);
+        return credential.Provider == provider ? ProviderSpec.Of(credential) : ProviderSpec.For(provider);
+    }
+
+    /// <summary>
+    /// Включает кэш так, как его включает этот провайдер (<see cref="ProviderSpec.Caching"/>).
+    /// </summary>
+    /// <remarks>
+    /// Пакетная очередь кэша не получает: заявку считают когда придётся, и кэш к этому времени
+    /// истечёт, а разговоры очередь пока не группирует.
+    /// </remarks>
+    private ChatCompletionRequest WithPromptCache(
+        ChatCompletionRequest payload,
+        string? cacheKey,
+        string model,
+        ProviderSpec spec)
+    {
+        if (IsBatchRoute(model) || _cacheRefused.ContainsKey(model))
+        {
+            return payload;
+        }
+
+        var marks = spec.NeedsCacheMarkers(model);
+        return payload with
+        {
+            Messages = marks ? PromptCacheMarks.Apply(payload.Messages, cacheKey is not null) : payload.Messages,
+            UnmarkedMessages = marks ? payload.Messages : null,
+            CacheKey = cacheKey,
+            PromptCacheKey = spec.Caching == PromptCaching.KeyField ? cacheKey : null
         };
     }
 
@@ -933,18 +981,26 @@ public sealed partial class VeniceClient
     /// Тело для повтора после отказа, если отказ можно обойти. <c>null</c> — повторять нечего.
     /// </summary>
     /// <remarks>
-    /// Три обхода. Отказ усилия рядом с инструментами (GPT-5.x) — повтор с <c>none</c>. Отказ
+    /// Четыре обхода. Отказ полям кэша — повтор без них, остальное тело то же: иначе у посредника,
+    /// который их не знает, на каждом запросе пропадало бы размышление. Отказ усилия рядом с
+    /// инструментами (GPT-5.x) — повтор с <c>none</c>. Отказ
     /// необязательного поля у сервера без надстроек — повтор без полей размышления и прочего
     /// необязательного: у провайдеров это поле устроено по-разному даже между их же моделями
     /// (Kimi K3 и K2, GLM-5), и перечислить все различия заранее нельзя. Отказ уровня
     /// обслуживания у OpenRouter — повтор без него.
     /// </remarks>
-    private static ChatCompletionRequest? Relaxed(
+    private ChatCompletionRequest? Relaxed(
         ChatCompletionRequest payload,
         string model,
         int status,
         string error)
     {
+        if (status is 400 or 422 && NamesPromptCache(payload, error))
+        {
+            _cacheRefused[model] = true;
+            return WithoutPromptCache(payload);
+        }
+
         if (ShouldRetryToolsEffortConflict(payload, model, error))
         {
             return WithReasoningEffort(payload, ReasoningPolicy.None);
@@ -967,6 +1023,11 @@ public sealed partial class VeniceClient
 
         return null;
     }
+
+    /// <summary>Отказ называет поле кэша, которое есть в этом теле.</summary>
+    private static bool NamesPromptCache(ChatCompletionRequest payload, string error) =>
+        (payload.PromptCacheKey is not null && error.Contains("prompt_cache_key", StringComparison.OrdinalIgnoreCase)) ||
+        (payload.UnmarkedMessages is not null && AnthropicMessages.NamesCacheMarks(error));
 
     /// <summary>Отказ называет одно из необязательных полей, которые есть в этом теле.</summary>
     private static bool NamesOptionalField(ChatCompletionRequest payload, string error)

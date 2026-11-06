@@ -18,6 +18,7 @@ internal sealed partial class ChatEngine
         // сообщением — два сообщения user подряд или выдуманный ответ ассистента принимают
         // не все провайдеры.
         IReadOnlyList<ChatMessage> history;
+        int reach;
         lock (session.Gate)
         {
             if (ContextCompaction.IsActive(session) && session.CompactSummary is { } summary)
@@ -26,6 +27,7 @@ internal sealed partial class ChatEngine
             }
 
             history = ContextCompaction.Tail(session);
+            reach = HygieneReach(session, history);
         }
 
         if (!string.IsNullOrWhiteSpace(system))
@@ -37,13 +39,47 @@ internal sealed partial class ChatEngine
             });
         }
 
+        var lead = messages.Count;
         messages.AddRange(ChatMessageCloner.CloneAll(history));
 
         // Устаревшие версии файлов и прочитанные давно документы — заглушками: только в копии для
         // запроса, хранимая история и отпечаток сжатия не меняются.
-        ContextHygiene.Apply(messages);
+        ContextHygiene.Apply(messages, lead + reach);
         return messages;
     }
+
+    /// <summary>
+    /// Сколько сообщений истории чистить: до границы или, если её пора сдвинуть, всё.
+    /// </summary>
+    /// <remarks>
+    /// Граница отсчитывается от начала <see cref="ChatSession.ApiMessages"/>, а история может быть
+    /// хвостом после сжатия. Сжатие и удаление сообщений и так меняют начало запроса, поэтому граница
+    /// вне хвоста просто ставится заново.
+    /// </remarks>
+    private int HygieneReach(ChatSession session, IReadOnlyList<ChatMessage> history)
+    {
+        var reach = (session.HygieneUpTo ?? -1) - (session.ApiMessages.Count - history.Count);
+        if (session.HygieneUpTo is not null && reach >= 0 && reach <= history.Count)
+        {
+            var held = ContextCompaction.HumanTurns(history.Skip(reach).ToList()).Count;
+            if (!ContextHygiene.MayMoveBoundary(SinceLastAnswer(session), held))
+            {
+                return reach;
+            }
+        }
+
+        session.HygieneUpTo = session.ApiMessages.Count;
+        return history.Count;
+    }
+
+    /// <summary>
+    /// Сколько прошло с конца последнего законченного ответа. Кэш отсчитывается от начала последнего
+    /// запроса, то есть истекает раньше: граница сдвинется на ход позже, но живой кэш не собьёт.
+    /// </summary>
+    private TimeSpan? SinceLastAnswer(ChatSession session) =>
+        session.Messages.LastOrDefault(message => message.Role == "assistant" && message.Status == AssistantStatus.Complete) is { } answer
+            ? Time.GetLocalNow().DateTime - (answer.CreatedAt + answer.Duration)
+            : null;
 
     /// <summary>
     /// Системный промпт следующего запроса. Открыт для кольца контекста: это настоящая часть окна,

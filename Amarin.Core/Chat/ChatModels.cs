@@ -81,6 +81,13 @@ public sealed class ChatSession
     public bool IsTemporary { get; set; }
 
     /// <summary>
+    /// До какого места <see cref="ApiMessages"/> чистит <see cref="ContextHygiene"/>. Только в памяти:
+    /// после нового запуска граница ставится заново, а кэш к этому времени почти всегда истёк.
+    /// </summary>
+    [JsonIgnore]
+    internal int? HygieneUpTo { get; set; }
+
+    /// <summary>
     /// Разговоры чата с агентами (1.37.0) — только в режиме «Сохранять в чате»
     /// (<see cref="AgentMemory.Chat"/>); в остальных режимах пусто.
     /// </summary>
