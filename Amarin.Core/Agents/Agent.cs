@@ -426,7 +426,7 @@ These rules hold whatever the instructions above say about refusing, asking or g
     }
 
     public Task<AgentRunResult> RunAsync(string userRequest, CancellationToken cancellationToken = default) =>
-        RunRequestAsync(userRequest, userRequest, continuing: false, cancellationToken);
+        RunRequestAsync(userRequest, userRequest, continuing: false, humanNotes: null, cancellationToken);
 
     /// <summary>Чем подписано сообщение чата агенту: агент не путает его с задачей человека.</summary>
     internal const string ChatAssistantPrefix = "Message from the chat assistant that gave you this task:";
@@ -446,14 +446,32 @@ These rules hold whatever the instructions above say about refusing, asking or g
         string task,
         IReadOnlyList<ChatMessage> history,
         string? message,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ContinueRequestAsync(task, history, message, resuming: false, humanNotes: null, cancellationToken);
+
+    /// <summary>После пересадки реплика уже в истории; задание и уточнения защитника остаются прежними.</summary>
+    internal Task<AgentRunResult> ResumeAsync(
+        string task,
+        IReadOnlyList<ChatMessage> history,
+        string? message,
+        IReadOnlyList<string> humanNotes,
+        CancellationToken cancellationToken) =>
+        ContinueRequestAsync(task, history, message, resuming: true, humanNotes, cancellationToken);
+
+    private Task<AgentRunResult> ContinueRequestAsync(
+        string task,
+        IReadOnlyList<ChatMessage> history,
+        string? message,
+        bool resuming,
+        IReadOnlyList<string>? humanNotes,
+        CancellationToken cancellationToken)
     {
         SessionMode = SessionMode.Continuous;
         _sessionHistory.Clear();
         _sessionHistory.AddRange(ChatMessageCloner.CloneAll(history));
         var opening = string.IsNullOrWhiteSpace(message) ? null : ChatAssistantPrefix + "\n" + message.Trim();
         var judged = opening is null ? task : task + "\n" + opening;
-        return RunRequestAsync(judged, opening, continuing: true, cancellationToken);
+        return RunRequestAsync(judged, resuming ? null : opening, continuing: true, humanNotes, cancellationToken);
     }
 
     /// <summary>
@@ -461,6 +479,8 @@ These rules hold whatever the instructions above say about refusing, asking or g
     /// (<see cref="ContinueAsync"/>). Пусто у <see cref="SessionMode.Isolated"/>.
     /// </summary>
     internal IReadOnlyList<ChatMessage> SessionHistory => [.. _sessionHistory];
+
+    internal IReadOnlyList<string> HumanNotes => [.. _humanNotes];
 
     /// <summary>
     /// Фаза плана. Итог — результат, если прогон на этом и кончается (план отменён или менять
@@ -625,11 +645,12 @@ These rules hold whatever the instructions above say about refusing, asking or g
         string userRequest,
         string? opening,
         bool continuing,
+        IReadOnlyList<string>? humanNotes,
         CancellationToken cancellationToken)
     {
         try
         {
-            return await RunRequestCoreAsync(userRequest, opening, continuing, cancellationToken).ConfigureAwait(false);
+            return await RunRequestCoreAsync(userRequest, opening, continuing, humanNotes, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -642,11 +663,13 @@ These rules hold whatever the instructions above say about refusing, asking or g
         string userRequest,
         string? opening,
         bool continuing,
+        IReadOnlyList<string>? humanNotes,
         CancellationToken cancellationToken)
     {
         _client.ResetRequestCost();
         _undoTracker.BeginRequest(userRequest);
         _humanNotes.Clear();
+        _humanNotes.AddRange(humanNotes ?? []);
 
         List<ChatMessage> messages;
         try
@@ -659,6 +682,24 @@ These rules hold whatever the instructions above say about refusing, asking or g
             CompleteRequest();
             return FailResult(ex.Message);
         }
+
+        try
+        {
+            return await RunRoundsAsync(userRequest, messages, continuing, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            SaveInterruptedHistory(messages);
+            throw;
+        }
+    }
+
+    private async Task<AgentRunResult> RunRoundsAsync(
+        string userRequest,
+        List<ChatMessage> messages,
+        bool continuing,
+        CancellationToken cancellationToken)
+    {
         // Выключенные человеком инструменты модель не видит вовсе; вызов по имени всё равно
         // отклонит шлюз.
         var toolDefinitions = ToolGate.WithoutDisabled(_toolDefinitions, CurrentSettings());
@@ -1077,40 +1118,51 @@ These rules hold whatever the instructions above say about refusing, asking or g
             _ui.ToolCall(item.ToolName, item.ToolCall.Function.Arguments);
         }
 
-        var results = new ToolResult[batch.Count];
-        await _ui.RunBusyAsync(
-            Loc.Format("S.AgentRun.RunningToolsCount", batch.Count),
-            async () =>
-            {
-                var tasks = new Task[batch.Count];
-                for (var i = 0; i < batch.Count; i++)
+        var results = new ToolResult?[batch.Count];
+        try
+        {
+            await _ui.RunBusyAsync(
+                Loc.Format("S.AgentRun.RunningToolsCount", batch.Count),
+                async () =>
                 {
-                    var index = i;
-                    var item = batch[i];
-                    tasks[i] = Task.Run(async () =>
+                    var tasks = new Task[batch.Count];
+                    for (var i = 0; i < batch.Count; i++)
                     {
-                        results[index] = await _tools.ExecuteAsync(
-                            item.ToolName,
-                            item.Arguments,
-                            cancellationToken).ConfigureAwait(false);
-                    }, cancellationToken);
+                        var index = i;
+                        var item = batch[i];
+                        tasks[i] = Task.Run(async () =>
+                        {
+                            results[index] = await _tools.ExecuteAsync(
+                                item.ToolName,
+                                item.Arguments,
+                                cancellationToken).ConfigureAwait(false);
+                        }, cancellationToken);
+                    }
+
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    return 0;
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // WhenAll дождался всех соседей: отмена одного не должна терять уже готовые результаты.
+            for (var i = 0; i < batch.Count; i++)
+            {
+                if (results[i] is not { } result)
+                {
+                    continue;
                 }
 
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-                return 0;
-            },
-            cancellationToken).ConfigureAwait(false);
-
-        for (var i = 0; i < batch.Count; i++)
-        {
-            AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, results[i], messages);
-            Audit(
-                batch[i].ToolCall,
-                ToolEffects.Classify(batch[i].ToolName, batch[i].Arguments),
-                results[i].Success ? AuditOutcome.Ok : AuditOutcome.Failed,
-                ApprovalSource.NotRequired,
-                verdicts.For(batch[i].ToolCall.Id),
-                results[i]);
+                AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, result, messages);
+                Audit(
+                    batch[i].ToolCall,
+                    ToolEffects.Classify(batch[i].ToolName, batch[i].Arguments),
+                    result.Success ? AuditOutcome.Ok : AuditOutcome.Failed,
+                    ApprovalSource.NotRequired,
+                    verdicts.For(batch[i].ToolCall.Id),
+                    result);
+            }
         }
     }
 
@@ -1326,6 +1378,43 @@ These rules hold whatever the instructions above say about refusing, asking or g
             Name = toolCall.Function.Name,
             Content = ChatContent.Text(FormatToolResult(result))
         };
+
+    private void SaveInterruptedHistory(List<ChatMessage> messages)
+    {
+        if (SessionMode != SessionMode.Continuous)
+        {
+            return;
+        }
+
+        // API требует ответ на каждый вызов. Прерванная запись могла успеть изменить систему,
+        // поэтому нельзя выдавать отсутствие результата за доказательство, что ничего не сделано.
+        var lastAnswer = messages.FindLastIndex(message => message.Role == "assistant");
+        if (lastAnswer >= 0 && messages[lastAnswer].ToolCalls is { Count: > 0 } calls)
+        {
+            var tail = messages.Skip(lastAnswer + 1).ToList();
+            var completed = tail.Where(message => message.Role == "tool")
+                .ToLookup(message => message.ToolCallId, StringComparer.Ordinal);
+            var results = new List<ChatMessage>(calls.Count);
+            foreach (var call in calls)
+            {
+                results.Add(completed[call.Id].FirstOrDefault() ?? BuildToolMessage(call, ToolResult.Fail(
+                    "Execution was interrupted. The outcome is unknown: the action may already have changed state. " +
+                    "Inspect the current state before deciding whether to retry.")));
+            }
+
+            // Картинки инструментов идут user-сообщениями. Все ответы на вызовы должны стоять
+            // перед ними сплошным блоком, включая добавленные ответы прерванных вызовов.
+            messages.RemoveRange(lastAnswer + 1, messages.Count - lastAnswer - 1);
+            messages.AddRange(results);
+            messages.AddRange(tail.Where(message => message.Role != "tool"));
+        }
+
+        // Пересадка продолжает текущий раунд: сжатие старых сообщений здесь изменило бы начало
+        // запроса и выбросило часть найденного. Обычное сжатие остаётся после готового отчёта.
+        var prepared = Prepare?.Invoke(messages) ?? messages;
+        _sessionHistory.Clear();
+        _sessionHistory.AddRange(ChatMessageCloner.CloneAll(prepared.Skip(1)));
+    }
 
     private void SaveSessionHistory(List<ChatMessage> messages)
     {

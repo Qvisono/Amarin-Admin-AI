@@ -248,6 +248,8 @@ internal sealed class AgentHost : IAgentHost
         // закрыт, и без этого его деньги не попали бы в счёт вообще.
         var spent = VeniceCost.Zero;
         var switched = false;
+        var resuming = false;
+        IReadOnlyList<string> humanNotes = [];
 
         string currentComplexity;
         if (!string.IsNullOrWhiteSpace(tier))
@@ -429,7 +431,9 @@ internal sealed class AgentHost : IAgentHost
             {
                 var attempt = Attempt ?? ((_, _, token) => history is null
                     ? agent.RunAsync(currentPrompt, token)
-                    : agent.ContinueAsync(currentPrompt, history, message, token));
+                    : resuming
+                        ? agent.ResumeAsync(currentPrompt, history, message, humanNotes, token)
+                        : agent.ContinueAsync(currentPrompt, history, message, token));
                 var result = await attempt(history is null ? currentPrompt : message ?? "", modelId, interrupt.Token)
                     .ConfigureAwait(false);
                 record.ReportText = result.Refusal is { } refused
@@ -462,6 +466,15 @@ internal sealed class AgentHost : IAgentHost
                 if (pending.Kind == AgentInterruptKind.Switch)
                 {
                     carried = entry.TakeNotes();
+                    if (agent.SessionHistory is { Count: > 0 } interrupted)
+                    {
+                        // Подпись размышления принадлежит прежней модели; текст и результаты нужны новой.
+                        history = ChatMessageCloner.CloneAll(interrupted, preserveReplayBlocks:
+                            string.Equals(modelId, ResolveModel(pending.Complexity, settings), StringComparison.OrdinalIgnoreCase));
+                        humanNotes = agent.HumanNotes;
+                        resuming = true;
+                    }
+
                     currentComplexity = pending.Complexity;
                     if (!string.IsNullOrWhiteSpace(pending.Prompt))
                     {
