@@ -26,6 +26,9 @@
       GuideShot ищет файл в коде, поэтому отсутствие любого из них — не ошибка сборки.
     -->
     <Resource Include="Assets\Guide\*.png" />
+    <!-- Логотипы редких авторов: локальные изображения, без сетевой загрузки из интерфейса. -->
+    <Resource Include="Assets\ModelLogos\*.*" />
+    <EmbeddedResource Include="..\THIRD-PARTY-NOTICES.md" LogicalName="Amarin.ThirdPartyNotices.md" />
   </ItemGroup>
 
   <!--

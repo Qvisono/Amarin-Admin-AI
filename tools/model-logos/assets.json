@@ -1,0 +1,547 @@
+{
+  "schemaVersion": 1,
+  "lobeCommit": "ea434b96e75813517b377825e01c0df61dee8836",
+  "assets": [
+    {
+      "key": "Ai2",
+      "file": "assets/Ai2.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/ai2-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "78a7258e6b0b182f312d84c3b48a60539857fc001302ab4583ba9690624aa258"
+    },
+    {
+      "key": "Ai21",
+      "file": "assets/Ai21.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/ai21.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "6c80f2c0d8b11d1bee179666049b00e0ab7f58f5ee8c307ca0dd3327bb49f282"
+    },
+    {
+      "key": "Anthracite",
+      "file": "assets/Anthracite.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/658a46cbfb9c2bdfae75b3a6/HDYkduzAwQRNHuRl5eYdP.png",
+      "source": "https://huggingface.co/anthracite-org",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "d3150c773c822a63a79880b199911f6b6a5e2dec945b0af409dfa047a25ffda2"
+    },
+    {
+      "key": "Baseten",
+      "file": "assets/Baseten.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/baseten.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "d560883f6df500c1290b2fb2018836d853c72697c1fc252793538fabf53ff28d"
+    },
+    {
+      "key": "Cloudflare",
+      "file": "assets/Cloudflare.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/cloudflare-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "cee35d3f0ecb7925ce0a89aeaff8b907cadae7c3fe44a23e4001cc8d5ee57502"
+    },
+    {
+      "key": "Dolphin",
+      "file": "assets/Dolphin.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/dolphin.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "83fbb4834e9b3d442d43b8ac57b83e76d5556b6f31b7d70014e6b45421aeb2af"
+    },
+    {
+      "key": "DotsStudio",
+      "file": "assets/DotsStudio.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/dotsstudio.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "ed4e9c618a27ac16f2e1e8c16e6d217f3f7c01665afb068fe2f12164298b2310"
+    },
+    {
+      "key": "Elorian",
+      "file": "assets/Elorian.svg",
+      "kind": "svg",
+      "stripColorSchemeStyle": true,
+      "monochrome": false,
+      "sourceUrl": "https://elorian.ai/assets/favicon.svg",
+      "source": "https://elorian.ai/assets/favicon.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "22d98f1bb4a92a113246769bcbd83f4600e19a199c160babc904dc691ca211f1"
+    },
+    {
+      "key": "Fireworks",
+      "file": "assets/Fireworks.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/fireworks-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "f1c4782b86bc03a36323fd68ad6cc376c6b2ebe57b701cc958ebd6b8d37effd6"
+    },
+    {
+      "key": "Gryphe",
+      "file": "assets/Gryphe.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/64ae4107ad6218d51a2a7d0c/3dcor68aYBKEcTlOUHJpK.png",
+      "source": "https://huggingface.co/Gryphe",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "46eaab8fb9e95bbb09ce52fd4f1758aa039f9d45a99993aac5dc1048f0343dba"
+    },
+    {
+      "key": "IBM",
+      "file": "assets/IBM.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/ibm.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "62c37af8c3f191572921197a29c90687079e62d3033f503faae59cdc96af0fb2"
+    },
+    {
+      "key": "Inference",
+      "file": "assets/Inference.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/inference.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "289a6a94c69929eb55a47ddc5652fbdfa2b60a0914cdddf5ed432f978fbc080c"
+    },
+    {
+      "key": "JaredPalmer",
+      "file": "assets/JaredPalmer.jpg",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/635d68ed06a944e347bf780b/hpDifiVy89AW56gyoJKK-.jpeg",
+      "source": "https://huggingface.co/jaredpalmer",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "9742037567207303241cec64b3edc36e3e34973060733819416615afc5230da4"
+    },
+    {
+      "key": "Ling",
+      "file": "assets/Ling.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/ling-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "312e3603256b1fe1199aff23c34cd3f57eca0305e8df60150cfda22db5059390"
+    },
+    {
+      "key": "Liquid",
+      "file": "assets/Liquid.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/liquid.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "4727b1cbd33bd256aca5be79a7d91a4f2753b2feb0dcfbb7b9fb3f23928c2467"
+    },
+    {
+      "key": "LongCat",
+      "file": "assets/LongCat.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/longcat-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "227f808520d700bc4dc762d8978a737ab149fb53cecb581d71548bacfd26722a"
+    },
+    {
+      "key": "Mancer",
+      "file": "assets/Mancer.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://mancer.tech/resources/Phantom%20Favicon.svg",
+      "source": "https://mancer.tech/resources/Phantom%20Favicon.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "f0bffaeb231ac19bd86eda9a94f45f5675ae8a28db637bc043604831bb61e8bb"
+    },
+    {
+      "key": "Meta",
+      "file": "assets/Meta.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/meta-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "adf9f2c1a646ccd3a37ca8c2e7e5985d64630cd633f4b95fba393d1d44e0578c"
+    },
+    {
+      "key": "Microsoft",
+      "file": "assets/Microsoft.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/microsoft-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "5cfb0ffa3231313c2968b5e3fedfcce8e2e96c61bde4572384c3889a77a80350"
+    },
+    {
+      "key": "Moondream",
+      "file": "assets/Moondream.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/65df6605dba41b152100edf9/LEUWPRTize9N7dMShjcPC.png",
+      "source": "https://huggingface.co/moondream",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "4a01b5d00595803edb56d69418e6673544bc68ec79ce4f9f204bcaede2c97363"
+    },
+    {
+      "key": "Morph",
+      "file": "assets/Morph.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/morph-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "994eb5b52da00eca9f4fa4d4c11a7fa1c1fa37dd9f58f9a97b951f0ea23a9f59"
+    },
+    {
+      "key": "Muse",
+      "file": "assets/Muse.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/muse-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "c39c74b14ec4c5be771f75a45bf9d34c2e5fd99fe7aefedcb0fd409c3e6ac621"
+    },
+    {
+      "key": "NaceAI",
+      "file": "assets/NaceAI.jpg",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6334c5bc762d2d0e9eb17a12/hiUIf6i50v15zlAOVXDSy.jpeg",
+      "source": "https://huggingface.co/nace-ai",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "acf5cd16ac00df0ed816ac2d65d5a870a2600809c29f13d2809a106164a3734d"
+    },
+    {
+      "key": "NexAGI",
+      "file": "assets/NexAGI.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://openrouter.ai/images/icons/NexAGI.svg",
+      "source": "https://openrouter.ai/images/icons/NexAGI.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "61138e5b098100d98c07cfc7e073a792e6ccbaac7b6fc9362dd34f0515911a8e"
+    },
+    {
+      "key": "NousResearch",
+      "file": "assets/NousResearch.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/nousresearch.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "4dc3c7cdf13d2f0bdf16b872d76293f048010a00f580df68a85e1f9c4e500e5d"
+    },
+    {
+      "key": "Nova",
+      "file": "assets/Nova.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/nova-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "be29ee23bbfb36cba87d8dee84d563f81f15290bfef8cef8c96a5996d2e7526c"
+    },
+    {
+      "key": "OpenRouter",
+      "file": "assets/OpenRouter.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/openrouter-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "17bede1b89166f824ee06753dc526a3f5e18b769706deaab09d04a3a98de1a78"
+    },
+    {
+      "key": "Parallel",
+      "file": "assets/Parallel.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://parallel.ai/icon.svg?icon.1d0de8d5.svg",
+      "source": "https://parallel.ai/icon.svg?icon.1d0de8d5.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "116950c81e4b0881d60a75c6e4cef770c6a24254d070ecf9191a5d16bb88ad0c"
+    },
+    {
+      "key": "Particle",
+      "file": "assets/Particle.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://openrouter.ai/images/icons/Particle.svg",
+      "source": "https://openrouter.ai/images/icons/Particle.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "inkColors": [
+        "black",
+        "#000",
+        "#000000"
+      ],
+      "sha256": "056eba0d5b7368d820696bc96aede16bda47286708507bb0cba5a11b0663b97b"
+    },
+    {
+      "key": "Perceptron",
+      "file": "assets/Perceptron.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/perceptron.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "a4e8b5f06318c9027f62874fb0a125b9d10eceda3fe2e3acd85faf7b6a5b9c26"
+    },
+    {
+      "key": "PrismML",
+      "file": "assets/PrismML.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn.prod.website-files.com/697a3312d33c2cc715ec3899/69cc2465f1715bb4a2a56ca1_webclip.png",
+      "source": "https://prismml.com/",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "9b2f1e7bf7f1ca26af3ced42a82d23814bba93afe783df85b709a6f0d3fb06c1"
+    },
+    {
+      "key": "Recursive",
+      "file": "assets/Recursive.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://openrouter.ai/images/icons/Recursive.svg",
+      "source": "https://openrouter.ai/images/icons/Recursive.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "inkColors": [
+        "black",
+        "#000",
+        "#000000"
+      ],
+      "sha256": "cd100feb575db41166e6590834c3442167065b8661340ca87dbd774db2844ba4"
+    },
+    {
+      "key": "Reflection",
+      "file": "assets/Reflection.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/reflection-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "f4bdde62f6961de4d032afbe070e77293a888c54e15020627765f1121af154a9",
+      "darkFile": "assets/Reflection.dark.svg",
+      "darkSourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/reflection.svg",
+      "darkSha256": "4413f13599f431f05ed00c465ea0fcf03c7555dab6a6a3530b254e12cb012557"
+    },
+    {
+      "key": "Reka",
+      "file": "assets/Reka.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/reka.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "533ae212f32db47ffc179c272fb6c7fb0cc71e516a68ad3b58c435b0e8f20063"
+    },
+    {
+      "key": "Relace",
+      "file": "assets/Relace.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/relace.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "06f3327a757c927e828f9328b8587f38aa350b3582ba62bcbf8371243e05a6f6"
+    },
+    {
+      "key": "Respan",
+      "file": "assets/Respan.png",
+      "kind": "bitmap",
+      "monochrome": false,
+      "sourceUrl": "https://www.respan.ai/icon-512.png",
+      "source": "https://www.respan.ai/icon-512.png",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "c3145e4b07ed3ccb9199edc5fb24bb60c006da6fc190625c38a53a30139d9b03"
+    },
+    {
+      "key": "Ricursive",
+      "file": "assets/Ricursive.png",
+      "kind": "bitmap",
+      "monochrome": false,
+      "sourceUrl": "https://framerusercontent.com/images/regqe5tMvYkFUcTE25DkVQgkBk4.png",
+      "source": "https://www.ricursive.com/",
+      "license": "Brand artwork; used to identify the model author",
+      "darkFile": "assets/Ricursive.dark.png",
+      "darkSourceUrl": "https://framerusercontent.com/images/hHkxdZAl5Xmmekm2rPjO1pfGNM.png",
+      "sha256": "3d80481ac3eef00943e3c00658479bf09e44b52b6cd562c6ac1318e766b873c5",
+      "darkSha256": "1caa4191584d7f4dc331b67144e73b8018bc9d2415c93ef38d2a4b4fff4af0bc"
+    },
+    {
+      "key": "Sakana",
+      "file": "assets/Sakana.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/sakana-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "a635d8f584502c97d16b7682664c2420331c770445ae181f1c2673d6d97d0f38"
+    },
+    {
+      "key": "Sao10K",
+      "file": "assets/Sao10K.jpg",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/64be6a5376a6e2efccc638c1/gvRRLHsicTCxpURJeQDv3.jpeg",
+      "source": "https://huggingface.co/Sao10K",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "a333344975a7ab74a5e7a0ba27e5080b0acc5518eb1123e2b8b1c3e66461ae43"
+    },
+    {
+      "key": "ScaleDown",
+      "file": "assets/ScaleDown.png",
+      "kind": "bitmap",
+      "monochrome": false,
+      "sourceUrl": "https://scaledown.ai/logo_actual.png",
+      "source": "https://scaledown.ai/logo_actual.png",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "788ef8e17963028e8c2abb4424be90236f41de958e9c498417d293528338ab8f"
+    },
+    {
+      "key": "Stealth",
+      "file": "assets/Stealth.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://openrouter.ai/images/icons/Stealth.svg",
+      "source": "https://openrouter.ai/images/icons/Stealth.svg",
+      "license": "Brand artwork; used to identify the model author",
+      "foreground": "#16161A",
+      "sha256": "454eb9497d8f252700a890c25dedad50fd2fc64af5a3a3e6b7b48b6b7943b5fe"
+    },
+    {
+      "key": "Stepfun",
+      "file": "assets/Stepfun.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/stepfun-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "f55afc0e6004c8854f76bd5bbcc0fce9fc0ed9316691d54fb02d088c24fab40d"
+    },
+    {
+      "key": "TheDrummer",
+      "file": "assets/TheDrummer.png",
+      "kind": "bitmap",
+      "monochrome": false,
+      "sourceUrl": "https://openrouter.ai/images/icons/TheDrummer.png",
+      "source": "https://openrouter.ai/images/icons/TheDrummer.png",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "0acfa4c7ddaf4552f96a0879533e135db0defddb753fcb204b6545d190761ba0"
+    },
+    {
+      "key": "ThinkingMachines",
+      "file": "assets/ThinkingMachines.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://thinkingmachines.ai/images/apple-touch-icon.png",
+      "source": "https://thinkingmachines.ai/",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "ef907e01669290064ce1db3d7902203fb2786dc110d2c496a8a02ad912d32e7e"
+    },
+    {
+      "key": "Together",
+      "file": "assets/Together.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/together-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "27ccaf118a431c386b88418a34a4346afd9638dde10e3f2295db2eec1fa5898a"
+    },
+    {
+      "key": "TypeSafeAI",
+      "file": "assets/TypeSafeAI.svg",
+      "kind": "svg",
+      "monochrome": true,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/typesafeai.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "774171d3a45ce20a1ca2287efffa574e5d7f85d83fa52fff47eed0035a2242de"
+    },
+    {
+      "key": "Unbiased",
+      "file": "assets/Unbiased.png",
+      "kind": "bitmap",
+      "monochrome": false,
+      "sourceUrl": "https://openrouter.ai/images/icons/Unbiased.png",
+      "source": "https://openrouter.ai/images/icons/Unbiased.png",
+      "license": "Brand artwork; used to identify the model author",
+      "sha256": "b4c442620230fcc8b487131252c4a32cc1a25a4dccc89150d3837d7d09df80c8"
+    },
+    {
+      "key": "Undi95",
+      "file": "assets/Undi95.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/63ab1241ad514ca8d1430003/9UwuBl5D-GuIJKIOVHm3Z.png",
+      "source": "https://huggingface.co/Undi95",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "77db387b4d9ac910b7919ac5edf01af9998b98b624a5f5a896d69cad51542823"
+    },
+    {
+      "key": "Upstage",
+      "file": "assets/Upstage.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/upstage-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "206e23f9143cd308998cddae36b674651d7435eebc357c596dacb2b39228a485"
+    },
+    {
+      "key": "Venice",
+      "file": "assets/Venice.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/venice-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "a4a909b289b05d3b4cc716452d0c744619b23e110d2853bafd81bfba7c8c165f"
+    },
+    {
+      "key": "Writer",
+      "file": "assets/Writer.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://writer.com/downloads/Writer_icon_dark.x_svg",
+      "source": "https://writer.com/newsroom/",
+      "license": "Brand artwork; used to identify the model author",
+      "darkFile": "assets/Writer.dark.svg",
+      "darkSourceUrl": "https://writer.com/downloads/Writer_icon_light.x_svg",
+      "sha256": "a75fcb67d7ee705e81e602f57fdea33448cf7ca06b096ccb2e56d4e63af5c2a5",
+      "darkSha256": "055a1d75cb97f106cf1dbccfe8268faf782c9092646f02b60680e3f66dc55818"
+    },
+    {
+      "key": "XingChen",
+      "file": "assets/XingChen.png",
+      "kind": "bitmap",
+      "sourceUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/64368160eef1f55654ab21dc/HGow19-5fgUcp_IEMZoXG.png",
+      "source": "https://huggingface.co/XingChen-AGI",
+      "license": "Author avatar; used to identify the model author",
+      "sha256": "b795c5d8e7f2f7b217137866509eb5c3c2668437a722362c5a8ddc10701ef85a"
+    },
+    {
+      "key": "Yi",
+      "file": "assets/Yi.svg",
+      "kind": "svg",
+      "monochrome": false,
+      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/yi-color.svg",
+      "license": "MIT (LobeHub)",
+      "source": "Lobe Icons",
+      "sha256": "d78b1ce0eeb7a7d1a6132785dfa0218be48d6d1ccd3751ca3f9240a2e3b38756"
+    }
+  ]
+}

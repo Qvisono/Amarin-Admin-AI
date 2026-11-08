@@ -29,6 +29,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Providers\ModelLogoCatalog.json"
+                      LogicalName="Amarin.ModelLogoCatalog.json" />
     <!--
       Заметки этой версии для окна «Что нового» (WhatsNew): тот же файл, из которого release.yml
       делает страницу релиза, поэтому текст один. Condition — чтобы сборка версии, заметки к

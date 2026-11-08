@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Xml.Linq;
 using Amarin.Core;
 using Amarin.UI;
 
@@ -117,14 +118,25 @@ public sealed class ModelLogoTests
     [Fact]
     public void The_two_themes_actually_use_different_ink()
     {
-        // A copy-paste that left the dark artwork in the light file would render invisible.
+        // Монохромные чернила обязаны меняться с темой. Логотип со своим светлым фоном
+        // сохраняет тёмную фигуру и в тёмной теме, поэтому весь словарь проверять одним цветом нельзя.
         var dark = File.ReadAllText(ProjectFile("UI/Theme/AiLogos.Dark.xaml"));
         var light = File.ReadAllText(ProjectFile("UI/Theme/AiLogos.Light.xaml"));
 
-        Assert.Contains("Brush=\"White\"", dark, StringComparison.Ordinal);
-        Assert.DoesNotContain("Brush=\"White\"", light, StringComparison.Ordinal);
-        Assert.Contains("Brush=\"#FF16161A\"", light, StringComparison.Ordinal);
-        Assert.DoesNotContain("Brush=\"#FF16161A\"", dark, StringComparison.Ordinal);
+        foreach (var key in new[] { "OpenAI", "Anthropic" })
+        {
+            var darkLogo = LogoMarkup(dark, key);
+            var lightLogo = LogoMarkup(light, key);
+            Assert.Contains("Brush=\"White\"", darkLogo, StringComparison.Ordinal);
+            Assert.DoesNotContain("Brush=\"White\"", lightLogo, StringComparison.Ordinal);
+            Assert.Contains("Brush=\"#FF16161A\"", lightLogo, StringComparison.Ordinal);
+            Assert.DoesNotContain("Brush=\"#FF16161A\"", darkLogo, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("Brush=\"#FF16161A\"", LogoMarkup(dark, "Stealth"), StringComparison.Ordinal);
+        Assert.Contains("Brush=\"#FF16161A\"", LogoMarkup(light, "Stealth"), StringComparison.Ordinal);
+        Assert.Contains("Brush=\"#FFFFFFFF\"", LogoMarkup(dark, "Reflection"), StringComparison.Ordinal);
+        Assert.Contains("Brush=\"#FF1E3207\"", LogoMarkup(light, "Reflection"), StringComparison.Ordinal);
 
         // Brand colours are identity, not ink: they must survive in both.
         foreach (var brand in new[] { "#FF76B900", "#FF4285F4", "#FFFA520F", "#FF6950EF" })
@@ -132,6 +144,13 @@ public sealed class ModelLogoTests
             Assert.Contains(brand, dark, StringComparison.Ordinal);
             Assert.Contains(brand, light, StringComparison.Ordinal);
         }
+    }
+
+    private static string LogoMarkup(string dictionary, string key)
+    {
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        return XDocument.Parse(dictionary).Root!.Elements()
+            .Single(element => (string?)element.Attribute(xaml + "Key") == key).ToString();
     }
 
     private static string ProjectFile(string relative) => SourceTree.ProjectFile(relative);

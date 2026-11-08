@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "authors": {
+    "01-ai": "Yi",
+    "ai21": "Ai21",
+    "aion-labs": "AionLabs",
+    "alibaba": "Alibaba",
+    "allenai": "Ai2",
+    "amazon": "Nova",
+    "anthracite-org": "Anthracite",
+    "anthropic": "Anthropic",
+    "arcee-ai": "Arcee",
+    "baichuan": "Baichuan",
+    "baseten": "Baseten",
+    "black-forest-labs": "Flux",
+    "bytedance": "ByteDance",
+    "bytedance-seed": "Seed",
+    "cloudflare": "Cloudflare",
+    "cognitivecomputations": "Dolphin",
+    "cohere": "Cohere",
+    "deepseek": "DeepSeek",
+    "dots-studio": "DotsStudio",
+    "elorian": "Elorian",
+    "fireworks": "Fireworks",
+    "google": "Google",
+    "gryphe": "Gryphe",
+    "ibm-granite": "IBM",
+    "inception": "Inception",
+    "inclusionai": "Ling",
+    "inference-net": "Inference",
+    "jaredpalmer": "JaredPalmer",
+    "liquid": "Liquid",
+    "mancer": "Mancer",
+    "meituan": "LongCat",
+    "meta": "Meta",
+    "meta-llama": "Llama",
+    "microsoft": "Microsoft",
+    "minimax": "MiniMax",
+    "mistralai": "Mistral",
+    "moondream": "Moondream",
+    "moonshotai": "Moonshot",
+    "morph": "Morph",
+    "nace-ai": "NaceAI",
+    "nex-agi": "NexAGI",
+    "nousresearch": "NousResearch",
+    "nvidia": "NVIDIA",
+    "openai": "OpenAI",
+    "openrouter": "OpenRouter",
+    "parallel": "Parallel",
+    "particle-ai": "Particle",
+    "perceptron": "Perceptron",
+    "perplexity": "Perplexity",
+    "prism-ml": "PrismML",
+    "qwen": "Qwen",
+    "recursive": "Recursive",
+    "reflection": "Reflection",
+    "rekaai": "Reka",
+    "relace": "Relace",
+    "respan": "Respan",
+    "ricursiveai": "Ricursive",
+    "sakana": "Sakana",
+    "sao10k": "Sao10K",
+    "scaledown": "ScaleDown",
+    "stabilityai": "Stability",
+    "stealth": "Stealth",
+    "stepfun": "Stepfun",
+    "tencent": "Hunyuan",
+    "thedrummer": "TheDrummer",
+    "thinkingmachines": "ThinkingMachines",
+    "togethercomputer": "Together",
+    "typesafe": "TypeSafeAI",
+    "unbiased": "Unbiased",
+    "undi95": "Undi95",
+    "upstage": "Upstage",
+    "venice": "Venice",
+    "writer": "Writer",
+    "x-ai": "Grok",
+    "xiaomi": "MiMo",
+    "xingchen-agi": "XingChen",
+    "z-ai": "GLM"
+  },
+  "models": {},
+  "families": [
+    {
+      "author": "anthropic",
+      "contains": "claude",
+      "key": "Claude"
+    },
+    {
+      "author": "google",
+      "contains": "gemma",
+      "key": "Gemma"
+    },
+    {
+      "author": "google",
+      "contains": "gemini",
+      "key": "GoogleGemini"
+    },
+    {
+      "author": "moonshotai",
+      "contains": "kimi",
+      "key": "Kimi"
+    },
+    {
+      "author": "bytedance-seed",
+      "contains": "seed",
+      "key": "Seed"
+    },
+    {
+      "author": "meta",
+      "contains": "muse",
+      "key": "Muse"
+    },
+    {
+      "author": "alibaba",
+      "contains": "qwen",
+      "key": "Qwen"
+    }
+  ],
+  "unqualified": [
+    {
+      "contains": "muse-",
+      "key": "Muse"
+    },
+    {
+      "contains": "dolphin",
+      "key": "Dolphin"
+    },
+    {
+      "contains": "hermes",
+      "key": "NousResearch"
+    },
+    {
+      "contains": "claude",
+      "key": "Claude"
+    },
+    {
+      "contains": "grok",
+      "key": "Grok"
+    },
+    {
+      "contains": "deepseek",
+      "key": "DeepSeek"
+    },
+    {
+      "contains": "kimi",
+      "key": "Kimi"
+    },
+    {
+      "contains": "moonshot",
+      "key": "Moonshot"
+    },
+    {
+      "contains": "minimax",
+      "key": "MiniMax"
+    },
+    {
+      "contains": "mimo",
+      "key": "MiMo"
+    },
+    {
+      "contains": "glm",
+      "key": "GLM"
+    },
+    {
+      "contains": "qwen",
+      "key": "Qwen"
+    },
+    {
+      "contains": "gemma",
+      "key": "Gemma"
+    },
+    {
+      "contains": "gemini",
+      "key": "GoogleGemini"
+    },
+    {
+      "contains": "llama",
+      "key": "Llama"
+    },
+    {
+      "contains": "nemotron",
+      "key": "NVIDIA"
+    },
+    {
+      "contains": "nvidia",
+      "key": "NVIDIA"
+    },
+    {
+      "contains": "hunyuan",
+      "key": "Hunyuan"
+    },
+    {
+      "contains": "baichuan",
+      "key": "Baichuan"
+    },
+    {
+      "contains": "arcee",
+      "key": "Arcee"
+    },
+    {
+      "contains": "aion",
+      "key": "AionLabs"
+    },
+    {
+      "contains": "mercury",
+      "key": "Inception"
+    },
+    {
+      "contains": "inception",
+      "key": "Inception"
+    },
+    {
+      "contains": "spark",
+      "key": "Spark"
+    },
+    {
+      "contains": "perplexity",
+      "key": "Perplexity"
+    },
+    {
+      "contains": "sonar",
+      "key": "Perplexity"
+    },
+    {
+      "contains": "cohere",
+      "key": "Cohere"
+    },
+    {
+      "contains": "command-r",
+      "key": "Cohere"
+    },
+    {
+      "contains": "mistral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "ministral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "magistral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "codestral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "devstral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "pixtral",
+      "key": "Mistral"
+    },
+    {
+      "contains": "openai",
+      "key": "OpenAI"
+    },
+    {
+      "contains": "gpt",
+      "key": "OpenAI"
+    },
+    {
+      "contains": "codex",
+      "key": "OpenAI"
+    },
+    {
+      "contains": "nano-banana",
+      "key": "Google"
+    },
+    {
+      "contains": "flux",
+      "key": "Flux"
+    },
+    {
+      "contains": "seedream",
+      "key": "ByteDance"
+    },
+    {
+      "contains": "seedance",
+      "key": "ByteDance"
+    },
+    {
+      "contains": "bytedance",
+      "key": "ByteDance"
+    },
+    {
+      "contains": "doubao",
+      "key": "ByteDance"
+    },
+    {
+      "contains": "seed",
+      "key": "Seed"
+    },
+    {
+      "contains": "venice-sd",
+      "key": "Stability"
+    },
+    {
+      "contains": "stable-diffusion",
+      "key": "Stability"
+    },
+    {
+      "contains": "sdxl",
+      "key": "Stability"
+    },
+    {
+      "contains": "kling",
+      "key": "Kling"
+    },
+    {
+      "contains": "pixverse",
+      "key": "PixVerse"
+    },
+    {
+      "contains": "hailuo",
+      "key": "Hailuo"
+    },
+    {
+      "contains": "runway",
+      "key": "Runway"
+    },
+    {
+      "contains": "luma",
+      "key": "Luma"
+    },
+    {
+      "contains": "pika",
+      "key": "Pika"
+    },
+    {
+      "contains": "vidu",
+      "key": "Vidu"
+    },
+    {
+      "contains": "anthropic",
+      "key": "Anthropic"
+    },
+    {
+      "contains": "google",
+      "key": "Google"
+    },
+    {
+      "contains": "alibaba",
+      "key": "Alibaba"
+    },
+    {
+      "contains": "nova",
+      "key": "Nova"
+    },
+    {
+      "contains": "lfm-",
+      "key": "Liquid"
+    },
+    {
+      "contains": "liquid",
+      "key": "Liquid"
+    },
+    {
+      "contains": "stepfun",
+      "key": "Stepfun"
+    },
+    {
+      "contains": "step-",
+      "key": "Stepfun"
+    },
+    {
+      "contains": "solar-",
+      "key": "Upstage"
+    },
+    {
+      "contains": "reka",
+      "key": "Reka"
+    },
+    {
+      "contains": "phi-",
+      "key": "Microsoft"
+    },
+    {
+      "contains": "granite",
+      "key": "IBM"
+    },
+    {
+      "contains": "longcat",
+      "key": "LongCat"
+    },
+    {
+      "contains": "morph",
+      "key": "Morph"
+    },
+    {
+      "contains": "ling-",
+      "key": "Ling"
+    },
+    {
+      "contains": "moondream",
+      "key": "Moondream"
+    },
+    {
+      "contains": "openrouter",
+      "key": "OpenRouter"
+    },
+    {
+      "contains": "olmo",
+      "key": "Ai2"
+    },
+    {
+      "contains": "jamba",
+      "key": "Ai21"
+    }
+  ]
+}
