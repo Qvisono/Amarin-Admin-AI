@@ -496,6 +496,14 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Программа запущена без прав администратора: многие действия недоступны</system:String>
 
     <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Выполни этот скрипт на этом ПК без изменений и сообщи результат:</system:String>
+    <system:String x:Key="S.Code.CommandBusy" xml:space="preserve">Выполняется команда. Дождитесь её завершения или остановите её. Сообщение осталось в поле ввода.</system:String>
+    <system:String x:Key="S.Code.RunBusy" xml:space="preserve">В этом чате уже идёт работа. Дождитесь её завершения или остановите её.</system:String>
+    <system:String x:Key="S.Code.RunCancelled" xml:space="preserve">Команда остановлена</system:String>
+    <system:String x:Key="S.Code.RunDone" xml:space="preserve">Команда выполнена</system:String>
+    <system:String x:Key="S.Code.RunFailed" xml:space="preserve">Не удалось выполнить команду</system:String>
+    <system:String x:Key="S.Code.RunLocal" xml:space="preserve">Выполнить на этом компьютере</system:String>
+    <system:String x:Key="S.Code.RunOrigin" xml:space="preserve">Блок кода PowerShell</system:String>
+    <system:String x:Key="S.Code.StopLocal" xml:space="preserve">Остановить команду</system:String>
     <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Не переносить строки</system:String>
     <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Выполнить через агента: задача появится в поле ввода</system:String>
     <system:String x:Key="S.Code.Save" xml:space="preserve">Сохранить в файл</system:String>
@@ -1819,6 +1827,10 @@
     <system:String x:Key="S.Security.WindowsLogDesc" xml:space="preserve">Действия ИИ видны администратору в журнале «Приложение», без аргументов</system:String>
     <system:String x:Key="S.Security.AnySite" xml:space="preserve">Загрузка с любого сайта</system:String>
     <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">Белый список ниже не проверяется. Включайте, только если доверяете тому, что скачивает агент</system:String>
+    <system:String x:Key="S.Security.DownloadLimit" xml:space="preserve">Ограничивать размер файла</system:String>
+    <system:String x:Key="S.Security.DownloadLimitDesc" xml:space="preserve">Максимальный размер одного скачиваемого файла.</system:String>
+    <system:String x:Key="S.Security.DownloadMaxSize" xml:space="preserve">Максимальный размер файла</system:String>
+    <system:String x:Key="S.Security.DownloadSizeUnit" xml:space="preserve">МиБ</system:String>
     <system:String x:Key="S.Browser.Title" xml:space="preserve">Браузер агента</system:String>
     <system:String x:Key="S.Browser.Status" xml:space="preserve">Здесь работает агент. Входить на сайты вы можете сами</system:String>
     <system:String x:Key="S.Browser.Done" xml:space="preserve">Готово</system:String>
@@ -1948,6 +1960,8 @@
     <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии.</system:String>
     <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии. Чтобы изменение вступило в силу, нужна перезагрузка: скажи об этом пользователю, сам не перезагружай.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Не удалось запустить {0}.</system:String>
+    <system:String x:Key="S.Tool.Download.InvalidSize" xml:space="preserve">Параметр max_size_mb должен быть положительным целым числом. Укажи корректный предел или убери параметр, чтобы использовать настройку пользователя.</system:String>
+    <system:String x:Key="S.Tool.Download.SizeLimit" xml:space="preserve">Файл превышает ограничение размера ({0} байт). Лимит можно изменить или отключить: Настройки → Безопасность → Источники загрузки. Не повторяй загрузку с тем же ограничением.</system:String>
     <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Нужны права администратора: запустите программу от администратора и повторите. Не повторяй попытку, пока права те же.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Неизвестный профиль брандмауэра «{0}». Допустимы: domain, private, public, all. Не повторяй с тем же значением.</system:String>
     <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">Изменение вступит в силу только после перезагрузки. Не перезагружай сам, скажи пользователю.</system:String>

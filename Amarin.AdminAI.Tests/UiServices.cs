@@ -22,7 +22,7 @@ namespace Amarin.AdminAI.Tests;
 /// </remarks>
 internal static class UiServices
 {
-    public static AppServices Build(string root, string apiKey, HttpMessageHandler handler) =>
+    public static AppServices Build(string root, string apiKey, HttpMessageHandler handler, AuditLog? audit = null) =>
         Build(
             root,
             new AgentOptions
@@ -32,10 +32,11 @@ internal static class UiServices
                 Model = "grok-4-6",
                 MaxToolRounds = 2
             },
-            new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") });
+            new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") },
+            audit: audit);
 
     /// <param name="loadKeys">Прочитать <c>keys.json</c> папки, как это делает запуск.</param>
-    public static AppServices Build(string root, AgentOptions options, HttpClient http, bool loadKeys = false)
+    public static AppServices Build(string root, AgentOptions options, HttpClient http, bool loadKeys = false, AuditLog? audit = null)
     {
         Directory.CreateDirectory(Path.Combine(root, "chats"));
 
@@ -49,7 +50,8 @@ internal static class UiServices
             settings,
             new ApiKeyProvider(),
             new SpendLedger(root),
-            new InstructionLibrary(root));
+            new InstructionLibrary(root),
+            audit: audit);
         if (loadKeys)
         {
             profile.KeyStore.Load();

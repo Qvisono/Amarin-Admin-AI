@@ -8,6 +8,10 @@ internal static class AgentTools
     /// Закреплённый способ поиска в интернете. Читается на каждый вызов: человек мог сменить
     /// его, пока агент работает.
     /// </param>
+    /// <param name="readSettings">
+    /// Текущий профиль на каждый вызов загрузки: настройки и сам профиль могут смениться,
+    /// пока уже собранный набор инструментов продолжает жить.
+    /// </param>
     public static ToolRegistry Create(
         VeniceClient venice,
         HttpClient downloadHttp,
@@ -15,7 +19,8 @@ internal static class AgentTools
         Func<WebSearchPlan>? webSearch = null,
         Func<IEnumerable<string?>>? knownSecrets = null,
         InstructionLibrary? instructions = null,
-        IReadOnlyList<Instruction>? agentInstructions = null) =>
+        IReadOnlyList<Instruction>? agentInstructions = null,
+        Func<AppSettings>? readSettings = null) =>
         new(
         [
             // Инструкции — только если человек открыл агенту хоть одну: без них и инструмента нет.
@@ -27,7 +32,7 @@ internal static class AgentTools
             new ServiceTool(),
             new FileSystemTool(),
             new SystemInfoTool(),
-            new WebDownloadTool(downloadHttp, download),
+            new WebDownloadTool(downloadHttp, download, readSettings),
             new ScreenshotTool(),
             new ClipboardTool(),
             new ClipboardWriteTool(knownSecrets ?? (() => [])),

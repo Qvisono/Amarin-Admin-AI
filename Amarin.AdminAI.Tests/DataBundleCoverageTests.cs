@@ -151,6 +151,49 @@ public sealed class DataBundleCoverageTests
     }
 
     [Theory]
+    [InlineData(true, null, false)]
+    [InlineData(true, 2048, false)]
+    [InlineData(false, 2048, false)]
+    [InlineData(true, null, true)]
+    [InlineData(true, 2048, true)]
+    [InlineData(false, 2048, true)]
+    public void The_download_limit_and_its_saved_size_survive_the_archive(bool enabled, int? maxMb, bool newProfile)
+    {
+        var source = NewRoot();
+        var target = NewRoot();
+        var archive = Path.Combine(Path.GetTempPath(), "amarin-download-" + Guid.NewGuid().ToString("N") + DataBundle.FileExtension);
+        try
+        {
+            var profileId = newProfile ? "work0001" : ProfileStore.DefaultProfileId;
+            var profiles = new ProfileStore(source);
+            profiles.Save(new ProfileRegistry
+            {
+                ActiveProfileId = ProfileStore.DefaultProfileId,
+                Profiles = [new UserProfile { Id = ProfileStore.DefaultProfileId }, new UserProfile { Id = "work0001" }]
+            });
+            var settings = AppSettings.CreateDefault();
+            settings.DownloadSizeLimitEnabled = enabled;
+            settings.DownloadMaxSizeMb = maxMb;
+            new AppSettingsStore(profiles.DataRootFor(profileId)).Save(settings);
+
+            new DataBundleExporter(source).Write(archive, DataCategory.All);
+            var imported = new DataBundleImporter(target).Apply(archive, DataCategory.All,
+                newProfile ? DataImportMode.Merge : DataImportMode.Replace);
+
+            Assert.True(imported.Ok, imported.Error.ToString());
+            var restored = new AppSettingsStore(new ProfileStore(target).DataRootFor(profileId)).Load();
+            Assert.Equal(enabled, restored.DownloadSizeLimitEnabled);
+            Assert.Equal(maxMb, restored.DownloadMaxSizeMb);
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+            TryDeleteFile(archive);
+        }
+    }
+
+    [Theory]
     [InlineData("settings.json", DataCategory.Settings)]
     [InlineData("prompts.json", DataCategory.Settings)]
     [InlineData("instructions/a1b2c3d4.md", DataCategory.Settings)]

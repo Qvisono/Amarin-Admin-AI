@@ -882,6 +882,7 @@
                             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
                             Foreground="{DynamicResource Text.Dim}"
+                            BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                             AutomationProperties.Name="{DynamicResource S.Chat.ScrollBottom}"
                             MouseEnter="ScrollBottomButton_MouseEnter" MouseLeave="ScrollBottomButton_MouseLeave"
                             Click="ScrollBottomButton_Click">
@@ -891,7 +892,7 @@
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
-                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                                         CornerRadius="18">
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
@@ -903,16 +904,10 @@
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
-                        <!-- Пока в чате идёт ответ, вместо стрелки бегут точки (MainWindow.ScrollJump.cs). -->
-                        <Grid>
-                            <Path x:Name="ScrollBottomIcon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
-                                  Margin="0,2,0,0" Stroke="{Binding Foreground, ElementName=ScrollBottomButton}" StrokeThickness="1.7"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <local:WorkDots x:Name="ScrollBottomDots" Visibility="Collapsed"
-                                            Fill="{DynamicResource Accent.Fill}"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
+                        <Path x:Name="ScrollBottomIcon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
+                              Margin="0,2,0,0" Stroke="{Binding Foreground, ElementName=ScrollBottomButton}" StrokeThickness="1.7"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                     <!--
                         Подсказка к «в конец» — не ToolTip, а элемент окна над кнопкой. Под кнопкой

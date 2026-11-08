@@ -563,6 +563,15 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public bool DownloadAnySite { get; set; }
 
+    /// <summary>Ограничивать размер скачиваемого файла. Выключение сохраняет выбранный размер.</summary>
+    public bool DownloadSizeLimitEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Максимальный размер скачиваемого файла в МиБ. <c>null</c> сохраняет предел из
+    /// <c>appsettings.json</c>, действовавший до появления настройки профиля.
+    /// </summary>
+    public int? DownloadMaxSizeMb { get; set; }
+
     /// <summary>
     /// Временный чат живёт до закрытия программы (1.37.0). Выключено — исчезает, как только
     /// человек уходит из него в другой чат.

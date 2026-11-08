@@ -80,7 +80,8 @@ public sealed class SettingsInventoryTests
             "Security:ComputerControlToggle", "Security:EncryptChatsToggle", "Security:ToolsLinkRow", "Security:EnableAllToolsButton",
             "Security:SourcesLinkRow", "Security:AddDomainButton", "Security:AllowedDomainsList",
             "Security:AgentBrowserToggle", "Security:NoRetentionToggle", "Security:TemporaryUntilCloseToggle",
-            "Security:DownloadAnySiteToggle", "Security:WindowsLogToggle"
+            "Security:DownloadAnySiteToggle", "Security:DownloadSizeLimitToggle", "Security:DownloadMaxSizeBox",
+            "Security:WindowsLogToggle"
         ]),
         ("NavKey", ["Key:AddKeyButton", "Key:LimitsLinkRow", "Key:LimitsBlock"]),
         ("NavData",

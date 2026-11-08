@@ -264,6 +264,33 @@
                                   Checked="DownloadAnySiteToggle_Changed" Unchecked="DownloadAnySiteToggle_Changed"/>
                     </Grid>
                 </Border>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.DownloadLimit}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.DownloadLimitDesc}"/>
+                        </StackPanel>
+                        <StackPanel x:Name="DownloadMaxSizeField" Grid.Column="1" Orientation="Horizontal"
+                                    VerticalAlignment="Center" Margin="0,0,12,0">
+                            <Border Style="{StaticResource FieldFrame}" Height="28" Width="96">
+                                <TextBox x:Name="DownloadMaxSizeBox" Style="{StaticResource FieldTextBox}" MaxLength="10"
+                                         HorizontalContentAlignment="Center" LostFocus="DownloadMaxSizeBox_LostFocus"
+                                         KeyDown="DownloadMaxSizeBox_KeyDown"
+                                         AutomationProperties.Name="{DynamicResource S.Security.DownloadMaxSize}"/>
+                            </Border>
+                            <TextBlock Text="{DynamicResource S.Security.DownloadSizeUnit}" FontSize="12" Margin="6,0,0,0"
+                                       Foreground="{DynamicResource Text.Tertiary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <CheckBox x:Name="DownloadSizeLimitToggle" Grid.Column="2" Style="{StaticResource SettingsToggle}"
+                                  AutomationProperties.Name="{DynamicResource S.Security.DownloadLimit}"
+                                  Checked="DownloadSizeLimitToggle_Changed" Unchecked="DownloadSizeLimitToggle_Changed"/>
+                    </Grid>
+                </Border>
                 <!-- Разрешённые сайты: заголовок строкой группы, список — под чертой в ней же. -->
                 <Border x:Name="AllowlistGroup" Style="{StaticResource SettingsGroup}">
                     <StackPanel>

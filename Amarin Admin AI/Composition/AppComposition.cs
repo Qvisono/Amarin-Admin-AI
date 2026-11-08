@@ -169,7 +169,8 @@ internal static class AppComposition
                 venice,
                 downloadHttp,
                 options.Download,
-                knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey)).All,
+                knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
+                readSettings: ReadSettings).All,
             .. FileTools(fileState)
         ]));
         // Мышь и клавиатура этого ПК: агент получает их, только когда окно поставит плашку, а

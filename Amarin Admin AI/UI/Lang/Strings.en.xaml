@@ -496,6 +496,14 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
     <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Run this script on this PC unchanged and report the result:</system:String>
+    <system:String x:Key="S.Code.CommandBusy" xml:space="preserve">A command is running. Wait for it to finish or stop it. Your message remains in the input field.</system:String>
+    <system:String x:Key="S.Code.RunBusy" xml:space="preserve">This chat is busy. Wait for it to finish or stop it.</system:String>
+    <system:String x:Key="S.Code.RunCancelled" xml:space="preserve">Command stopped</system:String>
+    <system:String x:Key="S.Code.RunDone" xml:space="preserve">Command completed</system:String>
+    <system:String x:Key="S.Code.RunFailed" xml:space="preserve">Command failed</system:String>
+    <system:String x:Key="S.Code.RunLocal" xml:space="preserve">Run on this computer</system:String>
+    <system:String x:Key="S.Code.RunOrigin" xml:space="preserve">PowerShell code block</system:String>
+    <system:String x:Key="S.Code.StopLocal" xml:space="preserve">Stop command</system:String>
     <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Do not wrap lines</system:String>
     <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Run via the agent: the task appears in the input field</system:String>
     <system:String x:Key="S.Code.Save" xml:space="preserve">Save to a file</system:String>
@@ -1819,6 +1827,10 @@
     <system:String x:Key="S.Security.WindowsLogDesc" xml:space="preserve">Admins see AI actions in the Application log, without arguments</system:String>
     <system:String x:Key="S.Security.AnySite" xml:space="preserve">Download from any site</system:String>
     <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">The allowlist below is not checked. Turn this on only if you trust what the agent downloads</system:String>
+    <system:String x:Key="S.Security.DownloadLimit" xml:space="preserve">Limit file size</system:String>
+    <system:String x:Key="S.Security.DownloadLimitDesc" xml:space="preserve">Maximum size of a downloaded file.</system:String>
+    <system:String x:Key="S.Security.DownloadMaxSize" xml:space="preserve">Maximum file size</system:String>
+    <system:String x:Key="S.Security.DownloadSizeUnit" xml:space="preserve">MiB</system:String>
     <system:String x:Key="S.Browser.Title" xml:space="preserve">Agent browser</system:String>
     <system:String x:Key="S.Browser.Status" xml:space="preserve">The agent works here. You can sign in to sites yourself</system:String>
     <system:String x:Key="S.Browser.Done" xml:space="preserve">Done</system:String>
@@ -1948,6 +1960,8 @@
     <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">The driver of {0} was rolled back to the previous version.</system:String>
     <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">The driver of {0} was rolled back to the previous version. A reboot is needed for it to take effect: tell the user, do not reboot yourself.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Could not start {0}.</system:String>
+    <system:String x:Key="S.Tool.Download.InvalidSize" xml:space="preserve">max_size_mb must be a positive integer. Provide a valid limit or omit the parameter to use the user's setting.</system:String>
+    <system:String x:Key="S.Tool.Download.SizeLimit" xml:space="preserve">The file exceeds the size limit ({0} bytes). The limit can be changed or disabled in Settings → Security → Download sources. Do not repeat the download with the same limit.</system:String>
     <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Administrator rights are needed: restart the program as administrator and try again. Do not retry with the same rights.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Unknown firewall profile "{0}". Allowed: domain, private, public, all. Do not retry with the same value.</system:String>
     <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">The change takes effect only after a reboot. Do not reboot yourself; tell the user.</system:String>

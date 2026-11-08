@@ -2748,6 +2748,13 @@ namespace Amarin.UI
                 return false;
             }
 
+            // Локальная команда не читает очередь движка: сообщение иначе осталось бы без ответа.
+            if (turn.Kind == TurnKind.CodeBlock)
+            {
+                ShowComposerNotice(Loc.Get("S.Code.CommandBusy"));
+                return true;
+            }
+
             // Команда через «/» выбирает вид хода, а второго хода здесь нет; «/agent …» обычным
             // текстом молча значил бы другое.
             if (isCommand)

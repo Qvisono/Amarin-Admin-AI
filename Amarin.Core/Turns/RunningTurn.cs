@@ -24,7 +24,10 @@ internal enum TurnKind
     /// Быстрый вопрос из окна поверх всех (1.37.0): ответ ждут в его окне, поэтому ни карточки
     /// «ответ готов», ни метки в списке.
     /// </summary>
-    QuickAsk
+    QuickAsk,
+
+    /// <summary>Локальная команда из блока PowerShell, без обращения к агенту.</summary>
+    CodeBlock
 }
 
 /// <summary>

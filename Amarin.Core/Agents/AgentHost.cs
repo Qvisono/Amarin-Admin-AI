@@ -350,7 +350,8 @@ internal sealed class AgentHost : IAgentHost
                 () => ModelSlots.WebSearch(_settings()),
                 () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
                 _instructions,
-                agentInstructions);
+                agentInstructions,
+                readSettings: _settings);
             if (session is not null)
             {
                 // Инструмент — на попытку: видит ли модель снимки, зависит от модели попытки.

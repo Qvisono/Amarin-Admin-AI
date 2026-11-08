@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Amarin.Core;
 using Amarin.UI;
 
@@ -146,7 +148,7 @@ public sealed class WorkDotsTests
     }
 }
 
-/// <summary>Кнопка «В конец чата» показывает точки, пока в открытом чате идёт ход.</summary>
+/// <summary>Кнопка «В конец чата» сохраняет стрелку и отмечает работу акцентной рамкой.</summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ScrollBottomWorkTests
@@ -155,8 +157,10 @@ public sealed class ScrollBottomWorkTests
 
     public ScrollBottomWorkTests(WpfFixture wpf) => _wpf = wpf;
 
-    [Fact]
-    public void While_the_open_chat_answers_the_to_the_end_button_runs_dots_instead_of_the_arrow()
+    [Theory]
+    [InlineData(AppTheme.Dark)]
+    [InlineData(AppTheme.Light)]
+    public void The_open_chat_work_is_shown_by_a_thin_accent_border_without_replacing_the_arrow(AppTheme theme)
     {
         var (idle, working, atBottom, finished, otherChat) = _wpf.Ui.Invoke(() =>
         {
@@ -164,21 +168,28 @@ public sealed class ScrollBottomWorkTests
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             var field = typeof(MainWindow).GetField("_session", hidden)!;
             var original = field.GetValue(window);
+            var originalTheme = ThemeManager.Current.Theme;
             void Call(string name) => typeof(MainWindow).GetMethod(name, hidden)!.Invoke(window, null);
 
             var icon = (FrameworkElement)window.FindSetting("ScrollBottomIcon")!;
-            var dots = (WorkDots)window.FindSetting("ScrollBottomDots")!;
+            var button = (Button)window.FindSetting("ScrollBottomButton")!;
             var viewer = (ScrollViewer)window.FindSetting("ChatScrollViewer")!;
-            (bool Arrow, bool Dots, bool Active) State()
+            (bool Arrow, bool Accent) State()
             {
                 window.UpdateLayout();
                 Call("UpdateScrollJump");
-                return (icon.Visibility == Visibility.Visible, dots.Visibility == Visibility.Visible, dots.Active);
+                button.ApplyTemplate();
+                var border = (Border)button.Template.FindName("Bg", button);
+                Assert.Equal(new Thickness(1), border.BorderThickness);
+                Assert.Equal(button.BorderBrush, border.BorderBrush);
+                return (icon.Visibility == Visibility.Visible,
+                    border.BorderBrush == window.FindResource("Accent.Fill"));
             }
 
             RunningTurn? turn = null;
             try
             {
+                ThemeManager.Apply(theme);
                 var chat = new ChatSession { Id = "work-dots", Title = "Длинный разговор" };
                 for (var i = 0; i < 40; i++)
                 {
@@ -199,6 +210,12 @@ public sealed class ScrollBottomWorkTests
                 turn = window.Turns.TryStart(chat, TurnKind.Send, DateTime.Now).Turn!;
                 window.UpdateScrollBottomWork();
                 var during = State();
+                AssertRenderedAccent();
+
+                // Смена темы во время работы должна обновить уже назначенную рамку.
+                ThemeManager.Apply(theme == AppTheme.Dark ? AppTheme.Light : AppTheme.Dark);
+                Assert.Equal((true, true), State());
+                AssertRenderedAccent();
 
                 viewer.ScrollToEnd();
                 var bottom = State();
@@ -226,13 +243,27 @@ public sealed class ScrollBottomWorkTests
 
                 field.SetValue(window, original);
                 Call("RenderSession");
+                ThemeManager.Apply(originalTheme);
+            }
+
+            void AssertRenderedAccent()
+            {
+                var border = (Border)button.Template.FindName("Bg", button);
+                var bitmap = new RenderTargetBitmap(36, 36, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(border);
+                var pixels = new byte[36 * 36 * 4];
+                bitmap.CopyPixels(pixels, 36 * 4, 0);
+                var accent = ((SolidColorBrush)window.FindResource("Accent.Fill")).Color;
+                Assert.Contains(Enumerable.Range(0, 36 * 36), pixel =>
+                    pixels[pixel * 4] == accent.B && pixels[pixel * 4 + 1] == accent.G &&
+                    pixels[pixel * 4 + 2] == accent.R && pixels[pixel * 4 + 3] == byte.MaxValue);
             }
         });
 
-        Assert.Equal((true, false, false), idle);
-        Assert.Equal((false, true, true), working);
-        Assert.Equal((false, true, false), atBottom);
-        Assert.Equal((true, false, false), finished);
-        Assert.Equal((true, false, false), otherChat);
+        Assert.Equal((true, false), idle);
+        Assert.Equal((true, true), working);
+        Assert.Equal((true, true), atBottom);
+        Assert.Equal((true, false), finished);
+        Assert.Equal((true, false), otherChat);
     }
 }
