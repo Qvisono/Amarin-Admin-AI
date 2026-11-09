@@ -1854,6 +1854,20 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">The model can't see a tool that is off.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
+    <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Browser</system:String>
+    <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Compact the first message</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Custom instructions</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">What to keep in the summary</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Keep the latest</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepHint" xml:space="preserve">{0} of {1} messages become a summary</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepLess" xml:space="preserve">Keep fewer messages</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepMore" xml:space="preserve">Keep more messages</system:String>
+    <system:String x:Key="S.SessionRail.CompactModel" xml:space="preserve">Compaction model</system:String>
+    <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">PC control</system:String>
+    <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Conversation</system:String>
+    <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">System</system:String>
+    <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Files</system:String>
+    <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Session settings</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">About</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>

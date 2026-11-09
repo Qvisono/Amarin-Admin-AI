@@ -178,7 +178,7 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Пока в открытом чате идёт ход, тонкая акцентная рамка у «в конец» отмечает работу.
+        /// Пока в открытом чате идёт ход, играют прежние точки и видна тонкая акцентная рамка.
         /// </summary>
         /// <remarks>
         /// Зовут начало и конец хода (<see cref="UpdateComposerChrome"/>), смена чата
@@ -187,9 +187,13 @@ namespace Amarin.UI
         /// </remarks>
         internal void UpdateScrollBottomWork()
         {
+            var working = IsBusy(_session.Id);
+            ScrollBottomIcon.Visibility = working ? Visibility.Collapsed : Visibility.Visible;
+            ScrollBottomDots.Visibility = working ? Visibility.Visible : Visibility.Collapsed;
+            ScrollBottomDots.Active = working && _scrollBottomShown;
             ScrollBottomButton.SetResourceReference(
                 System.Windows.Controls.Control.BorderBrushProperty,
-                IsBusy(_session.Id) ? "Accent.Fill" : "Border.Subtle");
+                working ? "Accent.Fill" : "Border.Subtle");
         }
 
         /// <summary>Проявляет или гасит кнопку; у круглой ещё и приподнимает её снизу.</summary>

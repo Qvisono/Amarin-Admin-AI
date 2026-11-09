@@ -748,7 +748,12 @@
                     <RowDefinition Height="30"/>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="1" x:Name="Chat">
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Column="0" x:Name="Chat">
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <!-- Auto, not fixed: the composer grows when image thumbnails are attached. -->
@@ -891,11 +896,13 @@
                         </Button.RenderTransform>
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
-                                        BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="18">
+                                <Grid>
+                                    <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}" CornerRadius="18"/>
+                                    <Ellipse x:Name="Outline" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1"
+                                             SnapsToDevicePixels="False" RenderOptions.EdgeMode="Unspecified"
+                                             IsHitTestVisible="False"/>
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
+                                </Grid>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
@@ -904,10 +911,15 @@
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
-                        <Path x:Name="ScrollBottomIcon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
-                              Margin="0,2,0,0" Stroke="{Binding Foreground, ElementName=ScrollBottomButton}" StrokeThickness="1.7"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Grid>
+                            <Path x:Name="ScrollBottomIcon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
+                                  Margin="0,2,0,0" Stroke="{Binding Foreground, ElementName=ScrollBottomButton}" StrokeThickness="1.7"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <local:WorkDots x:Name="ScrollBottomDots" Visibility="Collapsed"
+                                            Fill="{DynamicResource Accent.Fill}"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                     </Button>
                     <!--
                         Подсказка к «в конец» — не ToolTip, а элемент окна над кнопкой. Под кнопкой
@@ -1702,6 +1714,11 @@
                         и на закрытие. Видимость одной рамки — одно изменение. См. ChatBlocked.
                     -->
                     <Border x:Name="ChatShield" Grid.RowSpan="2" Background="Transparent" Visibility="Collapsed"/>
+                    </Grid>
+
+                    <!-- Статический концепт: данные внутри панели не связаны с текущим ходом. -->
+                    <local:SessionRailPanel x:Name="SessionRail" Grid.Column="1" Width="250"
+                                            Margin="0,10,20,20" VerticalAlignment="Stretch"/>
                 </Grid>
 
                 <Grid VerticalAlignment="Center" Height="30">

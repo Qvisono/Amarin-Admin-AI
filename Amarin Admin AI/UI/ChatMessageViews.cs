@@ -899,7 +899,7 @@ internal sealed class AssistantMessageView
 
         foreach (var round in agent.ToolRounds)
         {
-            if (!string.IsNullOrWhiteSpace(round.ModelNote))
+            if (!string.IsNullOrWhiteSpace(round.ModelNote)) 
             {
                 inner.Children.Add(BuildNoteRow(round.ModelNote));
             }

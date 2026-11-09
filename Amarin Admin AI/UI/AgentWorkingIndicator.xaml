@@ -1,0 +1,10 @@
+<UserControl x:Class="Amarin.UI.AgentWorkingIndicator"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="16" Height="16"
+             IsHitTestVisible="False"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <!-- Восемь точек по кругу: код раскладывает их и пускает по кольцу яркую «голову» с гаснущим хвостом. -->
+    <Canvas x:Name="Ring" Width="16" Height="16"/>
+</UserControl>

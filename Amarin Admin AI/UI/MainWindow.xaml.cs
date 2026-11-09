@@ -102,6 +102,7 @@ namespace Amarin.UI
 
             WindowRenderDefaults.Apply(this);
             InitializeAppearance();
+            InitializeSessionRail();
 
             // Выпадашки чата — под тем же присмотром, что и пикеры в настройках: одна открытая
             // за раз, клик мимо закрывает.

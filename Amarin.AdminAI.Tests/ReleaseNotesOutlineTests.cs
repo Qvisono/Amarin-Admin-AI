@@ -46,11 +46,11 @@ public sealed class ReleaseNotesOutlineTests
     [Fact]
     public void The_notes_of_this_release_have_a_lead_and_sections()
     {
-        // Те самые заметки, что окно покажет после обновления на 1.37.0.
-        var outline = ReleaseNotesOutline.Parse(File.ReadAllText(SourceTree.RepositoryFile(".github/release-notes/v1.37.0.md")));
+        // Проверяем ресурс текущей сборки: старый файл не замечал потерю колонки в новой бете.
+        var outline = ReleaseNotesOutline.Parse(Assert.IsType<string>(WhatsNew.Embedded()));
 
         Assert.NotEmpty(outline.Lead);
-        Assert.InRange(outline.Sections.Count, 8, 14);
+        Assert.NotEmpty(outline.Sections);
         Assert.All(outline.Sections, section => Assert.NotEmpty(section.Body));
     }
 

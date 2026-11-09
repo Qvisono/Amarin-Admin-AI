@@ -93,7 +93,8 @@ public sealed class Wave3ChatToolsTests
         Assert.DoesNotContain("Laconic", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("no filler", ChatEngine.DefaultTechPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("list services", ChatEngine.DefaultTechPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("user's actual request", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        // Перенос строки внутри фразы модель читает как пробел.
+        Assert.Contains("user's actual request", System.Text.RegularExpressions.Regex.Replace(ChatEngine.DefaultTechPrompt, @"\s+", " "), StringComparison.Ordinal);
         Assert.Contains("re-run init_agent", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("ASCII", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("Never refuse", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);

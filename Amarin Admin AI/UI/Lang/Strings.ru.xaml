@@ -1854,6 +1854,20 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
+    <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Браузер</system:String>
+    <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Сжать первое сообщение</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Свои инструкции</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">Что важно сохранить в сводке</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Оставить последние</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepHint" xml:space="preserve">Сводкой станут {0} из {1} сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepLess" xml:space="preserve">Оставить меньше сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepMore" xml:space="preserve">Оставить больше сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactModel" xml:space="preserve">Модель для сжатия</system:String>
+    <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">Контроль ПК</system:String>
+    <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Диалог</system:String>
+    <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">Система</system:String>
+    <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Файлы</system:String>
+    <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Настройки сеанса</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">О программе</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Автоматизация</system:String>
