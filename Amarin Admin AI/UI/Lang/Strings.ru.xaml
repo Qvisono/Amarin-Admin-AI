@@ -568,8 +568,9 @@
     <system:String x:Key="S.Compact.Hint" xml:space="preserve">Сжать</system:String>
     <system:String x:Key="S.Compact.HintTip" xml:space="preserve">Контекст модели почти заполнен. Сжать старую часть переписки в сводку?</system:String>
     <system:String x:Key="S.Compact.Mark" xml:space="preserve">Выше этой черты модель видит только сводку</system:String>
-    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">Сообщения остаются на экране, но модель получает их пересказ. Отменить можно в меню кольца контекста.</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">Сообщения остаются на экране, но модель получает их пересказ. Вернуть оригинал можно значком у сжатого сообщения.</system:String>
     <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Сжать контекст</system:String>
+    <system:String x:Key="S.Compact.MessageTip" xml:space="preserve">Модель видит это сообщение в пересказе. Нажмите, чтобы вернуть оригинал.</system:String>
     <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Сжимать нечего: переписка короткая или уже сжата.</system:String>
     <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">Провайдер отказал: контекст превышен. Сжать старую часть переписки в сводку и повторить?</system:String>
     <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">Переписка не помещается в модель</system:String>
@@ -1854,8 +1855,10 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
+    <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Размер вложений в токенах неизвестен.</system:String>
     <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Браузер</system:String>
     <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Сжать первое сообщение</system:String>
+    <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Освободится ≈ {0}</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Свои инструкции</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">Что важно сохранить в сводке</system:String>
     <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Оставить последние</system:String>
@@ -1866,6 +1869,9 @@
     <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">Контроль ПК</system:String>
     <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Диалог</system:String>
     <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">Система</system:String>
+    <system:String x:Key="S.SessionRail.FileCreated" xml:space="preserve">создан</system:String>
+    <system:String x:Key="S.SessionRail.FileModified" xml:space="preserve">изменён</system:String>
+    <system:String x:Key="S.SessionRail.GlobalDisabled" xml:space="preserve">Функция запрещена в общих настройках или политикой организации.</system:String>
     <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Файлы</system:String>
     <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Настройки сеанса</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">О программе</system:String>

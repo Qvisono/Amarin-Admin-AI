@@ -69,6 +69,38 @@ public sealed class ChatSession
     public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort, ModelSpeed);
 
     /// <summary>
+    /// Локальный выбор доступа агента к управлению компьютером: <c>null</c> наследует настройку
+    /// профиля, <c>false</c> выключает только этот чат, <c>true</c> включает его, если это разрешено
+    /// настройкой профиля и политикой организации.
+    /// </summary>
+    /// <remarks>
+    /// Значение отделено от <see cref="AppSettings.ComputerControl"/>, чтобы переключатель одного
+    /// разговора не менял остальные. Поле отсутствует в старых файлах и при <c>null</c> не пишется,
+    /// поэтому они сохраняют прежнее поведение без миграции.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ComputerControlOverride { get; set; }
+
+    /// <summary>
+    /// Локальный выбор доступа агента к встроенному браузеру: <c>null</c> наследует настройку
+    /// профиля, <c>false</c> выключает только этот чат, <c>true</c> включает его, если браузер
+    /// разрешён настройкой профиля.
+    /// </summary>
+    /// <remarks>
+    /// Как и управление компьютером, локальное включение не может обойти общий запрет. Пустое
+    /// значение не сериализуется ради совместимости прежних чатов.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? AgentBrowserOverride { get; set; }
+
+    /// <summary>
+    /// Эффективные возможности этого чата для интерфейса и хода. Интерфейс меняет только
+    /// <see cref="ComputerControlOverride"/> и <see cref="AgentBrowserOverride"/>, а доступ
+    /// проверяет через этот метод, чтобы локальное включение не обошло общий запрет.
+    /// </summary>
+    public ChatSessionAccess Access(AppSettings settings) => ChatSessionAccess.For(this, settings);
+
+    /// <summary>
     /// Временный чат (1.37.0): не пишется на диск, не попадает в поиск, архив и резервные копии.
     /// </summary>
     /// <remarks>
@@ -117,6 +149,31 @@ public sealed class ChatSession
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int CompactedThrough { get; set; }
+
+    /// <summary>
+    /// С какого сообщения истории модели начинается сжатый участок: ноль — с начала, иначе первый
+    /// обмен остаётся дословно (1.38.0-beta.4). В старых файлах поля нет, и это ноль.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int CompactedFrom { get; set; }
+
+    /// <summary>Первое сообщение ленты под сводкой; null — сводка покрывает ленту с начала.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CompactedFromMessageId { get; set; }
+
+    /// <summary>
+    /// Сколько потрачено на чат за всё время (1.38.0-beta.4): в отличие от суммы цен сообщений не
+    /// уменьшается, когда сообщение удалили или переписали. Ведёт <see cref="ChatCost.Total"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public decimal SpentUsd { get; set; }
+
+    /// <summary>
+    /// Сумма цен сообщений, уже учтённая в <see cref="SpentUsd"/>: по разнице с текущей суммой
+    /// видно, сколько прибавилось с прошлого подсчёта.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public decimal SpentCountedUsd { get; set; }
 
     /// <summary>Сводка сжатой части переписки; null — не сжимали.</summary>
     public string? CompactSummary { get; set; }
@@ -172,6 +229,23 @@ public sealed class ChatSession
     /// её заново.
     /// </remarks>
     public VeniceCost? TitleCost { get; set; }
+}
+
+/// <summary>Эффективные разрешения отдельного чата для встроенных возможностей агента.</summary>
+/// <remarks>
+/// Общая настройка и политика всегда являются верхней границей. Локальное <c>true</c> лишь
+/// сохраняет намерение включить возможность после снятия общего запрета, но не обходит его.
+/// </remarks>
+public readonly record struct ChatSessionAccess(bool CanControlComputer, bool CanUseAgentBrowser)
+{
+    /// <summary>Сводит настройки профиля, политику организации и выбор одного чата.</summary>
+    public static ChatSessionAccess For(ChatSession? session, AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return new ChatSessionAccess(
+            ComputerHub.Allowed(settings) && session?.ComputerControlOverride != false,
+            settings.AgentBrowser && session?.AgentBrowserOverride != false);
+    }
 }
 
 public sealed class ChatDisplayMessage
@@ -439,6 +513,9 @@ public sealed class ToolCallRecord
 
 public sealed class AgentRunRecord
 {
+    /// <summary>Идентификатор агента в чате; пуст у записей прежних версий.</summary>
+    public string AgentId { get; set; } = "";
+
     public int SlotIndex { get; set; }
 
     public string ModelId { get; set; } = "";

@@ -91,8 +91,9 @@ internal sealed partial class ChatEngine
 
         THINKING OUT LOUD
         Right before every tool call, write one short line of your own: what you are about to do and
-        what you are after. Do it every time; that line is how the reader follows along. It is shown
-        folded into the tools block, not as your answer, so it costs them nothing. Use one or two
+        what you are after. Do it every time; that line is how the reader follows along.
+        When a tool takes time, a short line already returned with that call stays visible in the same reply until there is a result.
+        Do not make a separate model request merely to say that you are waiting. Use one or two
         sentences in the user's language, your normal voice and present tense: the goal, the surprise
         or the next move, whichever is true right now. Never recap what already happened; the results
         are printed right under the line. No lists, headings or plan for the whole task. Skip the line
@@ -1140,8 +1141,7 @@ internal sealed partial class ChatEngine
     }
 
     /// <returns>
-    /// True — цикл остановлен раньше, потому что вплетено дописанное: вызывающий закрывает этот
-    /// ответ и открывает следующий, чтобы строка человека не тонула под растущим над ней ответом.
+    /// True — после завершённого ответа в историю добавлена следующая реплика человека.
     /// </returns>
     private async Task<bool> RunToolLoopAsync(
         ChatSession session,
@@ -1155,7 +1155,10 @@ internal sealed partial class ChatEngine
         var instructions = ActiveInstructions(session);
         var messages = BuildApiMessages(session, turn.ModelId, instructions);
         var tools = ToolsFor(instructions);
+        var pending = new List<string>();
 
+        try
+        {
         for (var round = 1; round <= _options.MaxToolRounds; round++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1183,15 +1186,13 @@ internal sealed partial class ChatEngine
                 }
 
                 FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
-                observer.OnAssistantCompleted(assistant);
-                return false;
+                return NotifyCompleted();
             }
 
             if (streamed.ToolCalls.Count == 0)
             {
                 FinishAssistant(session, assistant, clock, streamed, turn);
-                observer.OnAssistantCompleted(assistant);
-                return false;
+                return NotifyCompleted();
             }
 
             var apiAssistant = new ChatMessage
@@ -1235,29 +1236,17 @@ internal sealed partial class ChatEngine
             {
                 await watch.CancelAsync().ConfigureAwait(false);
                 await watcher.ConfigureAwait(false);
+                pending.AddRange(early);
             }
 
             toolRound.InfoLine = EngineLines.ToolsDone;
             observer.OnToolsChanged(assistant);
-            if (cancellationToken.IsCancellationRequested)
+            while (observer.TryTakeQueuedMessage(out var queued))
             {
-                // Наблюдатель мог уже снять дописанные строки с очереди — тогда
-                // RescueQueued их не увидит, и в ленте реплика осталась бы, а в истории модели
-                // нет. Ответы инструментов раунда к этому месту уже записаны, поэтому
-                // дописать строки можно, не разрывая пару «вызовы — ответы».
-                DrainQueued(session, observer, messages, early);
-                cancellationToken.ThrowIfCancellationRequested();
+                pending.Add(queued);
             }
 
-            // Единственный безопасный шов для дописанного. Сообщение ассистента этого раунда и все
-            // ответы инструментов на него уже в `messages` — роли идут в порядке, которого требует
-            // API, а ExecuteRoundAsync дождались: агенты раунда закончили, и смена решения модели
-            // ничего идущего не потеряет.
-            if (DrainQueued(session, observer, messages, early))
-            {
-                CloseAssistantForFollowUp(session, assistant, clock, turn, observer);
-                return true;
-            }
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -1272,8 +1261,38 @@ internal sealed partial class ChatEngine
                 cancellationToken)
             .ConfigureAwait(false);
         FinishAssistant(session, assistant, clock, synthesis, turn);
-        observer.OnAssistantCompleted(assistant);
-        return false;
+        return NotifyCompleted();
+        }
+        finally
+        {
+            // Наблюдатель уже снял эти строки с очереди: при ошибке или отмене их тоже надо сохранить.
+            if (pending.Count > 0)
+            {
+                FoldPending();
+            }
+        }
+
+        bool NotifyCompleted()
+        {
+            var folded = FoldPending();
+            if (folded)
+            {
+                observer.OnAssistantContinued(assistant);
+            }
+            else
+            {
+                observer.OnAssistantCompleted(assistant);
+            }
+
+            return folded;
+        }
+
+        bool FoldPending()
+        {
+            var folded = DrainQueued(session, observer, messages: null, pending);
+            pending.Clear();
+            return folded;
+        }
     }
 
     /// <summary>

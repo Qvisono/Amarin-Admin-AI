@@ -914,7 +914,14 @@ namespace Amarin.UI
         internal bool ChatBlocked
         {
             get => ChatShield.Visibility == Visibility.Visible;
-            set => ChatShield.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            set
+            {
+                ChatShield.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+                if (SessionRail is not null)
+                {
+                    SessionRail.IsHitTestVisible = !value;
+                }
+            }
         }
 
         private void CloseDomainDialog()
@@ -1356,6 +1363,7 @@ namespace Amarin.UI
 
             var keys = _services.KeyStore.List();
             ChatModelPicker.SetKeys(keys);
+            SessionRail.CompactModelField.SetKeys(keys);
             foreach (var field in SettingsPickers())
             {
                 field.SetKeys(keys);
@@ -1420,6 +1428,7 @@ namespace Amarin.UI
             }
 
             ChatModelPicker.ShowLoading(provider);
+            SessionRail.CompactModelField.ShowLoading(provider);
             foreach (var field in SettingsPickers())
             {
                 field.ShowLoading(provider);
@@ -1437,6 +1446,7 @@ namespace Amarin.UI
             // держат сведения о моделях других провайдеров, и пустой список стёр бы их.
             var error = load.Error ?? "";
             ChatModelPicker.SetCatalogError(provider, error);
+            SessionRail.CompactModelField.SetCatalogError(provider, error);
             foreach (var field in SettingsPickers())
             {
                 field.SetCatalogError(provider, error);
@@ -1448,6 +1458,7 @@ namespace Amarin.UI
             HealUnusableModelSelections(provider, models);
             ChatModelPicker.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Chat));
             ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
+            SessionRail.CompactModelField.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Summary));
             foreach (var (slot, field, _) in SettingsSlots())
             {
                 field.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, slot));
@@ -2391,6 +2402,7 @@ namespace Amarin.UI
 
             _variantGate.IsOpen = !IsBusy(_session.Id);
             UpdateScrollBottomWork();
+            _compactedIds = null;
             BuildMessageHosts();
 
             if (FindTurn(_session.Id) is { } live)
@@ -2402,6 +2414,9 @@ namespace Amarin.UI
             // та, что осталась от разговора, из которого ушли.
             UpdateAttachmentWarning();
             RefreshTemporaryUi();
+
+            // Цена чата принадлежит открытому чату: без этого чип держал сумму прежнего.
+            UpdateChatCostChip();
 
             // Удаление, «Повторить» и смена языка тоже идут сюда: подпись источника у
             // прикреплённой цитаты («из последнего ответа», «удалён») могла стать неправдой.
@@ -3675,6 +3690,7 @@ namespace Amarin.UI
             }
 
             _liveAssistant?.UpdateTools(assistant);
+            RefreshSessionRail();
             MaybeAutoscroll();
             if (_fox is not null && assistant.ToolRounds.Any(round => round.Calls.Any(call =>
                     ToolCatalog.IsAgentCall(call.Name) && call.Status == ToolCallStatus.Running)))

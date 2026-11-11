@@ -12,7 +12,14 @@ internal sealed partial class ChatEngine
         IReadOnlyList<Instruction> instructions)
     {
         var messages = new List<ChatMessage>();
-        var system = BuildSystemPrompt(currentModelId, instructions, session.Profile);
+        var turn = VeniceTurnScope.Current;
+        var access = turn?.Access ?? session.Access(_settings());
+        if (turn is not null)
+        {
+            turn.Access = access;
+        }
+
+        var system = BuildSystemPrompt(currentModelId, instructions, session.Profile, access);
 
         // Сжатый чат (D10): старая часть уходит сводкой в системном промпте, а не отдельным
         // сообщением — два сообщения user подряд или выдуманный ответ ассистента принимают
@@ -23,7 +30,7 @@ internal sealed partial class ChatEngine
         {
             if (ContextCompaction.IsActive(session) && session.CompactSummary is { } summary)
             {
-                system = (system + "\n\n" + ContextCompaction.PromptBlock(summary)).Trim();
+                system = (system + "\n\n" + ContextCompaction.PromptBlock(summary, session.CompactedFrom > 0)).Trim();
             }
 
             history = ContextCompaction.Tail(session);
@@ -86,8 +93,15 @@ internal sealed partial class ChatEngine
     /// а собирать его заново в интерфейсе значило бы раздвоить логику.
     /// </summary>
     /// <param name="session">Чат, чей промпт мерить: у него может быть свой профиль (D11).</param>
-    internal string CurrentSystemPrompt(ChatSession? session = null) =>
-        BuildSystemPrompt(currentModelId: null, ActiveInstructions(session), session?.Profile);
+    internal string CurrentSystemPrompt(ChatSession? session = null)
+    {
+        var settings = _settings();
+        return BuildSystemPrompt(
+            currentModelId: null,
+            ActiveInstructions(session),
+            session?.Profile,
+            session?.Access(settings) ?? ChatSessionAccess.For(null, settings));
+    }
 
     /// <param name="currentModelId">
     /// Модель, на которой идёт ход, — она попадает в блок MODELS. Явным аргументом, а не через
@@ -100,10 +114,15 @@ internal sealed partial class ChatEngine
     /// Профиль чата (D11): его промпт встаёт на место общего «основного». Технический промпт,
     /// правила формул и блоки ниже остаются — без них чат перестал бы уметь то, что умеет.
     /// </param>
-    private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions, ChatProfile? profile = null)
+    private string BuildSystemPrompt(
+        string? currentModelId,
+        IReadOnlyList<Instruction> instructions,
+        ChatProfile? profile = null,
+        ChatSessionAccess? access = null)
     {
         // Только чат: основной промпт + TechAiPrompt. У агента — TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
+        var effectiveAccess = access ?? ChatSessionAccess.For(null, settings);
         var main = profile?.Prompt is { } own && !string.IsNullOrWhiteSpace(own) ? own.Trim() : settings.MainPrompt?.Trim() ?? "";
         var tech = settings.TechAiPrompt?.Trim() ?? "";
         if (tech.Length == 0)
@@ -129,7 +148,7 @@ internal sealed partial class ChatEngine
         parts.Add(FormulaRules);
         parts.Add(FileRules);
         parts.Add(DeferredRules);
-        parts.Add(ComputerHub.Allowed(settings) ? ComputerRules
+        parts.Add(effectiveAccess.CanControlComputer ? ComputerRules
             : OrganizationPolicy.Current.DisableComputerControl ? ComputerPolicyRules
             : ComputerOffRules);
 
@@ -138,7 +157,9 @@ internal sealed partial class ChatEngine
         // машине браузера у агента нет вовсе, и говорить о нём нечего.
         if (ExecutionTarget.Current is null)
         {
-            parts.Add(settings.AgentBrowser ? BrowserPrompt.ChatRules : BrowserPrompt.ChatOffRules(ComputerHub.Allowed(settings)));
+            parts.Add(effectiveAccess.CanUseAgentBrowser
+                ? BrowserPrompt.ChatRules
+                : BrowserPrompt.ChatOffRules(effectiveAccess.CanControlComputer));
         }
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать

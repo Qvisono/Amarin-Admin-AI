@@ -71,7 +71,7 @@ public sealed class ChatTechPromptTests
         // Строка перед инструментом.
         "THINKING OUT LOUD",
         "Right before every tool call",
-        "tools block",
+        "stays visible",
         "Never recap what already happened",
         "a line that only announces the call is not worth writing",
         // Строка, набранная во время работы.
@@ -203,6 +203,32 @@ public sealed class ChatTechPromptTests
         // Свой текст человека не трогается.
         settings.TechAiPrompt = LegacyTechPrompts.V19 + "\nMy own rule.";
         Assert.False(AppSettingsStore.MigrateLegacyChatPrompts(settings));
+    }
+
+    [Fact]
+    public void A_saved_copy_of_the_default_before_the_progress_rule_is_migrated()
+    {
+        Assert.Contains(LegacyTechPrompts.V20, LegacyTechPrompts.All);
+        Assert.DoesNotContain(ChatEngine.DefaultTechPrompt, LegacyTechPrompts.All);
+
+        var settings = AppSettings.CreateDefault();
+        settings.TechAiPrompt = "\n" + LegacyTechPrompts.V20.Replace("\r\n", "\n", StringComparison.Ordinal) + "\n";
+
+        Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
+        Assert.Equal("", settings.TechAiPrompt);
+    }
+
+    [Fact]
+    public void A_long_tool_keeps_its_existing_progress_line_visible_without_an_extra_request()
+    {
+        Assert.Contains(
+            "When a tool takes time, a short line already returned with that call stays visible in the same reply until there is a result",
+            Flat(ChatEngine.DefaultTechPrompt),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Do not make a separate model request merely to say that you are waiting",
+            Flat(ChatEngine.DefaultTechPrompt),
+            StringComparison.Ordinal);
     }
 
     private static string Flat(string text) => Regex.Replace(text, @"\s+", " ");

@@ -39,6 +39,12 @@ internal sealed class VeniceTurnContext
     public ReasoningChoice Reasoning { get; set; } = ReasoningChoice.Disabled;
 
     /// <summary>
+    /// Разрешения ПК и браузера, снятые для этого хода. Пусто у старых и служебных путей без
+    /// чата: они берут обычные глобальные настройки.
+    /// </summary>
+    public ChatSessionAccess? Access { get; set; }
+
+    /// <summary>
     /// Ключ кэша провайдера — id чата. Пусто у разовой работы (инфографика): её запрос не повторится.
     /// </summary>
     public string? CacheKey { get; init; }

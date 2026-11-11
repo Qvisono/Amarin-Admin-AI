@@ -167,7 +167,14 @@ internal sealed partial class ChatEngine
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
         var humanWords = HumanWordsOf(session);
-        var conversations = VeniceTurnScope.Current?.Agents;
+        var turn = VeniceTurnScope.Current;
+        var access = turn?.Access ?? session.Access(_settings());
+        if (turn is not null)
+        {
+            turn.Access = access;
+        }
+
+        var conversations = turn?.Agents;
         Task<GateDecision>[] decisions;
         try
         {
@@ -230,6 +237,7 @@ internal sealed partial class ChatEngine
                             PlanAllowed = planAllowed,
                             HumanWords = humanWords,
                             Conversations = conversations,
+                            Access = access,
                             TemporaryChat = session.IsTemporary
                         }))
                         {
@@ -263,7 +271,7 @@ internal sealed partial class ChatEngine
                 call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
                 call.ResultPreview = ChatToolPreview.Summarize(result);
                 call.ResultText = ChatToolPreview.ForJournal(result);
-                call.TruncatedForModel = ChatToolPreview.IsTruncatedForApi(result);
+                call.TruncatedForModel = ChatToolPreview.IsCallTruncatedForApi(call.Name, result);
                 call.SavedFiles = [.. result.GetFiles()];
                 call.Instruction = result.Instruction;
                 call.Deferred = result.Deferred;
@@ -301,7 +309,7 @@ internal sealed partial class ChatEngine
                 Role = "tool",
                 ToolCallId = call.Id,
                 Name = call.Name,
-                Content = ChatContent.Text(ChatToolPreview.FormatForApi(result))
+                Content = ChatContent.Text(ChatToolPreview.FormatCallForApi(call.Name, result))
             };
             messages.Add(toolMessage);
             session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(toolMessage));

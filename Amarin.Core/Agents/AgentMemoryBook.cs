@@ -16,9 +16,6 @@ namespace Amarin.Core;
 /// </remarks>
 internal sealed class AgentMemoryBook
 {
-    /// <summary>Сколько разговоров держит файл чата: самые свежие. Каждый — сжатая переписка.</summary>
-    public const int Limit = 20;
-
     private readonly ConcurrentDictionary<string, AgentConversations> _chats = new(StringComparer.Ordinal);
 
     /// <summary>Агенты для нового хода в этом чате.</summary>
@@ -87,7 +84,6 @@ internal sealed class AgentMemoryBook
     {
         var latest = conversations.All
             .OrderByDescending(agent => agent.UpdatedAt)
-            .Take(Limit)
             .Select(agent => new StoredAgentConversation
             {
                 Id = agent.Id,

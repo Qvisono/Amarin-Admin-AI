@@ -7,7 +7,6 @@ using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
 
-/// <summary>Проверка только раскладки концепта: демонстрационные данные к логике хода не подключены.</summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SessionRailPanelTests
@@ -24,207 +23,268 @@ public sealed class SessionRailPanelTests
     }
 
     [Fact]
-    public void Cards_yield_space_from_the_bottom_and_return_when_it_is_available()
+    public void The_rail_fits_only_to_the_right_of_both_chat_and_composer()
+    {
+        Assert.True(MainWindow.RailFits(1600, 1320, 1330, 250, 20));
+        Assert.False(MainWindow.RailFits(1600, 1340, 1330, 250, 20));
+        Assert.False(MainWindow.RailFits(1600, 1320, 1340, 250, 20));
+        Assert.False(MainWindow.RailFits(0, 0, 0, 250, 20));
+    }
+
+    [Fact]
+    public void The_rail_collects_successful_file_changes_and_nested_agents()
+    {
+        var round = new ToolRound
+        {
+            Calls =
+            [
+                new ToolCallRecord
+                {
+                    Name = "init_agent", Success = true,
+                    NestedAgent = new AgentRunRecord
+                    {
+                        AgentId = "a1", DisplayName = "agent", Status = AgentRunStatus.Running,
+                        ToolRounds = [new ToolRound { Calls =
+                        [
+                            new ToolCallRecord { Name = "write_file", Success = true, ArgumentsJson = "{\"path\":\"C:\\\\test\\\\created.txt\"}" },
+                            new ToolCallRecord { Name = "edit_file", Success = false, ArgumentsJson = "{\"path\":\"C:\\\\test\\\\failed.txt\"}" }
+                        ] }]
+                    }
+                }
+            ]
+        };
+        var agents = new List<SessionRailAgent>();
+        var files = new List<SessionRailFile>();
+
+        MainWindow.CollectRailCalls(round, "m:0", agents, files);
+
+        Assert.Single(agents);
+        Assert.Equal("a1", agents[0].Id);
+        Assert.True(agents[0].IsWorking);
+        Assert.Single(files);
+        Assert.EndsWith("created.txt", files[0].Path, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void An_empty_rail_does_not_invent_context_files_or_agents()
     {
         _wpf.Ui.Invoke(() =>
         {
             var panel = new SessionRailPanel { Width = 250 };
+            Arrange(panel);
 
-            Arrange(panel, 800);
-            Assert.Equal(Visibility.Visible, panel.ContextCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.SettingsCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.FilesCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.AgentsCard.Visibility);
-
-            Arrange(panel, 480);
-            Assert.Equal(Visibility.Visible, panel.ContextCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.SettingsCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.FilesCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.AgentsCard.Visibility);
-
-            Arrange(panel, 340);
-            Assert.Equal(Visibility.Visible, panel.ContextCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.SettingsCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.FilesCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.AgentsCard.Visibility);
-
-            Arrange(panel, 220);
-            Assert.Equal(Visibility.Visible, panel.ContextCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.SettingsCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.FilesCard.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.AgentsCard.Visibility);
-
-            Arrange(panel, 800);
-            Assert.Equal(Visibility.Visible, panel.ContextCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.SettingsCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.FilesCard.Visibility);
-            Assert.Equal(Visibility.Visible, panel.AgentsCard.Visibility);
+            Assert.Equal(Visibility.Visible, panel.ContextUnavailable.Visibility);
+            Assert.Equal(Visibility.Collapsed, panel.ContextBar.Visibility);
+            Assert.Equal("0", panel.FilesCount.Text);
+            Assert.Equal("0", panel.AgentsCount.Text);
+            Assert.Empty(panel.FilesItems.Children);
+            Assert.Empty(panel.AgentItems.Children);
+            Assert.False(panel.CompactButton.IsEnabled);
             return true;
         });
     }
 
     [Fact]
-    public void Agent_logos_come_from_the_catalog_and_status_marks_share_an_axis()
+    public void The_rail_renders_only_the_supplied_structured_session_snapshot()
     {
         _wpf.Ui.Invoke(() =>
         {
             var panel = new SessionRailPanel { Width = 250 };
-            Arrange(panel, 800);
+            var context = new SessionRailContext(
+                120,
+                1_000,
+                [
+                    new(SessionRailContextCategory.Conversation, 70),
+                    new(SessionRailContextCategory.Tools, 25),
+                    new(SessionRailContextCategory.Files, 15),
+                    new(SessionRailContextCategory.System, 10)
+                ]);
+            panel.ShowSession(new SessionRailSnapshot(
+                context,
+                [
+                    new SessionRailAgent("a1", "Research", "anthropic:claude-haiku-5-5", true),
+                    new SessionRailAgent("a2", "Review", "zai:glm-5.3-flash", false)
+                ],
+                [
+                    new SessionRailFile(@"C:\work\answer.txt", SessionRailFileChange.Created),
+                    new SessionRailFile(@"C:\work\answer.txt", SessionRailFileChange.Modified),
+                    new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created)
+                ],
+                new SessionRailSettings(true, false),
+                true));
+            Arrange(panel);
 
-            Assert.NotNull(panel.ResearchModelLogo.Source);
-            Assert.NotNull(panel.EditorModelLogo.Source);
-            Assert.NotNull(panel.ReviewModelLogo.Source);
-            Assert.Same(panel.ResearchModelLogo.Source, panel.EditorModelLogo.Source);
-            Assert.NotSame(panel.ResearchModelLogo.Source, panel.ReviewModelLogo.Source);
-            Assert.Equal(Visibility.Collapsed, panel.ResearchModelLetter.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.EditorModelLetter.Visibility);
-            Assert.Equal(Visibility.Collapsed, panel.ReviewModelLetter.Visibility);
+            Assert.Equal(Visibility.Collapsed, panel.ContextUnavailable.Visibility);
+            Assert.Equal(Visibility.Visible, panel.ContextBar.Visibility);
+            Assert.Equal(120, panel.ContextUsedColumn.Width.Value);
+            Assert.Equal(880, panel.ContextFreeColumn.Width.Value);
+            Assert.Equal(4, panel.ContextParts.Children.Count);
 
-            var workingX = Center(panel, panel.ResearchActivity).X;
-            Assert.Equal(workingX, Center(panel, panel.EditorActivity).X, 3);
-            Assert.Equal(workingX, Center(panel, panel.ReviewDone).X, 3);
-            Assert.Equal(Center(panel, panel.ResearchModelLogo).Y, Center(panel, panel.ResearchActivity).Y, 3);
-            Assert.Equal(Center(panel, panel.EditorModelLogo).Y, Center(panel, panel.EditorActivity).Y, 3);
-            Assert.Equal(Center(panel, panel.ReviewModelLogo).Y, Center(panel, panel.ReviewDone).Y, 3);
-            return true;
-        });
-    }
+            // Категории показывают долю от занятого, а не токены.
+            var shares = panel.ContextParts.Children.OfType<Grid>()
+                .Select(row => row.Children.OfType<TextBlock>().Last().Text).ToArray();
+            Assert.Equal((70d / 120).ToString("P0", System.Globalization.CultureInfo.CurrentCulture), shares[0]);
+            Assert.DoesNotContain(shares, share => share.Contains('≈'));
 
-    [Fact]
-    public void Legend_dots_and_percentages_share_the_axes_of_the_card_header()
-    {
-        _wpf.Ui.Invoke(() =>
-        {
-            var panel = new SessionRailPanel { Width = 250 };
-            Arrange(panel, 800);
-
-            var title = Left(panel, panel.ContextTitle);
-            Assert.Equal(title, Left(panel, panel.ConversationDot), 1);
-
-            var percent = Right(panel, panel.ContextPercent);
-            Assert.Equal(percent, Right(panel, panel.ConversationPercent), 1);
-
-            // Точка не выше середины строки: у строчных букв центр ниже геометрического центра блока.
-            var dot = Center(panel, panel.ConversationDot).Y;
-            var label = Center(panel, panel.ConversationLabel).Y;
-            Assert.InRange(dot - label, 0, 2);
-            return true;
-        });
-    }
-
-    [Fact]
-    public void Session_settings_are_two_independent_switches()
-    {
-        _wpf.Ui.Invoke(() =>
-        {
-            var panel = new SessionRailPanel { Width = 250 };
-            Arrange(panel, 800);
-
+            // В строке агента только имя модели.
+            var agentName = ((Grid)panel.AgentItems.Children[0]).Children.OfType<TextBlock>().First().Text;
+            Assert.Equal(VeniceModelCatalog.GetDisplayName("anthropic:claude-haiku-5-5"), agentName);
+            Assert.Equal("2", panel.FilesCount.Text);
+            Assert.Equal(2, panel.FilesItems.Children.Count);
+            Assert.Equal("2", panel.AgentsCount.Text);
+            Assert.Equal(2, panel.AgentItems.Children.Count);
             Assert.True(panel.ComputerToggle.IsChecked);
             Assert.False(panel.BrowserToggle.IsChecked);
-            Assert.Same(panel.ComputerToggle.Style, panel.BrowserToggle.Style);
+            Assert.True(panel.CompactButton.IsEnabled);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void A_long_agent_list_remains_available_in_the_scrollable_panel()
+    {
+        _wpf.Ui.Invoke(() =>
+        {
+            var panel = new SessionRailPanel { Width = 250, Height = 300 };
+            var agents = Enumerable.Range(0, 30)
+                .Select(i => new SessionRailAgent("a" + i, "agent", "", false)).ToArray();
+            panel.ShowSession(new SessionRailSnapshot(null, agents, [], new(false, false), false));
+            panel.Measure(new Size(250, 300));
+            panel.Arrange(new Rect(0, 0, 250, 300));
+            panel.UpdateLayout();
+
+            Assert.Equal(30, panel.AgentItems.Children.Count);
+            Assert.Equal(Visibility.Visible, panel.AgentsCard.Visibility);
+            Assert.IsType<ScrollViewer>(panel.Content);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void Local_settings_and_compaction_are_returned_to_the_session_owner()
+    {
+        _wpf.Ui.Invoke(() =>
+        {
+            var panel = new SessionRailPanel { Width = 250 };
+            var changes = new List<SessionRailSettings>();
+            var requests = new List<SessionRailCompactRequestedEventArgs>();
+            var asked = new List<SessionRailCompactOptions>();
+            panel.SettingsChanged += (_, e) => changes.Add(e.Settings);
+            panel.CompactionRequested += (_, e) => requests.Add(e);
+            panel.ShowSession(new SessionRailSnapshot(
+                new SessionRailContext(800, 1_000, []), [], [], new SessionRailSettings(false, false), true, false,
+                new SessionRailCompaction("grok-4-6", null, options =>
+                {
+                    asked.Add(options);
+                    return options.KeepMessages > 10 ? null : new SessionRailCompactPreview(options.CompactFirst ? 200 : 300, 6, 16);
+                })));
+            Arrange(panel);
 
             panel.BrowserToggle.IsChecked = true;
-            Assert.True(panel.ComputerToggle.IsChecked);
-            panel.ComputerToggle.IsChecked = false;
-            Assert.True(panel.BrowserToggle.IsChecked);
-
-            Assert.Equal(Center(panel, panel.ComputerToggle).X, Center(panel, panel.BrowserToggle).X, 3);
-            return true;
-        });
-    }
-
-    [Fact]
-    public void Compact_screen_replaces_the_cards_and_back_returns_them()
-    {
-        _wpf.Ui.Invoke(() =>
-        {
-            var panel = new SessionRailPanel { Width = 250 };
-            Arrange(panel, 800);
-            Assert.False(panel.IsCompactOpen);
-            Assert.Equal(Visibility.Visible, panel.CardsPanel.Visibility);
-
             Click(panel.CompactButton);
-            Arrange(panel, 800);
-            Assert.True(panel.IsCompactOpen);
+
+            // Экран сжатия встаёт на место карточек, а не раскрывает список под кнопкой.
+            Assert.Equal(Visibility.Visible, panel.CompactView.Visibility);
             Assert.Equal(Visibility.Collapsed, panel.CardsPanel.Visibility);
+            Assert.Equal("10", panel.KeepValue.Text);
+            Assert.True(panel.CompactFirstToggle.IsChecked);
+            Assert.Equal("grok-4-6", panel.CompactModelField.SelectedModelId);
 
-            // Экран сжатия стоит в той же колонке, что и карточки, а не выезжает за панель.
-            Assert.Equal(0, panel.CompactView.TranslatePoint(new Point(0, 0), panel).X, 3);
-            Assert.Equal(panel.ActualWidth, panel.CompactView.ActualWidth, 3);
+            // Шкала меряет занятое сейчас (800), а не окно модели: видна освобождаемая доля.
+            Assert.Equal(200, panel.CompactKeptColumn.Width.Value);
+            Assert.Equal(600, panel.CompactFreedColumn.Width.Value);
+            Assert.Equal(
+                Loc.Format("S.SessionRail.CompactFrees", 0.75.ToString("P0", System.Globalization.CultureInfo.CurrentCulture)),
+                panel.CompactFrees.Text);
+            Assert.Equal(Loc.Format("S.SessionRail.CompactKeepHint", 6, 16), panel.KeepHint.Text);
 
-            Click(panel.CompactBackButton);
-            Arrange(panel, 800);
-            Assert.False(panel.IsCompactOpen);
-            Assert.Equal(Visibility.Visible, panel.CardsPanel.Visibility);
-            Assert.Equal(Visibility.Visible, panel.AgentsCard.Visibility);
+            // Шапка следует за настройками.
+            panel.CompactFirstToggle.IsChecked = false;
+            Assert.Equal(300, panel.CompactKeptColumn.Width.Value);
+            Click(panel.KeepMoreButton);
+            Assert.Equal("11", panel.KeepValue.Text);
+            Assert.False(panel.CompactRunButton.IsEnabled);
+            Assert.Equal(Loc.Get("S.Compact.Nothing"), panel.KeepHint.Text);
+            Assert.Equal(0, panel.CompactFreedColumn.Width.Value);
+            Assert.Equal(Visibility.Collapsed, panel.CompactFrees.Visibility);
+            Click(panel.KeepLessButton);
+            Click(panel.KeepLessButton);
+            Assert.True(panel.CompactRunButton.IsEnabled);
 
-            Click(panel.CompactButton);
+            panel.CompactInstructionsBox.Text = "  keep the paths  ";
             Click(panel.CompactRunButton);
-            Assert.False(panel.IsCompactOpen);
+
+            Assert.Single(changes);
+            Assert.Equal(new SessionRailSettings(false, true), changes[0]);
+            var request = Assert.Single(requests);
+            Assert.Equal(new SessionRailCompactOptions(9, false), request.Options);
+            Assert.Equal("grok-4-6", request.ModelId);
+            Assert.Equal("keep the paths", request.Instructions);
+            Assert.Equal(new SessionRailCompactOptions(9, false), asked[^1]);
+            Assert.Equal(Visibility.Collapsed, panel.CompactView.Visibility);
+            Assert.Equal(Visibility.Visible, panel.CardsPanel.Visibility);
             return true;
         });
     }
 
     [Fact]
-    public void Compact_screen_has_the_documented_defaults_and_a_bounded_counter()
+    public void The_compaction_screen_goes_back_and_offers_undo_only_for_a_compacted_chat()
     {
         _wpf.Ui.Invoke(() =>
         {
             var panel = new SessionRailPanel { Width = 250 };
-            Arrange(panel, 800);
+            var undone = 0;
+            panel.CompactionUndoRequested += (_, _) => undone++;
+            panel.ShowSession(new SessionRailSnapshot(null, [], [], new SessionRailSettings(false, false), true));
+            Arrange(panel);
 
-            Assert.True(panel.CompactFirstToggle.IsChecked);
-            Assert.Equal(SessionRailPanel.DefaultKeep.ToString(System.Globalization.CultureInfo.CurrentCulture), panel.KeepValue.Text);
-            Assert.NotNull(panel.CompactModelLogo.Source);
-            Assert.Contains((SessionRailPanel.DemoMessages - SessionRailPanel.DefaultKeep).ToString(System.Globalization.CultureInfo.CurrentCulture), panel.KeepHint.Text);
+            Click(panel.CompactButton);
+            Assert.Equal(Visibility.Collapsed, panel.CompactUndoButton.Visibility);
+            Click(panel.CompactBackButton);
+            Assert.Equal(Visibility.Visible, panel.CardsPanel.Visibility);
 
-            for (var i = 0; i < 100; i++)
-            {
-                Click(panel.KeepLessButton);
-            }
+            panel.ShowSession(new SessionRailSnapshot(null, [], [], new SessionRailSettings(false, false), true, true));
+            Click(panel.CompactButton);
+            Assert.Equal(Visibility.Visible, panel.CompactUndoButton.Visibility);
+            Click(panel.CompactUndoButton);
+            Assert.Equal(1, undone);
+            Assert.Equal(Visibility.Collapsed, panel.CompactView.Visibility);
 
-            Assert.Equal("2", panel.KeepValue.Text);
-            Assert.False(panel.KeepLessButton.IsEnabled);
-            Assert.True(panel.KeepMoreButton.IsEnabled);
-
-            for (var i = 0; i < 100; i++)
-            {
-                Click(panel.KeepMoreButton);
-            }
-
-            Assert.Equal("40", panel.KeepValue.Text);
-            Assert.False(panel.KeepMoreButton.IsEnabled);
-            Assert.True(panel.KeepLessButton.IsEnabled);
+            // Чат занялся ответом: экран сжатия закрывается сам.
+            panel.ShowSession(new SessionRailSnapshot(null, [], [], new SessionRailSettings(false, false), true));
+            Click(panel.CompactButton);
+            panel.ShowSession(new SessionRailSnapshot(null, [], [], new SessionRailSettings(false, false), false));
+            Assert.Equal(Visibility.Collapsed, panel.CompactView.Visibility);
             return true;
         });
     }
 
     [Fact]
-    public void Working_indicator_draws_a_bright_head_with_a_fading_tail()
+    public void A_file_row_asks_the_owner_to_show_the_file_and_cards_carry_no_empty_notes()
     {
         _wpf.Ui.Invoke(() =>
         {
-            var indicator = new AgentWorkingIndicator();
-            indicator.Measure(new Size(50, 50));
-            indicator.Arrange(new Rect(0, 0, 16, 16));
+            var panel = new SessionRailPanel { Width = 250 };
+            var opened = new List<string>();
+            panel.FileOpenRequested += (_, e) => opened.Add(e.Path);
+            panel.ShowSession(new SessionRailSnapshot(
+                null, [], [new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created)], new(false, false), false));
+            Arrange(panel);
 
-            var opacity = indicator.Ring.Children.Cast<System.Windows.Shapes.Ellipse>().Select(dot => dot.Opacity).ToArray();
-            Assert.Equal(8, opacity.Length);
-            Assert.Equal(1.0, opacity[0], 3);
-            Assert.True(opacity.Skip(1).All(value => value < 1.0));
+            Click((Button)panel.FilesItems.Children[0]);
 
-            // Хвост тянется против хода: чем дальше точка позади головы, тем она тусклее.
-            for (var i = 7; i > 3; i--)
-            {
-                Assert.True(opacity[i] >= opacity[i - 1], $"точка {i} не ярче точки {i - 1}");
-            }
+            Assert.Equal([@"C:\work\report.md"], opened);
 
+            // Пустые карточки состоят из заголовка и счётчика: пояснений в них нет.
+            panel.ShowSession(SessionRailSnapshot.Empty);
+            Arrange(panel);
+            Assert.Null(panel.FindName("FilesEmpty"));
+            Assert.Null(panel.FindName("AgentsEmpty"));
             return true;
         });
     }
 
-    /// <summary>Снимки для визуальной проверки: <c>AMARIN_RAIL_SHOTS=&lt;папка&gt;</c>, обычный прогон файлов не создаёт.</summary>
+    /// <summary>Снимки для просмотра глазами: <c>AMARIN_RAIL_SHOTS=&lt;папка&gt;</c>; обычный прогон ничего не пишет.</summary>
     [Fact]
     public void Write_shots_when_requested()
     {
@@ -244,13 +304,34 @@ public sealed class SessionRailPanelTests
                 {
                     ThemeManager.Apply(theme);
                     var panel = new SessionRailPanel { Width = 250 };
-                    Arrange(panel, 560);
+                    panel.ShowSession(new SessionRailSnapshot(
+                        new SessionRailContext(74_000, 200_000,
+                        [
+                            new(SessionRailContextCategory.Conversation, 41_000),
+                            new(SessionRailContextCategory.Tools, 22_000),
+                            new(SessionRailContextCategory.Files, 6_000),
+                            new(SessionRailContextCategory.System, 5_000)
+                        ]),
+                        [
+                            new SessionRailAgent("a1", "agent", "anthropic:claude-haiku-5-5", true),
+                            new SessionRailAgent("a2", "agent", "zai:glm-5.3-flash", false)
+                        ],
+                        [
+                            new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created),
+                            new SessionRailFile(@"C:\work\a-very-long-file-name-for-the-narrow-column.xlsx", SessionRailFileChange.Modified)
+                        ],
+                        new SessionRailSettings(true, false),
+                        true,
+                        true,
+                        new SessionRailCompaction("anthropic:claude-haiku-5-5", null,
+                            options => new SessionRailCompactPreview(options.CompactFirst ? 28_000 : 31_000, 34, 44))));
+                    Arrange(panel);
                     var background = (Brush)Application.Current.Resources["Bg.Window"];
                     var name = theme.ToString().ToLowerInvariant();
                     Save(panel, Path.Combine(directory, $"rail-{name}.png"), background);
 
                     Click(panel.CompactButton);
-                    Arrange(panel, 560);
+                    Arrange(panel);
                     Save(panel, Path.Combine(directory, $"compact-{name}.png"), background);
                 }
             }
@@ -287,20 +368,37 @@ public sealed class SessionRailPanelTests
     private static void Click(System.Windows.Controls.Primitives.ButtonBase button) =>
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
 
-    private static double Left(SessionRailPanel panel, FrameworkElement element) =>
-        element.TranslatePoint(new Point(0, 0), panel).X;
-
-    private static double Right(SessionRailPanel panel, FrameworkElement element) =>
-        element.TranslatePoint(new Point(element.ActualWidth, 0), panel).X;
-
-    private static Point Center(SessionRailPanel panel, FrameworkElement element) =>
-        element.TranslatePoint(new Point(element.ActualWidth / 2, element.ActualHeight / 2), panel);
-
-    private static void Arrange(SessionRailPanel panel, double height)
+    [Fact]
+    public void Unknown_and_exceeded_context_limits_do_not_break_the_panel()
     {
-        panel.Height = height;
-        panel.Measure(new Size(250, height));
-        panel.Arrange(new Rect(0, 0, 250, height));
+        _wpf.Ui.Invoke(() =>
+        {
+            var panel = new SessionRailPanel { Width = 250 };
+            panel.ShowSession(new SessionRailSnapshot(new SessionRailContext(100, 0, []), [], [], new(false, false), false));
+            Assert.Equal(Visibility.Collapsed, panel.ContextBar.Visibility);
+            panel.ShowSession(new SessionRailSnapshot(new SessionRailContext(120, 100, []), [], [], new(false, false), false));
+            Assert.Equal(100, panel.ContextUsedColumn.Width.Value);
+            Assert.Equal(0, panel.ContextFreeColumn.Width.Value);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void Negative_context_numbers_are_rejected()
+    {
+        var context = new SessionRailContext(-1, 100, []);
+        Assert.Throws<ArgumentOutOfRangeException>(() => _wpf.Ui.Invoke(() =>
+        {
+            new SessionRailPanel().ShowSession(new SessionRailSnapshot(context, [], [], new SessionRailSettings(false, false), false));
+            return true;
+        }));
+    }
+
+    private static void Arrange(SessionRailPanel panel)
+    {
+        panel.Height = 800;
+        panel.Measure(new Size(250, 800));
+        panel.Arrange(new Rect(0, 0, 250, 800));
         panel.UpdateLayout();
     }
 }

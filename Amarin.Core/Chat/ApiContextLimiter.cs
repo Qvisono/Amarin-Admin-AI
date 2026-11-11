@@ -50,7 +50,9 @@ internal static class ApiContextLimiter
     {
         for (var i = 0; i < messages.Count; i++)
         {
-            if (!messages[i].Role.Equals("tool", StringComparison.OrdinalIgnoreCase))
+            // Отчёт агента уходит чату целиком (ChatToolPreview.IsAgentReport).
+            if (!messages[i].Role.Equals("tool", StringComparison.OrdinalIgnoreCase) ||
+                ChatToolPreview.IsAgentReport(messages[i].Name ?? ""))
             {
                 continue;
             }

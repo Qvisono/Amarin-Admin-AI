@@ -163,8 +163,7 @@ internal sealed class AgentHost : IAgentHost
                 AgentMemory.Answer =>
                     $"Агента {id} в этом ответе нет: агент доступен только до конца ответа, в котором его запустили. ",
                 AgentMemory.Chat =>
-                    $"Агента {id} в этом чате нет: его запустили в другом чате, или он старше " +
-                    $"{AgentMemoryBook.Limit} последних разговоров с агентами, которые хранит чат. ",
+                    $"Агента {id} в этом чате нет: его запустили в другом чате или разговор с ним недоступен. ",
                 _ =>
                     $"Агента {id} в этом чате нет: его запустили в другом чате, или разговор с ним уже недоступен " +
                     "(программу перезапускали, а разговоры с агентами не сохраняются). "
@@ -226,6 +225,13 @@ internal sealed class AgentHost : IAgentHost
         var record = new AgentRunRecord { Status = AgentRunStatus.Running };
 
         var scope = AgentRunScope.Current;
+        // Снимок области привязан к ходу: два параллельных чата могут по-разному разрешать
+        // компьютер и браузер, но локальное включение не поднимает общий запрет.
+        var globalAccess = ChatSessionAccess.For(null, settings);
+        var access = scope?.Access is { } selected
+            ? new ChatSessionAccess(globalAccess.CanControlComputer && selected.CanControlComputer,
+                globalAccess.CanUseAgentBrowser && selected.CanUseAgentBrowser)
+            : globalAccess;
         Action notify = () => { };
         if (scope is not null)
         {
@@ -290,7 +296,7 @@ internal sealed class AgentHost : IAgentHost
         // у удалённой цели окна чужие. Решается раз на прогон: выключенная посреди работы галочка
         // закрывает следующий прогон, а не рвёт этот. Сеанс один на весь прогон — пересадка на
         // другую модель не возвращает окно программы и не повторяет отсчёт.
-        var computer = ComputerHub.Allowed(settings) && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
+        var computer = access.CanControlComputer && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
         using var session = computer is null
             ? null
             : new ComputerSession(
@@ -301,7 +307,7 @@ internal sealed class AgentHost : IAgentHost
 
         // Браузер агента (1.37.0) — по тому же правилу, что мышь: по галочке человека и только на этом
         // ПК. Окно открывается первым действием и закрывается с концом прогона.
-        using var browser = settings.AgentBrowser && ExecutionTarget.Current is null
+        using var browser = access.CanUseAgentBrowser && ExecutionTarget.Current is null
             ? _browser?.Open(SpendScope.Current?.Unattended == true)
             : null;
 
@@ -394,7 +400,7 @@ internal sealed class AgentHost : IAgentHost
                 {
                     session is null ? null : ComputerPrompt.AgentRule,
                     browser is not null ? BrowserPrompt.AgentRule
-                        : BrowserOff(settings) ? BrowserPrompt.AgentOffRule
+                        : BrowserOff(access) ? BrowserPrompt.AgentOffRule
                         : null
                 }.OfType<string>()),
                 GuardScreen = session is null ? null : session.DescribeForGuard,
@@ -415,6 +421,8 @@ internal sealed class AgentHost : IAgentHost
             entry = _agents?.Register(
                 scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt, agentId);
             agentId ??= entry?.Id;
+            record.AgentId = agentId ?? "";
+            notify();
             agent.CacheKey = cacheOwner + ":" + agentId;
             if (entry is not null)
             {
@@ -566,8 +574,8 @@ internal sealed class AgentHost : IAgentHost
     /// окном есть) и цель — этот ПК. Тогда агенту говорится, что браузер выключен и где его
     /// включить (1.37.0-beta.8); в тестах без хаба и на удалённой машине промпт не меняется.
     /// </summary>
-    private bool BrowserOff(AppSettings settings) =>
-        !settings.AgentBrowser && _browser?.Factory is not null && ExecutionTarget.Current is null;
+    private bool BrowserOff(ChatSessionAccess access) =>
+        !access.CanUseAgentBrowser && _browser?.Factory is not null && ExecutionTarget.Current is null;
 
     /// <summary>
     /// Видит ли модель картинки — снимок экрана отдаётся только такой. Модель, о которой каталог
@@ -620,7 +628,8 @@ internal sealed class AgentHost : IAgentHost
         // Мышь дана — работа в окнах не должна достаться модели, которая не видит экран: правило
         // в блок моделей, а уровням без зрения — запрет прямо в критерий Decisions.
         HashSet<string>? blind = null;
-        if (ComputerHub.Allowed(settings) && _computer is not null)
+        var access = AgentRunScope.Current?.Access ?? ChatSessionAccess.For(null, settings);
+        if (access.CanControlComputer && _computer is not null)
         {
             models += "\n" + AgentTierRouter.WindowsRule;
             blind = [.. Tiers.Where(tier => !CanSee(ResolveModel(tier, settings)))];

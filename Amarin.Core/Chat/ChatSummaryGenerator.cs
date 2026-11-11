@@ -65,21 +65,56 @@ internal sealed class ChatSummaryGenerator
     /// Пересказ старой части переписки для сжатия контекста (D10). Null в тексте — модель
     /// ничего не вернула: сжатие не применяется.
     /// </summary>
-    public async Task<ChatSummaryDraft> CompactAsync(string transcript, CancellationToken cancellationToken = default)
+    public Task<ChatSummaryDraft> CompactAsync(string transcript, CancellationToken cancellationToken = default) =>
+        CompactAsync([transcript], null, null, null, cancellationToken);
+
+    /// <summary>
+    /// То же по частям (<see cref="ContextCompaction.Chunks"/>): каждая следующая часть
+    /// пересказывается вместе со сводкой предыдущих, поэтому длинная переписка не теряет начало.
+    /// </summary>
+    /// <param name="modelId">Модель с экрана сжатия; null — модель слота «Сводка».</param>
+    /// <param name="keyId">Ключ, выбранный вместе с моделью; null — ключ слота.</param>
+    /// <param name="instructions">Пожелания человека к сводке; null — без них.</param>
+    /// <returns>
+    /// Сводка и цена всех сделанных запросов. Цена есть и при неудаче на одной из частей: деньги
+    /// за предыдущие уже потрачены.
+    /// </returns>
+    public async Task<ChatSummaryDraft> CompactAsync(
+        IReadOnlyList<string> chunks,
+        string? modelId,
+        string? keyId,
+        string? instructions,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(transcript))
-        {
-            return new ChatSummaryDraft(null, null);
-        }
+        ArgumentNullException.ThrowIfNull(chunks);
 
         using var charge = VeniceClient.ChargeAs(VeniceSku.ContextCompact);
-        var answer = await AskAsync(
-                ChatSummary.CompactSystemPrompt(ChatSummary.LanguageName()),
-                transcript,
-                cancellationToken)
-            .ConfigureAwait(false);
-        var text = answer.Text?.Trim();
-        return new ChatSummaryDraft(string.IsNullOrWhiteSpace(text) ? null : text, answer.Cost);
+        var system = ChatSummary.CompactSystemPrompt(ChatSummary.LanguageName(), instructions);
+        string? summary = null;
+        VeniceCost? cost = null;
+        foreach (var chunk in chunks)
+        {
+            if (string.IsNullOrWhiteSpace(chunk))
+            {
+                continue;
+            }
+
+            var answer = await AskAsync(
+                    system,
+                    summary is null ? chunk : "PREVIOUS SUMMARY:\n" + summary + "\n\nCONVERSATION (continued):\n" + chunk,
+                    cancellationToken,
+                    modelId,
+                    keyId)
+                .ConfigureAwait(false);
+            cost = answer.Cost is null ? cost : cost is null ? answer.Cost : cost.Add(answer.Cost);
+            summary = answer.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(summary))
+            {
+                return new ChatSummaryDraft(null, cost);
+            }
+        }
+
+        return new ChatSummaryDraft(summary, cost);
     }
 
     /// <summary>
@@ -142,21 +177,23 @@ internal sealed class ChatSummaryGenerator
     private async Task<(string? Text, VeniceCost? Cost)> AskAsync(
         string system,
         string user,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? modelId = null,
+        string? keyId = null)
     {
         // Сводка считается рядом с ходом, но платит за себя сама и стоит в разбивке своей
         // строкой. Без этого её цена попала бы и в счёт хода, и была бы прибавлена ещё раз.
         using var isolated = VeniceTurnScope.Suppress();
 
         var settings = _settings();
-        var model = ChatSummary.ResolveModel(settings, _options.Model);
+        var model = string.IsNullOrWhiteSpace(modelId) ? ChatSummary.ResolveModel(settings, _options.Model) : modelId;
         var options = _options with
         {
             ApiKey = _options.ApiKey,
 
             // Ключ слота, а не выбранный: заголовки чатов человек мог отдать бесплатной
             // модели другого провайдера, пока разговор идёт у своего.
-            Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Summary)),
+            Binding = _options.Keys?.CredentialFor(model, keyId ?? ModelSlots.ReadKey(settings, ModelSlot.Summary)),
             Model = model,
             EnableWebCitations = false,
             EnableXSearch = false,

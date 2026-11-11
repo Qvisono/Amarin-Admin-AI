@@ -44,14 +44,14 @@ public sealed class QueuedCostRecoveryTests
 
         var answers = Answers(session);
         Assert.Equal(2, answers.Count);
-        Assert.Equal(0.02m, answers[0].ModelCost?.Usd);
-        Assert.Equal(0.12m, answers[0].Cost?.Usd);
+        Assert.Equal(0.05m, answers[0].ModelCost?.Usd);
+        Assert.Equal(0.15m, answers[0].Cost?.Usd);
         Assert.Equal(0.10m, Assert.Single(Assert.Single(answers[0].ToolRounds).Calls).Cost?.Usd);
         Assert.Equal(0.03m, answers[1].ModelCost?.Usd);
         Assert.Equal(0.03m, answers[1].Cost?.Usd);
         Assert.Empty(answers[1].ToolRounds);
-        Assert.Equal(0.15m, ChatCost.Total(session));
-        Assert.Equal(0.15m, spent.Sum(cost => cost.Usd));
+        Assert.Equal(0.18m, ChatCost.Total(session));
+        Assert.Equal(0.18m, spent.Sum(cost => cost.Usd));
     }
 
     [Fact]
@@ -95,15 +95,15 @@ public sealed class QueuedCostRecoveryTests
 
         var answers = Answers(session);
         Assert.Equal(2, answers.Count);
-        Assert.Equal(0.02m, answers[0].ModelCost?.Usd);
-        Assert.Equal(0.324m, answers[0].Cost?.Usd);
+        Assert.Equal(0.05m, answers[0].ModelCost?.Usd);
+        Assert.Equal(0.354m, answers[0].Cost?.Usd);
         Assert.Equal(0.30m, Assert.Single(Assert.Single(answers[0].ToolRounds).Calls).NestedAgent?.Cost?.Usd);
         Assert.Equal(0.004m, answers[0].GuardCost?.Usd);
         Assert.Equal(0.03m, answers[1].ModelCost?.Usd);
         Assert.Equal(0.03m, answers[1].Cost?.Usd);
         Assert.Null(answers[1].GuardCost);
         Assert.Empty(answers[1].ToolRounds);
-        Assert.Equal(0.354m, ChatCost.Total(session));
+        Assert.Equal(0.384m, ChatCost.Total(session));
     }
 
     [Theory]

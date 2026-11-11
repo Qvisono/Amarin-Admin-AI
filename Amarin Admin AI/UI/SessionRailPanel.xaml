@@ -3,20 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Amarin.UI"
              Background="Transparent">
-    <!--
-        Концепт панели сеанса. Все числа, файлы и агенты здесь демонстрационные: разметка не
-        подключена к ходу, настройкам или реестру агентов. Переключатели и экран сжатия меняют
-        только свой вид. Типографика, строки, переключатель, поле, кнопки, логотипы моделей и
-        галочка взяты из общих ресурсов программы.
-    -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources.xaml"/>
                 <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
-            <!-- Та же группа настроек, но без подложки; радиус 6 повторяет поле ввода чата. -->
             <Style x:Key="RailCard" TargetType="Border" BasedOn="{StaticResource SettingsGroup}">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
@@ -37,484 +29,174 @@
                 <Setter Property="Margin" Value="0"/>
                 <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             </Style>
-            <!-- Строки карточек стоят на общей оси с заголовком: без бокового поля, которое было у ToolRow. -->
-            <Style x:Key="RailRow" TargetType="Grid">
-                <Setter Property="Margin" Value="0,3"/>
-            </Style>
-            <Style x:Key="RailAgentRow" TargetType="Grid" BasedOn="{StaticResource RailRow}">
-                <Setter Property="Height" Value="22"/>
-            </Style>
-            <!-- Точка легенды: у левого края оси и на один пиксель ниже середины строки, где глаз ждёт центр строчных букв. -->
-            <Style x:Key="RailDot" TargetType="Ellipse">
-                <Setter Property="Width" Value="5"/>
-                <Setter Property="Height" Value="5"/>
-                <Setter Property="HorizontalAlignment" Value="Left"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Margin" Value="0,1,0,0"/>
-            </Style>
+            <Style x:Key="RailRow" TargetType="Grid"><Setter Property="Margin" Value="0,3"/></Style>
             <Style x:Key="RailIcon" TargetType="Path">
-                <Setter Property="Width" Value="13"/>
-                <Setter Property="Height" Value="13"/>
-                <Setter Property="Stretch" Value="Uniform"/>
-                <Setter Property="Stroke" Value="{DynamicResource Text.Dim}"/>
-                <Setter Property="StrokeThickness" Value="1.3"/>
-                <Setter Property="StrokeStartLineCap" Value="Round"/>
-                <Setter Property="StrokeEndLineCap" Value="Round"/>
-                <Setter Property="StrokeLineJoin" Value="Round"/>
-                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="Width" Value="13"/><Setter Property="Height" Value="13"/><Setter Property="Stretch" Value="Uniform"/>
+                <Setter Property="Stroke" Value="{DynamicResource Text.Dim}"/><Setter Property="StrokeThickness" Value="1.3"/>
+                <Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/>
+                <Setter Property="StrokeLineJoin" Value="Round"/><Setter Property="HorizontalAlignment" Value="Left"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
             </Style>
-            <Style x:Key="RailDivider" TargetType="Border" BasedOn="{StaticResource GroupDivider}">
-                <Setter Property="Margin" Value="0,8"/>
-            </Style>
-
-            <!--
-                Строка-действие внизу карточки: текст на оси остальных строк, а подсветка при
-                наведении выходит на 6 точек за ось, как у пунктов меню, и не сдвигает текст.
-            -->
+            <Style x:Key="RailDivider" TargetType="Border" BasedOn="{StaticResource GroupDivider}"><Setter Property="Margin" Value="0,8"/></Style>
             <Style x:Key="RailActionRow" TargetType="Button">
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Focusable" Value="False"/>
-                <Setter Property="Height" Value="28"/>
-                <Setter Property="Margin" Value="-6,0"/>
-                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,0">
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
+                <Setter Property="Cursor" Value="Hand"/><Setter Property="Focusable" Value="False"/><Setter Property="Height" Value="28"/>
+                <Setter Property="Margin" Value="-6,0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,0"><ContentPresenter VerticalAlignment="Center"/></Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
             </Style>
-
-            <!-- Поле выбора модели: рамка и цвета как у ModelPickerField, но без списка: концепт. -->
-            <Style x:Key="RailFieldButton" TargetType="Button">
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Focusable" Value="False"/>
-                <Setter Property="Height" Value="28"/>
-                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
-                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                    CornerRadius="6" Padding="8,0,10,0">
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
             <Style x:Key="RailStepButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
-                <Setter Property="Width" Value="22"/>
-                <Setter Property="Height" Value="22"/>
-                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Width" Value="22"/><Setter Property="Height" Value="22"/><Setter Property="Focusable" Value="False"/>
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid>
-        <StackPanel x:Name="CardsPanel" Background="Transparent">
-            <Border x:Name="ContextCard" Style="{StaticResource RailCard}">
-                <StackPanel>
-                    <Grid Margin="0,0,0,2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ContextTitle" Style="{StaticResource RailTitle}" Text="{DynamicResource S.Context.Label}"/>
-                        <TextBlock x:Name="ContextPercent" Grid.Column="1" Text="37 %" Style="{StaticResource RailTitle}"
-                                   Foreground="{DynamicResource Accent.Fill}"/>
-                    </Grid>
-                    <TextBlock Text="74 000 / 200 000" Style="{StaticResource RailMeta}"/>
-
-                    <Grid Height="5" Margin="0,9,0,8">
-                        <Border Background="{DynamicResource Bg.Track}" CornerRadius="2.5"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20*"/>
-                                <ColumnDefinition Width="8*"/>
-                                <ColumnDefinition Width="5*"/>
-                                <ColumnDefinition Width="4*"/>
-                                <ColumnDefinition Width="63*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Margin="0,0,1,0" CornerRadius="2.5,1,1,2.5"
-                                    Background="{DynamicResource Accent.Fill}"/>
-                            <Border Grid.Column="1" Margin="0,0,1,0" CornerRadius="1"
-                                    Background="{DynamicResource Code.Keyword}"/>
-                            <Border Grid.Column="2" Margin="0,0,1,0" CornerRadius="1"
-                                    Background="{DynamicResource Code.Type}"/>
-                            <Border Grid.Column="3" Margin="0,0,1,0" CornerRadius="1,2.5,2.5,1"
-                                    Background="{DynamicResource Code.Number}"/>
-                        </Grid>
-                    </Grid>
-
-                    <!-- Порядок строк повторяет шкалу; точки на оси заголовка, проценты у общего правого края. -->
-                    <StackPanel>
-                        <Grid Style="{StaticResource RailRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="13"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Ellipse x:Name="ConversationDot" Style="{StaticResource RailDot}" Fill="{DynamicResource Accent.Fill}"/>
-                            <TextBlock x:Name="ConversationLabel" Grid.Column="1" Style="{StaticResource RailMeta}"
-                                       Text="{DynamicResource S.SessionRail.ContextConversation}"/>
-                            <TextBlock x:Name="ConversationPercent" Grid.Column="2" Text="20 %" Style="{StaticResource RailMeta}"
-                                       Foreground="{DynamicResource Text.Secondary}" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Grid Style="{StaticResource RailRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="13"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Ellipse Style="{StaticResource RailDot}" Fill="{DynamicResource Code.Keyword}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource RailMeta}" Text="{DynamicResource S.Cost.Tools}"/>
-                            <TextBlock Grid.Column="2" Text="8 %" Style="{StaticResource RailMeta}"
-                                       Foreground="{DynamicResource Text.Secondary}" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Grid Style="{StaticResource RailRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="13"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Ellipse Style="{StaticResource RailDot}" Fill="{DynamicResource Code.Type}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource RailMeta}"
-                                       Text="{DynamicResource S.SessionRail.Files}"/>
-                            <TextBlock Grid.Column="2" Text="5 %" Style="{StaticResource RailMeta}"
-                                       Foreground="{DynamicResource Text.Secondary}" HorizontalAlignment="Right"/>
-                        </Grid>
-                        <Grid Style="{StaticResource RailRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="13"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Ellipse Style="{StaticResource RailDot}" Fill="{DynamicResource Code.Number}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource RailMeta}"
-                                       Text="{DynamicResource S.SessionRail.ContextSystem}"/>
-                            <TextBlock Grid.Column="2" Text="4 %" Style="{StaticResource RailMeta}"
-                                       Foreground="{DynamicResource Text.Secondary}" HorizontalAlignment="Right"/>
-                        </Grid>
-                    </StackPanel>
-
-                    <Border Style="{StaticResource RailDivider}" Margin="0,6,0,3"/>
-                    <Button x:Name="CompactButton" Style="{StaticResource RailActionRow}" Click="CompactOpen_Click"
-                            AutomationProperties.Name="{DynamicResource S.Compact.MenuItem}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <!-- Две стрелки сходятся к черте: старая часть переписки сворачивается в сводку. -->
-                            <Path Style="{StaticResource RailIcon}"
-                                  Data="M4.5,1.5 L8,5 L11.5,1.5 M4.5,14.5 L8,11 L11.5,14.5 M1.5,8 H14.5"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource RailText}"
-                                       Text="{DynamicResource S.Compact.MenuItem}"/>
-                            <Path Grid.Column="2" Data="M0,0 L4,4 L0,8" Width="4" Height="8" Stretch="Uniform"
-                                  Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.4"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                  VerticalAlignment="Center"/>
-                        </Grid>
-                    </Button>
-                </StackPanel>
-            </Border>
-
-            <Border x:Name="SettingsCard" Style="{StaticResource RailCard}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource RailTitle}" Margin="0,0,0,3"
-                               Text="{DynamicResource S.SessionRail.Title}"/>
-                    <!-- Как строки настроек: подпись и переключатель, ПК и браузер включаются независимо. -->
-                    <Grid x:Name="ComputerRow" Style="{StaticResource RailRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Computer}"/>
-                        <CheckBox x:Name="ComputerToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
-                                  IsChecked="True"
-                                  AutomationProperties.Name="{DynamicResource S.SessionRail.Computer}"/>
-                    </Grid>
-                    <Grid x:Name="BrowserRow" Style="{StaticResource RailRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Browser}"/>
-                        <CheckBox x:Name="BrowserToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
-                                  IsChecked="False"
-                                  AutomationProperties.Name="{DynamicResource S.SessionRail.Browser}"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border x:Name="FilesCard" Style="{StaticResource RailCard}">
-                <StackPanel>
-                    <Grid Margin="0,0,0,3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.SessionRail.Files}"/>
-                        <TextBlock Grid.Column="1" Text="3" Style="{StaticResource RailMeta}"/>
-                    </Grid>
-                    <Grid Style="{StaticResource RailRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Path Style="{StaticResource RailIcon}" Data="M3.5,1.5 H9 L12.5,5 V14.5 H3.5 Z M9,1.5 V5 H12.5"/>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="MainWindow.xaml"/>
-                    </Grid>
-                    <Grid Style="{StaticResource RailRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Path Style="{StaticResource RailIcon}" Data="M3.5,1.5 H9 L12.5,5 V14.5 H3.5 Z M9,1.5 V5 H12.5"/>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="SessionRailPanel.xaml"/>
-                    </Grid>
-                    <Grid Style="{StaticResource RailRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Path Style="{StaticResource RailIcon}" Data="M3.5,1.5 H9 L12.5,5 V14.5 H3.5 Z M9,1.5 V5 H12.5"/>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="PROJECT_NOTES.md"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border x:Name="AgentsCard" Style="{StaticResource RailCard}" Margin="0">
-                <StackPanel>
-                    <Grid Margin="0,0,0,3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.Cost.Agents}"/>
-                        <TextBlock Grid.Column="1" Text="3" Style="{StaticResource RailMeta}"/>
-                    </Grid>
-                    <!-- Колонки фиксированы: логотипы 16, индикаторы 18. Работа и галочка стоят на одной оси. -->
-                    <Grid Style="{StaticResource RailAgentRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="18"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Image x:Name="ResearchModelLogo" Width="16" Height="16"/>
-                            <TextBlock x:Name="ResearchModelLetter" Style="{StaticResource RailMeta}"
-                                       FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
-                                       Visibility="Collapsed"/>
-                        </Grid>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="Haiku 5.5"/>
-                        <local:AgentWorkingIndicator x:Name="ResearchActivity" Grid.Column="2"
-                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid Style="{StaticResource RailAgentRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="18"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Image x:Name="EditorModelLogo" Width="16" Height="16"/>
-                            <TextBlock x:Name="EditorModelLetter" Style="{StaticResource RailMeta}"
-                                       FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
-                                       Visibility="Collapsed"/>
-                        </Grid>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="Haiku 5.5"/>
-                        <local:AgentWorkingIndicator x:Name="EditorActivity" Grid.Column="2"
-                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid Style="{StaticResource RailAgentRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="18"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Image x:Name="ReviewModelLogo" Width="16" Height="16"/>
-                            <TextBlock x:Name="ReviewModelLetter" Style="{StaticResource RailMeta}"
-                                       FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
-                                       Visibility="Collapsed"/>
-                        </Grid>
-                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="GLM 5.3 Flash"/>
-                        <Path x:Name="ReviewDone" Grid.Column="2" Style="{StaticResource ToolDoneIcon}" Margin="0"
-                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-
-        <!--
-            Экран сжатия занимает место карточек: та же колонка и та же рамка карточки, а не
-            плашка поверх чата. «Назад» и Esc возвращают карточки.
-        -->
-        <Border x:Name="CompactView" Style="{StaticResource RailCard}" Margin="0" Padding="12,8,12,12"
-                VerticalAlignment="Top" Visibility="Collapsed">
+    <StackPanel x:Name="CardsPanel" Background="Transparent">
+        <Border x:Name="ContextCard" Style="{StaticResource RailCard}">
             <StackPanel>
-                <Grid Margin="-6,0,0,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="CompactBackButton" Style="{StaticResource RailStepButton}" Click="CompactBack_Click"
-                            ToolTip="{DynamicResource S.Common.Back}"
-                            AutomationProperties.Name="{DynamicResource S.Common.Back}">
-                        <Path Style="{StaticResource IconGlyph}" Data="M7.5,2 L3.5,6 L7.5,10" Stretch="None"/>
-                    </Button>
-                    <TextBlock Grid.Column="1" Style="{StaticResource RailTitle}" Margin="2,0,0,0"
-                               Text="{DynamicResource S.Compact.MenuItem}"/>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.Context.Label}"/>
+                    <TextBlock x:Name="ContextPercent" Grid.Column="1" Style="{StaticResource RailTitle}" Foreground="{DynamicResource Accent.Fill}"/>
                 </Grid>
-
-                <!-- Было и станет: сплошная часть шкалы останется, бледная освободится. -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Label}"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock Text="74 000" Style="{StaticResource RailMeta}"/>
-                        <Path Data="M0,3 H8 M5,0.6 L8,3 L5,5.4" Width="8" Height="6" Stretch="Uniform"
-                              Margin="5,0" Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.2"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                              VerticalAlignment="Center"/>
-                        <TextBlock Text="~28 000" Style="{StaticResource RailMeta}"
-                                   Foreground="{DynamicResource Accent.Fill}" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Grid>
-                <Grid Height="5" Margin="0,7,0,0">
-                    <Border Background="{DynamicResource Bg.Track}" CornerRadius="2.5"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="14*"/>
-                            <ColumnDefinition Width="23*"/>
-                            <ColumnDefinition Width="63*"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" CornerRadius="2.5,1,1,2.5" Margin="0,0,1,0"
-                                Background="{DynamicResource Accent.Fill}"/>
-                        <Border Grid.Column="1" CornerRadius="1,2.5,2.5,1"
-                                Background="{DynamicResource Accent.Fill}" Opacity="0.3"/>
-                    </Grid>
-                </Grid>
-
-                <Border Style="{StaticResource RailDivider}" Margin="0,12,0,8"/>
-
-                <Grid Style="{StaticResource RailRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactFirst}"/>
-                    <CheckBox x:Name="CompactFirstToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
-                              IsChecked="True"
-                              AutomationProperties.Name="{DynamicResource S.SessionRail.CompactFirst}"/>
-                </Grid>
-
-                <Grid Style="{StaticResource RailRow}" Margin="0,7,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactKeep}"/>
-                    <Border Grid.Column="1" Height="24" CornerRadius="6" BorderThickness="1"
-                            Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}">
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="KeepLessButton" Style="{StaticResource RailStepButton}"
-                                    Click="KeepLess_Click"
-                                    AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepLess}">
-                                <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5" Stretch="None"/>
-                            </Button>
-                            <TextBlock x:Name="KeepValue" Width="22" Text="10" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Primary}"
-                                       TextAlignment="Center" VerticalAlignment="Center"/>
-                            <Button x:Name="KeepMoreButton" Style="{StaticResource RailStepButton}"
-                                    Click="KeepMore_Click"
-                                    AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepMore}">
-                                <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5 M6,2.5 V9.5" Stretch="None"/>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-                <TextBlock x:Name="KeepHint" Style="{StaticResource RailMeta}" Margin="0,2,0,0"/>
-
-                <Border Style="{StaticResource RailDivider}" Margin="0,10,0,10"/>
-
-                <TextBlock Style="{StaticResource RailMeta}" Margin="0,0,0,5"
-                           Text="{DynamicResource S.SessionRail.CompactModel}"/>
-                <Button x:Name="CompactModelButton" Style="{StaticResource RailFieldButton}"
-                        AutomationProperties.Name="{DynamicResource S.SessionRail.CompactModel}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <Image x:Name="CompactModelLogo" Width="16" Height="16"/>
-                            <TextBlock x:Name="CompactModelLetter" Style="{StaticResource RailMeta}"
-                                       FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center"
-                                       Visibility="Collapsed"/>
-                        </Grid>
-                        <TextBlock Grid.Column="1" Text="Haiku 5.5" FontSize="12"
-                                   Foreground="{DynamicResource Text.Secondary}"
-                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                        <Path Grid.Column="2" Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                              Width="8" Height="4" Stretch="Uniform" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ContextTotal" Style="{StaticResource RailMeta}"/>
+                <TextBlock x:Name="ContextAttachmentNote" Style="{StaticResource RailMeta}" Text="{DynamicResource S.SessionRail.AttachmentsUnknown}" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ContextUnavailable" Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Unknown}" TextWrapping="Wrap"/>
+                <Grid x:Name="ContextBar" Height="5" Margin="0,9,0,2"><Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ContextUsedColumn" Width="0*"/><ColumnDefinition x:Name="ContextFreeColumn" Width="1*"/>
+                </Grid.ColumnDefinitions><Border Grid.ColumnSpan="2" Background="{DynamicResource Bg.Track}" CornerRadius="2.5"/><Border Grid.Column="0" Background="{DynamicResource Accent.Fill}" CornerRadius="2.5"/></Grid>
+                <StackPanel x:Name="ContextParts" Margin="0,4,0,0"/>
+                <Border Style="{StaticResource RailDivider}" Margin="0,6,0,3"/>
+                <Button x:Name="CompactButton" Style="{StaticResource RailActionRow}" Click="Compact_Click" AutomationProperties.Name="{DynamicResource S.Compact.MenuItem}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Path Style="{StaticResource RailIcon}" Data="M4.5,1.5 L8,5 L11.5,1.5 M4.5,14.5 L8,11 L11.5,14.5 M1.5,8 H14.5"/>
+                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="{DynamicResource S.Compact.MenuItem}"/>
                     </Grid>
                 </Button>
-
-                <TextBlock Style="{StaticResource RailMeta}" Margin="0,10,0,5"
-                           Text="{DynamicResource S.SessionRail.CompactInstructions}"/>
-                <Border Style="{StaticResource FieldFrame}" Padding="9,6">
-                    <Grid>
-                        <TextBox x:Name="CompactInstructionsBox" Style="{StaticResource FieldTextBox}"
-                                 MinHeight="34" MaxHeight="120" AcceptsReturn="True" TextWrapping="Wrap"
-                                 VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
-                                 AutomationProperties.Name="{DynamicResource S.SessionRail.CompactInstructions}"/>
-                        <TextBlock VerticalAlignment="Top" Text="{DynamicResource S.SessionRail.CompactInstructionsHint}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource Placeholder}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=CompactInstructionsBox}" Value="">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                </Border>
-
-                <Button x:Name="CompactRunButton" Style="{StaticResource PrimaryButton}" Height="28" Margin="0,12,0,0"
-                        HorizontalAlignment="Stretch"
-                        Content="{DynamicResource S.Compact.Hint}" Click="CompactBack_Click"/>
             </StackPanel>
         </Border>
+        <Border x:Name="SettingsCard" Style="{StaticResource RailCard}"><StackPanel>
+            <TextBlock Style="{StaticResource RailTitle}" Margin="0,0,0,3" Text="{DynamicResource S.SessionRail.Title}"/>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Computer}"/>
+                <CheckBox x:Name="ComputerToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" ToolTipService.ShowOnDisabled="True" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.Computer}"/>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Browser}"/>
+                <CheckBox x:Name="BrowserToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" ToolTipService.ShowOnDisabled="True" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.Browser}"/>
+            </Grid>
+        </StackPanel></Border>
+        <Border x:Name="FilesCard" Style="{StaticResource RailCard}"><StackPanel>
+            <Grid Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.SessionRail.Files}"/><TextBlock x:Name="FilesCount" Grid.Column="1" Style="{StaticResource RailMeta}"/>
+            </Grid>
+            <StackPanel x:Name="FilesItems"/>
+        </StackPanel></Border>
+        <Border x:Name="AgentsCard" Style="{StaticResource RailCard}" Margin="0"><StackPanel>
+            <Grid Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.Cost.Agents}"/><TextBlock x:Name="AgentsCount" Grid.Column="1" Style="{StaticResource RailMeta}"/>
+            </Grid>
+            <StackPanel x:Name="AgentItems"/>
+        </StackPanel></Border>
+    </StackPanel>
+
+    <!-- Экран сжатия встаёт на место карточек в той же колонке; «Назад» и Esc возвращают их. -->
+    <Border x:Name="CompactView" Style="{StaticResource RailCard}" Margin="0" Padding="12,8,12,12" VerticalAlignment="Top" Visibility="Collapsed">
+        <StackPanel>
+            <Grid Margin="-6,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Button x:Name="CompactBackButton" Style="{StaticResource RailStepButton}" Click="CompactBack_Click"
+                        ToolTip="{DynamicResource S.Common.Back}" AutomationProperties.Name="{DynamicResource S.Common.Back}">
+                    <Path Style="{StaticResource IconGlyph}" Data="M7.5,2 L3.5,6 L7.5,10" Stretch="None"/>
+                </Button>
+                <TextBlock Grid.Column="1" Style="{StaticResource RailTitle}" Margin="2,0,0,0" Text="{DynamicResource S.Compact.MenuItem}"/>
+            </Grid>
+
+            <!-- Было и станет. Шкала во всю ширину — занятое сейчас, а не окно модели: у почти пустого
+                 окна разницу иначе не разглядеть. Сплошная часть останется, бледная освободится. -->
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Label}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock x:Name="CompactBefore" Style="{StaticResource RailMeta}"/>
+                    <Path x:Name="CompactArrow" Data="M0,3 H8 M5,0.6 L8,3 L5,5.4" Width="8" Height="6" Stretch="Uniform" Margin="5,0"
+                          Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CompactAfter" Style="{StaticResource RailMeta}" Foreground="{DynamicResource Accent.Fill}" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+            <Grid x:Name="CompactBar" Height="10" Margin="0,7,0,0"><Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="CompactKeptColumn" Width="1*"/><ColumnDefinition x:Name="CompactFreedColumn" Width="0*"/>
+            </Grid.ColumnDefinitions>
+                <Border Grid.ColumnSpan="2" CornerRadius="5" Background="{DynamicResource Accent.Fill}" Opacity="0.25"/>
+                <Border Grid.Column="0" CornerRadius="5" Background="{DynamicResource Accent.Fill}"/>
+            </Grid>
+            <TextBlock x:Name="CompactFrees" Style="{StaticResource RailMeta}" Margin="0,5,0,0"/>
+
+            <Border Style="{StaticResource RailDivider}" Margin="0,12,0,8"/>
+
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactFirst}"/>
+                <CheckBox x:Name="CompactFirstToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="True"
+                          Checked="CompactOption_Changed" Unchecked="CompactOption_Changed"
+                          AutomationProperties.Name="{DynamicResource S.SessionRail.CompactFirst}"/>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}" Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactKeep}"/>
+                <Border Grid.Column="1" Height="24" CornerRadius="6" BorderThickness="1" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="KeepLessButton" Style="{StaticResource RailStepButton}" Click="KeepLess_Click"
+                                AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepLess}">
+                            <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5" Stretch="None"/>
+                        </Button>
+                        <TextBlock x:Name="KeepValue" Width="22" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   TextAlignment="Center" VerticalAlignment="Center"/>
+                        <Button x:Name="KeepMoreButton" Style="{StaticResource RailStepButton}" Click="KeepMore_Click"
+                                AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepMore}">
+                            <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5 M6,2.5 V9.5" Stretch="None"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <TextBlock x:Name="KeepHint" Style="{StaticResource RailMeta}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+
+            <Border Style="{StaticResource RailDivider}" Margin="0,10,0,10"/>
+
+            <TextBlock Style="{StaticResource RailMeta}" Margin="0,0,0,5" Text="{DynamicResource S.SessionRail.CompactModel}"/>
+            <local:ModelPickerField x:Name="CompactModelField" MinWidth="0" AutomationProperties.Name="{DynamicResource S.SessionRail.CompactModel}"/>
+
+            <TextBlock Style="{StaticResource RailMeta}" Margin="0,10,0,5" Text="{DynamicResource S.SessionRail.CompactInstructions}"/>
+            <Border Style="{StaticResource FieldFrame}" Padding="9,6">
+                <Grid>
+                    <TextBox x:Name="CompactInstructionsBox" Style="{StaticResource FieldTextBox}" MinHeight="34" MaxHeight="120" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.Name="{DynamicResource S.SessionRail.CompactInstructions}"/>
+                    <TextBlock VerticalAlignment="Top" Text="{DynamicResource S.SessionRail.CompactInstructionsHint}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Placeholder}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=CompactInstructionsBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+
+            <Button x:Name="CompactRunButton" Style="{StaticResource PrimaryButton}" Height="28" Margin="0,12,0,0" HorizontalAlignment="Stretch"
+                    Content="{DynamicResource S.Compact.Hint}" Click="CompactRun_Click"/>
+            <Button x:Name="CompactUndoButton" Style="{StaticResource RailActionRow}" Margin="-6,6,-6,0" Click="CompactUndo_Click"
+                    AutomationProperties.Name="{DynamicResource S.Compact.Undo}">
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.Compact.Undo}"/>
+            </Button>
+        </StackPanel>
+    </Border>
     </Grid>
+    </ScrollViewer>
 </UserControl>

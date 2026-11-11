@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Amarin.Tools;
 
@@ -150,28 +149,4 @@ internal sealed partial class ChatEngine
             .ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Закрывает ответ в точке, где в контекст вплетено дописанное.
-    /// </summary>
-    /// <remarks>
-    /// Руками, а не через <see cref="FinishAssistant"/>: тот дописал бы в историю второе сообщение
-    /// ассистента, а сообщение этого раунда с вызовами инструментов уже там, и дубль после ответов
-    /// инструментов API отвергает. Текст выбрасывается: сказанное моделью в этом раунде уже
-    /// сохранено репликой раунда, а дважды это читалось бы как заикание.
-    /// </remarks>
-    private static void CloseAssistantForFollowUp(
-        ChatSession session,
-        ChatDisplayMessage assistant,
-        Stopwatch clock,
-        VeniceTurnContext turn,
-        IChatTurnObserver observer)
-    {
-        assistant.Text = "";
-        assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
-        assistant.ResolvedModelId = turn.ModelId;
-        assistant.Status = AssistantStatus.Complete;
-        Settle(session, assistant, turn);
-        session.UpdatedAt = DateTime.Now;
-        observer.OnAssistantContinued(assistant);
-    }
 }

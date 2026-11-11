@@ -537,14 +537,31 @@ internal static class SidebarWidths
         width is { } value && double.IsFinite(value) ? Math.Clamp(value, Min, Max) : Default;
 }
 
-/// <summary>Цена чата целиком (E3): все ответы во всех вариантах.</summary>
+/// <summary>Цена чата целиком (E3): все ответы во всех вариантах и то, что уже удалено.</summary>
 internal static class ChatCost
 {
+    /// <summary>
+    /// Сколько потрачено на чат за всё время. Заодно доводит хранимый счёт
+    /// <see cref="ChatSession.SpentUsd"/> до текущих цен сообщений.
+    /// </summary>
+    /// <remarks>
+    /// Цены дописывают многие места (ответ, заголовок, сводка, сжатие), а удаляют сообщения другие,
+    /// поэтому счёт ведётся здесь по разнице сумм: выросла — прибавка уходит в счёт, уменьшилась —
+    /// счёт остаётся прежним. У чата, сохранённого до появления поля, первым подсчётом становится
+    /// сумма его сообщений.
+    /// </remarks>
     public static decimal Total(ChatSession session)
     {
         lock (session.Gate)
         {
-            return ChatBranches.AllMessages(session).Sum(message => message.Cost?.Usd ?? 0m);
+            var sum = ChatBranches.AllMessages(session).Sum(message => message.Cost?.Usd ?? 0m);
+            if (sum > session.SpentCountedUsd)
+            {
+                session.SpentUsd += sum - session.SpentCountedUsd;
+            }
+
+            session.SpentCountedUsd = sum;
+            return session.SpentUsd;
         }
     }
 
@@ -615,6 +632,13 @@ internal static class ChatCost
         Line(lines, "S.Cost.ChatTitle", title);
         Line(lines, "S.Cost.Summary", summary);
         Line(lines, "S.Cost.Compact", compact);
+
+        // Траты на удалённые сообщения остаются в итоге чата и идут той же строкой «Прочее».
+        var removed = Total(session) - total.Usd;
+        if (removed > 0m)
+        {
+            total = total.Add(new VeniceCost { Usd = removed, HasData = true });
+        }
 
         var listed = lines.Aggregate(VeniceCost.Zero, (sum, line) => sum.Add(line.Item2));
         var rest = total.Usd - listed.Usd;

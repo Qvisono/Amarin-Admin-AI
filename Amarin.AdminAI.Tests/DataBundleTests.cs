@@ -249,6 +249,12 @@ public sealed class DataBundleTests
             var chat = SeedChat(sourceRoot, "routing-chat", "Routing");
             chat.Summary = "Conversation summary";
             chat.CompactSummary = "Compacted context";
+            chat.CompactedFrom = 2;
+            chat.CompactedFromMessageId = "first-compacted";
+            chat.SpentUsd = 0.5m;
+            chat.SpentCountedUsd = 0.005m;
+            chat.ComputerControlOverride = false;
+            chat.AgentBrowserOverride = false;
             chat.Messages.Add(new ChatDisplayMessage
             {
                 Role = "assistant", Text = "Answer",
@@ -271,6 +277,12 @@ public sealed class DataBundleTests
                 Assert.NotNull(restoredChat);
                 Assert.Equal(chat.Summary, restoredChat.Summary);
                 Assert.Equal(chat.CompactSummary, restoredChat.CompactSummary);
+                Assert.Equal(2, restoredChat.CompactedFrom);
+                Assert.Equal("first-compacted", restoredChat.CompactedFromMessageId);
+                Assert.Equal(0.5m, restoredChat.SpentUsd);
+                Assert.Equal(0.5m, ChatCost.Total(restoredChat));
+                Assert.False(restoredChat.ComputerControlOverride);
+                Assert.False(restoredChat.AgentBrowserOverride);
                 Assert.Equal(0.003m, Assert.Single(restoredChat.Messages).RouterCost?.Usd);
                 Assert.Equal(0.002m, Assert.Single(restoredChat.Messages).GuardCost?.Usd);
                 ModelSlotHealing.Heal(restored, LlmProvider.OpenRouter,

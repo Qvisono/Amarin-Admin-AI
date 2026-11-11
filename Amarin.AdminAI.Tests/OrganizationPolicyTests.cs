@@ -148,6 +148,19 @@ public sealed class OrganizationPolicyTests : IDisposable
     }
 
     [Fact]
+    public void A_chat_override_cannot_bypass_the_computer_policy()
+    {
+        var settings = new AppSettings { ComputerControl = true, AgentBrowser = true };
+        var chat = new ChatSession { ComputerControlOverride = true, AgentBrowserOverride = false };
+
+        OrganizationPolicy.Current = new OrganizationPolicy { DisableComputerControl = true };
+        var access = chat.Access(settings);
+
+        Assert.False(access.CanControlComputer);
+        Assert.False(access.CanUseAgentBrowser);
+    }
+
+    [Fact]
     public async Task A_blocked_provider_gets_no_request_at_all()
     {
         OrganizationPolicy.Current = new OrganizationPolicy { AllowedProviders = ["anthropic"] };

@@ -96,6 +96,9 @@ internal sealed class UserMessageView
     public required Border Bubble { get; init; }
     public required RichTextBox Display { get; init; }
 
+    /// <summary>Строка под пузырём: время и действия. Сюда лента ставит значок сжатого сообщения.</summary>
+    public required Panel Meta { get; init; }
+
     /// <summary>Ячейка пузыря, в которой текст сообщения меняется на поле правки.</summary>
     public required Grid EditHost { get; init; }
 
@@ -163,6 +166,9 @@ internal sealed class AssistantMessageView
     public required TextBlock Cost { get; init; }
     public required Ellipse CostDot { get; init; }
     public required Border CostChip { get; init; }
+
+    /// <summary>Строка сведений над ответом: модель, время, цена. Сюда лента ставит значок сжатого сообщения.</summary>
+    public required Panel Meta { get; init; }
     public required StackPanel Actions { get; init; }
     public required Button CancelButton { get; init; }
 
@@ -1272,6 +1278,7 @@ internal static class ChatMessageViews
         {
             Bubble = bubble,
             Display = display,
+            Meta = row,
             EditHost = hostGrid,
             CreateEditor = self => CreateUserEditor(message, actions, self)
         };
@@ -1536,6 +1543,7 @@ internal static class ChatMessageViews
             Cost = cost,
             CostDot = costDot,
             CostChip = costChip,
+            Meta = meta,
             Actions = buttons.Row,
             CancelButton = buttons.Cancel,
             ContinueButton = buttons.Resume,

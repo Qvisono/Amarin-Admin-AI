@@ -706,7 +706,8 @@
                             </Grid.ColumnDefinitions>
 
                             <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="{DynamicResource Bg.Selected}"
-                                    VerticalAlignment="Center" local:RoundedClip.Radius="6">
+                                    VerticalAlignment="Center" local:RoundedClip.Radius="6"
+                                    Cursor="Hand" MouseLeftButtonDown="AccountArea_MouseLeftButtonDown" MouseLeftButtonUp="AccountArea_MouseLeftButtonUp">
                                 <Grid>
                                     <TextBlock x:Name="SidebarAvatarLetter" Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Secondary}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -714,7 +715,9 @@
                                 </Grid>
                             </Border>
 
-                            <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                        Background="Transparent" Cursor="Hand" MouseLeftButtonDown="AccountArea_MouseLeftButtonDown"
+                                        MouseLeftButtonUp="AccountArea_MouseLeftButtonUp">
                                 <TextBlock x:Name="SidebarAccountName" Text="{DynamicResource S.Account.Guest}" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"
                                            TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                 <TextBlock x:Name="SidebarAccountMode" Text="{DynamicResource S.Account.LocalMode}" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
@@ -749,11 +752,7 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" x:Name="Chat">
+                    <Grid x:Name="Chat">
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <!-- Auto, not fixed: the composer grows when image thumbnails are attached. -->
@@ -1716,8 +1715,8 @@
                     <Border x:Name="ChatShield" Grid.RowSpan="2" Background="Transparent" Visibility="Collapsed"/>
                     </Grid>
 
-                    <!-- Статический концепт: данные внутри панели не связаны с текущим ходом. -->
-                    <local:SessionRailPanel x:Name="SessionRail" Grid.Column="1" Width="250"
+                    <!-- Панель не участвует в измерении ленты и показывается только в свободном поле. -->
+                    <local:SessionRailPanel x:Name="SessionRail" Width="250" HorizontalAlignment="Right"
                                             Margin="0,10,20,20" VerticalAlignment="Stretch"/>
                 </Grid>
 

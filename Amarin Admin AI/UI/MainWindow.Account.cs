@@ -71,6 +71,19 @@ namespace Amarin.UI
         }
 
         /// <summary>
+        /// Нажатие на аватаре и имени не должно дойти до окна: там оно начинает перетаскивание,
+        /// после которого отпускание кнопки сюда уже не приходит и настройки не открываются.
+        /// </summary>
+        private void AccountArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+        /// <summary>Аватар и имя в боковой колонке ведут в настройки профиля.</summary>
+        private void AccountArea_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+            OpenSettings(SettingsUi.NavProfile);
+        }
+
+        /// <summary>
         /// Автоблокировка и «Заблокировать» — только у профиля с паролем.
         /// </summary>
         /// <remarks>

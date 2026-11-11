@@ -568,8 +568,9 @@
     <system:String x:Key="S.Compact.Hint" xml:space="preserve">Compact</system:String>
     <system:String x:Key="S.Compact.HintTip" xml:space="preserve">The model's context is almost full. Compress the older part of the conversation into a summary?</system:String>
     <system:String x:Key="S.Compact.Mark" xml:space="preserve">Above this line the model sees only a summary</system:String>
-    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">The messages stay on screen, but the model gets their summary. To undo, use the context ring menu.</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">The messages stay on screen, but the model gets their summary. To restore the originals, use the icon on a compacted message.</system:String>
     <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Compact the context</system:String>
+    <system:String x:Key="S.Compact.MessageTip" xml:space="preserve">The model sees a summary of this message. Click to restore the original.</system:String>
     <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Nothing to compact: the conversation is short or already compacted.</system:String>
     <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">The provider refused: the context is too long. Compress the older part into a summary and try again?</system:String>
     <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">The conversation does not fit the model</system:String>
@@ -1854,8 +1855,10 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">The model can't see a tool that is off.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
+    <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Attachment token usage is unknown.</system:String>
     <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Browser</system:String>
     <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Compact the first message</system:String>
+    <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Frees ≈ {0}</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Custom instructions</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">What to keep in the summary</system:String>
     <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Keep the latest</system:String>
@@ -1866,6 +1869,9 @@
     <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">PC control</system:String>
     <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Conversation</system:String>
     <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">System</system:String>
+    <system:String x:Key="S.SessionRail.FileCreated" xml:space="preserve">created</system:String>
+    <system:String x:Key="S.SessionRail.FileModified" xml:space="preserve">modified</system:String>
+    <system:String x:Key="S.SessionRail.GlobalDisabled" xml:space="preserve">This feature is disabled in global settings or by organization policy.</system:String>
     <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Files</system:String>
     <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Session settings</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">About</system:String>

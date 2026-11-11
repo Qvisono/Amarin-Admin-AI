@@ -152,7 +152,7 @@ public sealed class ModelNoteTests
     public void The_prompt_asks_for_the_remark_and_says_where_it_shows_up()
     {
         Assert.Contains("THINKING OUT LOUD", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains("tools block", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("stays visible", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
 
         // Everyone who ever pressed "Save" on the previous default keeps a byte-identical copy in
         // their settings; without this entry the new rule would never reach them.

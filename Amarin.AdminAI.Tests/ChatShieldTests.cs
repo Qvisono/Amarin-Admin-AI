@@ -93,13 +93,14 @@ public sealed class ChatShieldTests : IDisposable
                 typeof(MainWindow).GetMethod("OpenJournal", Hidden)!.Invoke(window, null);
                 window.UpdateLayout();
                 var blocked = window.ChatBlocked;
+                var railBlocked = !((SessionRailPanel)window.FindName("SessionRail")!).IsHitTestVisible;
                 var shieldHit = HitsShield((UIElement)window.FindName("Chat")!, viewer, window);
                 typeof(MainWindow).GetMethod("CloseJournal", Hidden)!.Invoke(window, null);
 
                 window.OpenHealth();
                 typeof(MainWindow).GetMethod("CloseHealth", Hidden)!.Invoke(window, null);
                 window.UpdateLayout();
-                return (boxes.Count, touched, blocked, shieldHit, released: !window.ChatBlocked);
+                return (boxes.Count, touched, blocked, railBlocked, shieldHit, released: !window.ChatBlocked);
             }
             finally
             {
@@ -110,6 +111,7 @@ public sealed class ChatShieldTests : IDisposable
         Assert.True(outcome.Count > 20, "лента не построилась");
         Assert.Equal(0, outcome.touched);
         Assert.True(outcome.blocked);
+        Assert.True(outcome.railBlocked);
         Assert.True(outcome.shieldHit, "мышь над лентой попадает не в заслонку");
         Assert.True(outcome.released);
     }

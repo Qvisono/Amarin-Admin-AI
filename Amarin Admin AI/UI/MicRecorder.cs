@@ -26,9 +26,13 @@ internal sealed class MicRecorder : IDisposable
 
     private readonly List<(IntPtr Header, IntPtr Data)> _buffers = [];
     private readonly MemoryStream _pcm = new();
-    private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(40) };
+    // Normal, а не Background по умолчанию: анимация точек громкости каждый кадр занимает очередь
+    // отрисовкой, и фоновый опрос срабатывал раз в ~125 мс при кусках по 100 мс. Куски копились
+    // и приходили парами, индикатор замирал, а при лишней нагрузке окна звук терялся.
+    private readonly DispatcherTimer _poll = new(DispatcherPriority.Normal) { Interval = TimeSpan.FromMilliseconds(40) };
     private IntPtr _device;
     private bool _stopped;
+    private int _nextBuffer;
 
     [StructLayout(LayoutKind.Sequential, Pack = 2)]
     private struct WaveFormat
@@ -131,13 +135,17 @@ internal sealed class MicRecorder : IDisposable
     /// <summary>Готовые буферы — в запись; снова в очередь драйвера, пока пишем.</summary>
     private void Collect(bool requeue)
     {
-        foreach (var (header, data) in _buffers)
+        for (var checkedBuffers = 0; checkedBuffers < _buffers.Count; checkedBuffers++)
         {
+            // После оборота очереди младшие индексы содержат более поздний звук.
+            var (header, data) = _buffers[_nextBuffer];
             var state = Marshal.PtrToStructure<WaveHeader>(header);
             if ((state.Flags & WhdrDone) == 0)
             {
-                continue;
+                break;
             }
+
+            _nextBuffer = (_nextBuffer + 1) % _buffers.Count;
 
             if (state.BytesRecorded > 0)
             {

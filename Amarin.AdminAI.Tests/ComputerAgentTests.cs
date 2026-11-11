@@ -64,7 +64,8 @@ public sealed partial class ComputerAgentTests
         AppSettings settings,
         string[] replies,
         AgentRegistry? agents = null,
-        Func<string, VeniceModelInfo?>? models = null)
+        Func<string, VeniceModelInfo?>? models = null,
+        BrowserHub? browser = null)
     {
         var options = new AgentOptions
         {
@@ -81,7 +82,8 @@ public sealed partial class ComputerAgentTests
             new ConfirmationQueue(() => settings),
             agents,
             models,
-            computer: () => new ComputerAccess(_computer, _stage, new ComputerLease()))
+            computer: () => new ComputerAccess(_computer, _stage, new ComputerLease()),
+            browser: browser)
         {
             Route = (_, _, _) => Task.FromResult(new AgentTierDecision("lite", null)),
             Http = _ => new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") }
@@ -95,7 +97,11 @@ public sealed partial class ComputerAgentTests
         return (call, assistant);
     }
 
-    private static async Task<ToolResult> RunInChat(AgentHost host, string task, ToolCallRecord? call = null)
+    private static async Task<ToolResult> RunInChat(
+        AgentHost host,
+        string task,
+        ToolCallRecord? call = null,
+        ChatSessionAccess? access = null)
     {
         var (fresh, assistant) = Scope();
         using (AgentRunScope.Push(new AgentRunContext
@@ -104,7 +110,8 @@ public sealed partial class ComputerAgentTests
             Assistant = assistant,
             Observer = SilentTurnObserver.Instance,
             SessionId = "chat",
-            HumanWords = "the person's words"
+            HumanWords = "the person's words",
+            Access = access
         }))
         {
             return await host.RunAsync(task, null, CancellationToken.None);
@@ -158,6 +165,44 @@ public sealed partial class ComputerAgentTests
         Assert.Contains($"\"name\":\"{ComputerTool.ToolName}\"", _bodies[0], StringComparison.Ordinal);
         Assert.Contains("PROGRAM WINDOWS (computer)", _bodies[0], StringComparison.Ordinal);
         Assert.DoesNotContain("use_computer", _bodies[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_chat_that_turns_computer_control_off_never_gives_its_agent_the_tool()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        var host = Host(Settings(computerControl: true), [Final("done", 0m)]);
+
+        _ = await RunInChat(host, "task", access: new ChatSessionAccess(false, false));
+
+        Assert.DoesNotContain($"\"name\":\"{ComputerTool.ToolName}\"", _bodies[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("PROGRAM WINDOWS", _bodies[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_chat_that_turns_the_browser_off_never_gives_its_agent_the_tool()
+    {
+        var settings = Settings(computerControl: false);
+        settings.AgentBrowser = true;
+        var browser = new BrowserHub { Factory = static () => throw new InvalidOperationException("not opened") };
+        var host = Host(settings, [Final("done", 0m)], browser: browser);
+
+        _ = await RunInChat(host, "task", access: new ChatSessionAccess(false, false));
+
+        Assert.DoesNotContain($"\"name\":\"{BrowserTool.ToolName}\"", _bodies[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_chat_cannot_turn_computer_control_on_when_the_global_switch_is_off()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        var settings = Settings(computerControl: false);
+        var session = new ChatSession { ComputerControlOverride = true };
+        var host = Host(settings, [Final("done", 0m)]);
+
+        _ = await RunInChat(host, "task", access: session.Access(settings));
+
+        Assert.DoesNotContain($"\"name\":\"{ComputerTool.ToolName}\"", _bodies[0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -626,6 +671,42 @@ public sealed partial class ComputerAgentTests
         Assert.DoesNotContain(ChatEngine.ComputerRules, off, StringComparison.Ordinal);
         Assert.Contains("never run_command", on, StringComparison.Ordinal);
         Assert.Contains("never run_command", off, StringComparison.Ordinal);
+
+        static ChatEngine Engine(AppSettings settings)
+        {
+            var options = new AgentOptions { ApiKey = "test", BaseUrl = "https://api.venice.ai/api/v1", Model = "m", MaxToolRounds = 3 };
+            return new ChatEngine(
+                new VeniceClient(new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") }, options),
+                options,
+                () => settings,
+                new ToolRegistry([]),
+                agents: null);
+        }
+    }
+
+    [Fact]
+    public void The_chat_prompt_uses_the_local_access_switches_without_escaping_global_settings()
+    {
+        var enabled = Settings(computerControl: true);
+        enabled.AgentBrowser = true;
+        var offHere = new ChatSession { ComputerControlOverride = false, AgentBrowserOverride = false };
+        var prompt = Engine(enabled).CurrentSystemPrompt(offHere);
+
+        Assert.Contains(ChatEngine.ComputerOffRules, prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(ChatEngine.ComputerRules, prompt, StringComparison.Ordinal);
+        Assert.Contains(BrowserPrompt.ChatOffRules(mouse: false), prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(BrowserPrompt.ChatRules, prompt, StringComparison.Ordinal);
+
+        var globallyOff = Settings(computerControl: false);
+        globallyOff.AgentBrowser = false;
+        var cannotEscape = Engine(globallyOff).CurrentSystemPrompt(new ChatSession
+        {
+            ComputerControlOverride = true,
+            AgentBrowserOverride = true
+        });
+
+        Assert.Contains(ChatEngine.ComputerOffRules, cannotEscape, StringComparison.Ordinal);
+        Assert.Contains(BrowserPrompt.ChatOffRules(mouse: false), cannotEscape, StringComparison.Ordinal);
 
         static ChatEngine Engine(AppSettings settings)
         {

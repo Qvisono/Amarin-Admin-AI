@@ -126,11 +126,72 @@ public sealed class UpdateFallbackTests
         Assert.Same(bare, UpdateChecker.Richer(null, bare));
     }
 
+    [Fact]
+    public void The_feed_names_the_newest_release_including_prereleases()
+    {
+        // Лента отдаёт записи по дате, а не по версии: выбирается самая большая версия из ссылок.
+        var feed = "<feed>" + FeedLink("v1.37.1") + FeedLink("v1.38.0-beta.3") + FeedLink("v1.38.0-beta.2") + "</feed>";
+
+        var result = UpdateChecker.ReadFeed(feed, new ReleaseVersion(new Version(1, 38, 0), "beta.2"));
+
+        Assert.NotNull(result);
+        Assert.Equal("v1.38.0-beta.3", result!.Latest!.Tag);
+        Assert.True(result.UpdateAvailable);
+    }
+
+    [Fact]
+    public void A_feed_without_release_links_gives_nothing()
+    {
+        var current = new ReleaseVersion(new Version(1, 38, 0), "beta.2");
+
+        Assert.Null(UpdateChecker.ReadFeed("<feed></feed>", current));
+        Assert.Null(UpdateChecker.ReadFeed(null, current));
+    }
+
+    [Fact]
+    public void A_foreign_link_in_the_feed_is_ignored()
+    {
+        // Метка ищется вместе с адресом репозитория: похожая ссылка с чужого домена не выпуск.
+        var feed = "<feed><link rel=\"alternate\" type=\"text/html\" "
+                   + "href=\"https://example.com/Qvisono/Amarin-Admin-AI/releases/tag/v9.9.9\"/></feed>";
+
+        Assert.Null(UpdateChecker.ReadFeed(feed, new ReleaseVersion(new Version(1, 38, 0), "beta.2")));
+    }
+
+    [Fact]
+    public async Task The_beta_channel_reads_the_feed_when_the_api_refuses()
+    {
+        // До 1.38.0-beta.4 человек за исчерпанным лимитом API не видел предварительных выпусков.
+        var feed = "<feed>" + FeedLink("v1.37.1") + FeedLink("v1.38.0-beta.3") + "</feed>";
+        var handler = new RefusingApi(feed);
+        using var http = new HttpClient(handler);
+
+        var result = await UpdateChecker.CheckAsync(http, new ReleaseVersion(new Version(1, 38, 0), "beta.2"), beta: true);
+
+        Assert.Equal("v1.38.0-beta.3", result.Latest!.Tag);
+        Assert.True(result.UpdateAvailable);
+    }
+
+    [Fact]
+    public async Task The_stable_channel_does_not_read_the_feed()
+    {
+        var handler = new RefusingApi("<feed>" + FeedLink("v1.38.0-beta.3") + "</feed>");
+        using var http = new HttpClient(handler);
+
+        await UpdateChecker.CheckAsync(http, new ReleaseVersion(new Version(1, 37, 0), ""), beta: false);
+
+        Assert.DoesNotContain(UpdateChecker.ReleasesFeedUrl, handler.Requested);
+    }
+
     private static ReleaseInfo Release(string tag, params ReleaseAsset[] assets) =>
         new(tag, UpdateChecker.ParseTag(tag)!, Repo + "/releases/tag/" + tag, null, null, assets);
 
     private static HttpResponseMessage Answer(HttpStatusCode status, string body) =>
         new(status) { Content = new StringContent(body, Encoding.UTF8) };
+
+    /// <summary>Ссылка на выпуск в ленте releases.atom, как её пишет GitHub.</summary>
+    private static string FeedLink(string tag) =>
+        $"<link rel=\"alternate\" type=\"text/html\" href=\"{Repo}/releases/tag/{tag}\"/>";
 
     /// <summary>
     /// GitHub в миниатюре: API, страница последнего выпуска (уже «после редиректа» на тег) и файл
@@ -171,6 +232,45 @@ public sealed class UpdateFallbackTests
 
             response.RequestMessage ??= request;
             return Task.FromResult(response);
+        }
+    }
+
+    /// <summary>
+    /// GitHub, у которого API отвечает отказом (403), а лента выпусков жива: по ней бета-канал
+    /// узнаёт предварительный выпуск без API. Запрошенные адреса запоминаются, чтобы тест видел,
+    /// ходил ли клиент за лентой.
+    /// </summary>
+    private sealed class RefusingApi(string feed) : HttpMessageHandler
+    {
+        private readonly List<string> _requested = [];
+
+        public IReadOnlyList<string> Requested
+        {
+            get
+            {
+                lock (_requested)
+                {
+                    return [.. _requested];
+                }
+            }
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var url = request.RequestUri!.AbsoluteUri;
+            lock (_requested)
+            {
+                _requested.Add(url);
+            }
+
+            if (url.StartsWith("https://api.github.com/", StringComparison.Ordinal))
+            {
+                return Task.FromResult(Answer(HttpStatusCode.Forbidden, "{}"));
+            }
+
+            return Task.FromResult(url == UpdateChecker.ReleasesFeedUrl
+                ? Answer(HttpStatusCode.OK, feed)
+                : Answer(HttpStatusCode.NotFound, ""));
         }
     }
 }

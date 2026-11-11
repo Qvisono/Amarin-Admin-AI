@@ -92,10 +92,16 @@ internal static class ChatBranchCopy
         if (copy.CompactedThrough > apiCut)
         {
             copy.CompactedThrough = 0;
+            copy.CompactedFrom = 0;
             copy.CompactSummary = null;
             copy.CompactFingerprint = null;
             copy.CompactedAfterMessageId = null;
+            copy.CompactedFromMessageId = null;
         }
+
+        // Цены у копии сняты (ForgetMoney): её траты начинаются заново.
+        copy.SpentUsd = 0m;
+        copy.SpentCountedUsd = 0m;
 
         _ = ChatEngine.CloseInterruptedReplies(copy);
         return copy;

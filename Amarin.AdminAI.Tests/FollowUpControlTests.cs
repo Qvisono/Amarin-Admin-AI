@@ -575,7 +575,7 @@ public sealed class FollowUpControlTests
         Assert.True(tool.WasInterrupted, "агент доработал до конца, хотя его просили остановиться");
 
         // Ход при этом жив: ответ есть, и дописанная строка лежит в стенограмме ровно один раз.
-        Assert.Equal(["user", "assistant", "tool", "user", "assistant"],
+        Assert.Equal(["user", "assistant", "tool", "assistant", "user", "assistant"],
             session.ApiMessages.Select(message => message.Role));
         Assert.Single(
             session.ApiMessages,
@@ -725,7 +725,7 @@ public sealed class FollowUpControlTests
     }
 
     [Fact]
-    public async Task The_answer_ends_where_the_line_was_taken_in_instead_of_growing_above_it()
+    public async Task The_initial_answer_finishes_before_the_follow_up_is_answered()
     {
         var observer = new QueueingObserver();
         var tool = new AgentLikeTool(agents: null);
@@ -751,10 +751,9 @@ public sealed class FollowUpControlTests
 
         var assistants = session.Messages.Where(message => message.Role == "assistant").ToList();
 
-        // Два ответа, а не один: иначе продолжение дописывалось бы в пузырь, который стоит выше
-        // реплики человека, и ответ читался бы раньше вопроса.
+        // Оба вопроса получают самостоятельные завершённые ответы.
         Assert.Equal(2, assistants.Count);
-        Assert.Equal("", assistants[0].Text);
+        Assert.Equal("Теперь про диск D.", assistants[0].Text);
         Assert.Single(assistants[0].ToolRounds);
         Assert.Equal("Теперь про диск D.", assistants[1].Text);
         Assert.All(assistants, message => Assert.Equal(AssistantStatus.Complete, message.Status));

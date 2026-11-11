@@ -205,6 +205,12 @@ public static class UpdateChecker
     /// </remarks>
     public const string RepositoryUrl = "https://github.com/Qvisono/Amarin-Admin-AI";
 
+    /// <summary>
+    /// Лента выпусков для бета-канала без API. В ней есть и предварительные выпуски, а лимит
+    /// анонимных запросов к API её не касается.
+    /// </summary>
+    public const string ReleasesFeedUrl = RepositoryUrl + "/releases.atom";
+
     /// <summary>Чем программа представляется GitHub. Без этого заголовка он отвечает 403.</summary>
     private const string ProductToken = "Amarin-Admin-AI";
 
@@ -697,11 +703,12 @@ public static class UpdateChecker
         // ответ был без файлов: найденная так версия показывалась без кнопки «Обновить» и не
         // качалась сама. Это и был главный отказ обновления: лимит API — шестьдесят анонимных
         // запросов в час на адрес, и за VPN или мобильным NAT его выбирают чужие запросы.
-        // Запасной путь знает только последний финальный выпуск — для беты это лучше, чем
-        // ничего: о предварительных она узнает на следующей удачной проверке.
+        // Страница последнего выпуска знает только финальный, поэтому бета-канал сначала читает
+        // ленту выпусков: до 1.38.0-beta.4 человек за исчерпанным лимитом API предварительных
+        // выпусков не видел вовсе, хотя галочка стояла.
         try
         {
-            return await FallBackToReleasePageAsync(http, current, cancellationToken).ConfigureAwait(false)
+            return await FallBackToReleasePageAsync(http, current, beta, cancellationToken).ConfigureAwait(false)
                    ?? UpdateCheckResult.Failed(failure);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -772,22 +779,37 @@ public static class UpdateChecker
     private static async Task<UpdateCheckResult?> FallBackToReleasePageAsync(
         HttpClient http,
         ReleaseVersion current,
+        bool beta,
         CancellationToken cancellationToken)
     {
-        UpdateCheckResult? found;
+        UpdateCheckResult? found = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesPageUrl);
-            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current.Core));
+            if (beta)
+            {
+                using var feedRequest = new HttpRequestMessage(HttpMethod.Get, ReleasesFeedUrl);
+                feedRequest.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current.Core));
+                using var feed = await http.SendAsync(feedRequest, cancellationToken).ConfigureAwait(false);
+                if (feed.IsSuccessStatusCode)
+                {
+                    found = ReadFeed(await feed.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), current);
+                }
+            }
 
-            // Тело страницы не нужно — нужен только адрес, на котором осел редирект.
-            using var response = await http
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                .ConfigureAwait(false);
+            if (found is null)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesPageUrl);
+                request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current.Core));
 
-            found = response.IsSuccessStatusCode
-                ? ReadTaggedUrl(response.RequestMessage?.RequestUri?.ToString(), current)
-                : null;
+                // Тело страницы не нужно — нужен только адрес, на котором осел редирект.
+                using var response = await http
+                    .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                    .ConfigureAwait(false);
+
+                found = response.IsSuccessStatusCode
+                    ? ReadTaggedUrl(response.RequestMessage?.RequestUri?.ToString(), current)
+                    : null;
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
         {
@@ -832,6 +854,32 @@ public static class UpdateChecker
             // Номер версии уже известен — терять его из-за файла сумм незачем.
             return release;
         }
+    }
+
+    /// <summary>
+    /// Самый новый выпуск из ленты <c>releases.atom</c>: по версии в ссылках на теги, а не по
+    /// порядку записей. Черновиков в ленте нет, предварительные есть. Отделено от сети ради тестов.
+    /// </summary>
+    internal static UpdateCheckResult? ReadFeed(string? feed, ReleaseVersion current)
+    {
+        const string marker = "href=\"" + RepositoryUrl + "/releases/tag/";
+        var text = feed ?? "";
+        UpdateCheckResult? best = null;
+        for (var at = text.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+             at >= 0;
+             at = text.IndexOf(marker, at + marker.Length, StringComparison.OrdinalIgnoreCase))
+        {
+            var start = at + "href=\"".Length;
+            var end = text.IndexOf('"', start);
+            if (end > start &&
+                ReadTaggedUrl(text[start..end], current) is { Latest: { } release } found &&
+                (best?.Latest is not { } known || release.Release > known.Release))
+            {
+                best = found;
+            }
+        }
+
+        return best;
     }
 
     /// <summary>
