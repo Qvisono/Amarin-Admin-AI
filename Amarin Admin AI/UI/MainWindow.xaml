@@ -1433,14 +1433,13 @@
                                                             AllowAuto="True"
                                                             ModelPicked="ChatModelPicker_ModelPicked"
                                                             KeyPicked="ChatModelPicker_KeyPicked"
+                                                            ReasoningChanged="ChatModelPicker_ReasoningChanged"
+                                                            FavoriteToggled="Picker_FavoriteToggled"
                                                             AddKeyRequested="ChatModelPicker_AddKeyRequested"
                                                             ProviderShown="ModelPicker_ProviderShown"/>
                                 </Popup>
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <local:ReasoningPicker x:Name="ChatReasoningPicker" Height="32"
-                                                           VerticalAlignment="Center" ShowGaugeIcon="True"
-                                                           ChoiceChanged="ChatReasoningPicker_ChoiceChanged"/>
                                     <!-- Где исполняются команды чата (C10). Без машин в списке не показывается. -->
                                     <local:TargetPicker x:Name="ChatTargetPicker" VerticalAlignment="Center"
                                                         Visibility="Collapsed"/>

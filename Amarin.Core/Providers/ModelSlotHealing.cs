@@ -41,13 +41,16 @@ internal static class ModelSlotHealing
 
             if (owner != provider)
             {
-                changed |= MoveFromKeyless(settings, slot, write, current, owner, provider, available, currentProvider, hasKey);
+                changed |= MoveFromKeyless(settings, slot, write, current, owner, provider, models, available, currentProvider, hasKey);
                 continue;
             }
 
             var wrongType = slot is not (ModelSlot.Router or ModelSlot.SynGuard) &&
                             VeniceModelCatalog.IsDecisionModel(ReasoningPolicy.Find(models, current));
-            if (!wrongType && VeniceModelCatalog.IsSelectable(available, current))
+            var selectable = ModelRef.OpenRouterRouting(current).Length == 0
+                ? VeniceModelCatalog.IsSelectable(available, current)
+                : VeniceModelCatalog.IsSelectable(models, current);
+            if (!wrongType && selectable)
             {
                 // Модель на месте, а вот назначенный ключ мог исчезнуть вместе с удалённой
                 // строкой: возвращаем слот к ключу по умолчанию, а не к отказу в запросе.
@@ -71,7 +74,7 @@ internal static class ModelSlotHealing
                 continue;
             }
 
-            var replacement = ModelSlotDefaults.Resolve(provider, slot, available);
+            var replacement = ModelSlotDefaults.Resolve(provider, slot, models);
             if (replacement.Length == 0)
             {
                 continue;
@@ -114,6 +117,7 @@ internal static class ModelSlotHealing
         LlmProvider owner,
         LlmProvider provider,
         IReadOnlyList<VeniceModelInfo> models,
+        IReadOnlyList<VeniceModelInfo> available,
         LlmProvider currentProvider,
         Func<LlmProvider, bool> hasKey)
     {
@@ -122,10 +126,11 @@ internal static class ModelSlotHealing
             return false;
         }
 
-        var moved = ModelSlotDefaults.IsShipped(slot, current)
-            ? ModelSlotDefaults.Resolve(provider, slot, models)
-            : ModelFamily.Find(ModelFamily.KeyOf(current), provider, models)
-              ?? ModelSlotDefaults.Resolve(provider, slot, models);
+        var moved = !ModelSlotDefaults.IsShipped(slot, current) &&
+                    (provider != LlmProvider.OpenRouter || available.Count > 0)
+            ? ModelFamily.Find(ModelFamily.KeyOf(current), provider, available)
+            : null;
+        moved ??= ModelSlotDefaults.Resolve(provider, slot, models);
         if (moved.Length == 0)
         {
             return false;

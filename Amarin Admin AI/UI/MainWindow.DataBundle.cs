@@ -579,6 +579,7 @@ namespace Amarin.UI
 
             _services.ProfileRegistry = _services.Profiles.Load();
             _services.UseProfile(ProfileStore.DataRootFor(_services.ProfileRegistry.ActiveProfileId));
+            PushKeysToPickers();
             OnDeferredProfileChanged();
             ApplyFoxForProfile();
             StartTextIndexBuild();

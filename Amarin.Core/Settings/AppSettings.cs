@@ -263,6 +263,9 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public Dictionary<string, string>? ModelKeys { get; set; }
 
+    /// <summary>Избранные модели профиля с указанием провайдера и варианта каталога.</summary>
+    public List<string> FavoriteModelIds { get; set; } = [];
+
     /// <summary>
     /// Выбранные модели других провайдеров: имя провайдера — имя слота — идентификатор модели.
     /// </summary>

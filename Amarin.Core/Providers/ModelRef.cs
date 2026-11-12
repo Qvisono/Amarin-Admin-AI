@@ -18,11 +18,19 @@ namespace Amarin.Core;
 /// </remarks>
 public static class ModelRef
 {
-    /// <summary>Приставка пакетного варианта — то, чем OpenRouter помечает такие модели.</summary>
-    private const string BatchVariant = ":batch";
-
-    /// <summary>Вариант OpenRouter «самый быстрый провайдер» (1.37.0-beta.7).</summary>
+    public const string BatchVariant = ":batch";
+    public const string FreeVariant = ":free";
+    public const string ThinkingVariant = ":thinking";
+    public const string ExtendedVariant = ":extended";
     public const string NitroVariant = ":nitro";
+    public const string FloorVariant = ":floor";
+    public const string ExactoVariant = ":exacto";
+    public const string OnlineVariant = ":online";
+
+    private static readonly string OpenRouterPrefix = ProviderSpec.For(LlmProvider.OpenRouter).Prefix;
+
+    internal static readonly IReadOnlyList<string> OpenRouterRoutingVariants =
+        [NitroVariant, FloorVariant, ExactoVariant, OnlineVariant];
 
     /// <summary>
     /// Чья это модель. Пустая строка и «авто» — не модели, о провайдере они не говорят
@@ -99,12 +107,121 @@ public static class ModelRef
         return colon > "custom-".Length ? colon + 1 : 0;
     }
 
-    /// <summary>
-    /// Вариант <c>…:nitro</c>: та же модель, а OpenRouter ведёт запрос к самому быстрому
-    /// провайдеру. Каталог такие варианты не перечисляет — их достраивает <see cref="OpenRouterMapper"/>.
-    /// </summary>
-    public static bool IsNitro(string? modelId) =>
-        (modelId ?? "").Trim().EndsWith(NitroVariant, StringComparison.OrdinalIgnoreCase);
+    /// <summary>Идентификатор записи каталога. Маршрутизация не меняет её цену и возможности.</summary>
+    public static string WithoutOpenRouterRouting(string? modelId)
+    {
+        var id = (modelId ?? "").Trim();
+        for (var start = OpenRouterVariantStart(id); start >= 0;)
+        {
+            var next = id.IndexOf(':', start + 1);
+            var end = next < 0 ? id.Length : next;
+            if (RoutingVariant(id.AsSpan(start, end - start)).Length != 0)
+            {
+                id = id.Remove(start, end - start);
+                if (next < 0)
+                {
+                    break;
+                }
+
+                continue;
+            }
+
+            start = next;
+        }
+
+        return id;
+    }
+
+    /// <summary>Последний суффикс сортировки провайдеров, либо <c>:online</c>, либо пустая строка.</summary>
+    public static string OpenRouterRouting(string? modelId)
+    {
+        var id = (modelId ?? "").Trim();
+        var sorting = "";
+        var online = "";
+        for (var start = OpenRouterVariantStart(id); start >= 0;)
+        {
+            var next = id.IndexOf(':', start + 1);
+            var end = next < 0 ? id.Length : next;
+            switch (RoutingVariant(id.AsSpan(start, end - start)))
+            {
+                case OnlineVariant:
+                    online = OnlineVariant;
+                    break;
+                case { Length: > 0 } route:
+                    sorting = route;
+                    break;
+            }
+
+            start = next;
+        }
+
+        return sorting.Length == 0 ? online : sorting;
+    }
+
+    /// <summary>Заменяет режим маршрутизации, оставляя вариант каталога на месте.</summary>
+    public static string WithOpenRouterRouting(string? modelId, string? route)
+    {
+        var id = (modelId ?? "").Trim();
+        if (!IsOpenRouterId(id))
+        {
+            return id;
+        }
+
+        return WithoutOpenRouterRouting(id) + RoutingVariant(route.AsSpan());
+    }
+
+    public static string OpenRouterCatalogVariant(string? modelId)
+    {
+        var id = (modelId ?? "").Trim();
+        for (var start = OpenRouterVariantStart(id); start >= 0;)
+        {
+            var next = id.IndexOf(':', start + 1);
+            var end = next < 0 ? id.Length : next;
+            var suffix = id.AsSpan(start, end - start);
+            if (suffix.Equals(FreeVariant, StringComparison.OrdinalIgnoreCase))
+            {
+                return FreeVariant;
+            }
+
+            if (suffix.Equals(BatchVariant, StringComparison.OrdinalIgnoreCase))
+            {
+                return BatchVariant;
+            }
+
+            if (suffix.Equals(ThinkingVariant, StringComparison.OrdinalIgnoreCase))
+            {
+                return ThinkingVariant;
+            }
+
+            if (suffix.Equals(ExtendedVariant, StringComparison.OrdinalIgnoreCase))
+            {
+                return ExtendedVariant;
+            }
+
+            start = next;
+        }
+
+        return "";
+    }
+
+    private static string RoutingVariant(ReadOnlySpan<char> suffix)
+    {
+        foreach (var route in OpenRouterRoutingVariants)
+        {
+            if (suffix.Equals(route, StringComparison.OrdinalIgnoreCase))
+            {
+                return route;
+            }
+        }
+
+        return "";
+    }
+
+    private static bool IsOpenRouterId(string id) =>
+        id.StartsWith(OpenRouterPrefix, StringComparison.OrdinalIgnoreCase);
+
+    private static int OpenRouterVariantStart(string id) =>
+        IsOpenRouterId(id) ? id.IndexOf(':', OpenRouterPrefix.Length) : -1;
 
     /// <summary>
     /// Пакетный вариант модели у OpenRouter: <c>…:batch</c>.

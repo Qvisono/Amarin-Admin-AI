@@ -92,15 +92,11 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Style="{StaticResource SettingTitle}" TextWrapping="Wrap"
                                            Margin="0,0,8,0" VerticalAlignment="Center"
                                            Text="{DynamicResource S.Customize.GuardModel}"/>
-                                <local:ReasoningPicker x:Name="SynGuardReasoningPicker" Grid.Column="1"
-                                                       Height="28" MinWidth="72" ShowGaugeIcon="True"
-                                                       Margin="8,0" VerticalAlignment="Center"/>
-                                <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2"
+                                <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="1"
                                                         VerticalAlignment="Center"/>
                             </Grid>
                         </StackPanel>

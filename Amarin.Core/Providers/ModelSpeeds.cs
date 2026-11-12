@@ -43,8 +43,8 @@ internal static class ModelSpeeds
             return [];
         }
 
-        // Nitro сам выбирает самый быстрый маршрут: свой уровень обслуживания поверх него не нужен.
-        if (ModelRef.IsNitro(modelId))
+        // Nitro и Floor сами определяют доступные уровни обслуживания при маршрутизации.
+        if (ModelRef.OpenRouterRouting(modelId) is ModelRef.NitroVariant or ModelRef.FloorVariant)
         {
             return [];
         }

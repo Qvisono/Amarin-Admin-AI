@@ -311,12 +311,12 @@ namespace Amarin.UI
             _modelButtonLightning = ModelButton.Template.FindName("ModelButtonLightning", ModelButton) as System.Windows.Shapes.Path;
             _modelButtonLetter = ModelButton.Template.FindName("ModelButtonLetter", ModelButton) as TextBlock;
             UiScale.AttachCenteredBelowTooltip(Warn);
-            ChatReasoningPicker.SetUsesTools(true);
             if (_services is null)
             {
                 return;
             }
 
+            PushKeysToPickers();
             StartNewSession(persist: false);
 
             // Ширина и свёрнутость панели — до первого кадра: иначе список мигнул бы заводской ширины.
@@ -1097,7 +1097,7 @@ namespace Amarin.UI
                 return;
             }
 
-            foreach (var (slot, field, reasoning) in SettingsSlots())
+            foreach (var (slot, field, _) in SettingsSlots())
             {
                 if (!ReferenceEquals(sender, field))
                 {
@@ -1107,7 +1107,6 @@ namespace Amarin.UI
                 // Модель и ключ пишутся вместе: порознь их забывают записать по одному, и слот
                 // остаётся с ключом провайдера, к которому его модель больше не принадлежит.
                 ModelSlots.WriteBinding(_services.Settings, slot, binding);
-                reasoning.SetModel(binding.ModelId);
 
                 if (slot == ModelSlot.SynGuard)
                 {
@@ -1145,97 +1144,40 @@ namespace Amarin.UI
         private void SettingsPickerProviderShown(object? sender, LlmProvider provider) =>
             Detached.Run(LoadProviderCatalogAsync(provider), "load_model_catalog");
 
-        private void SettingsReasoningChanged(object? sender, ReasoningChoiceChangedEventArgs e)
+        private void SettingsReasoningChanged(object? sender, ReasoningChoice choice)
         {
             if (_settingsUiLoading || _services is null)
             {
                 return;
             }
 
-            var slot = SlotForReasoningPicker(sender);
-            if (slot is null)
+            foreach (var (slot, field, _) in SettingsSlots())
             {
-                return;
+                if (ReferenceEquals(sender, field))
+                {
+                    SlotReasoning(_services.Settings, slot).Apply(choice);
+                    _services.SettingsStore.SaveDeferred(_services.Settings);
+                    return;
+                }
             }
-
-            slot.DisableThinking = e.DisableThinking;
-            slot.ReasoningEffort = e.Effort;
-            slot.Speed = e.Speed;
-            _services.SettingsStore.Save(_services.Settings);
         }
 
-        private ReasoningSettings? SlotForReasoningPicker(object? sender)
+        private static ReasoningSettings SlotReasoning(AppSettings settings, ModelSlot slot) => slot switch
         {
-            if (_services is null)
-            {
-                return null;
-            }
-
-            var settings = _services.Settings;
-            var models = BuiltPage<SettingsModelsPage>();
-            var security = BuiltPage<SettingsSecurityPage>();
-            if (ReferenceEquals(sender, models?.FastReasoningPicker))
-            {
-                return settings.FastReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.LiteReasoningPicker))
-            {
-                return settings.LiteReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.HeavyReasoningPicker))
-            {
-                return settings.HeavyReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.RouterReasoningPicker))
-            {
-                return settings.RouterReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.TitleReasoningPicker))
-            {
-                return settings.TitleReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.AgentFastReasoningPicker))
-            {
-                return settings.AgentFastReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.AgentLiteReasoningPicker))
-            {
-                return settings.AgentLiteReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.AgentHeavyReasoningPicker))
-            {
-                return settings.AgentHeavyReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, security?.SynGuardReasoningPicker))
-            {
-                return settings.SynGuardReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.SummaryReasoningPicker))
-            {
-                return settings.SummaryReasoning ??= new ReasoningSettings();
-            }
-
-            if (ReferenceEquals(sender, models?.FoxReasoningPicker))
-            {
-                return settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
-            }
-
-            if (ReferenceEquals(sender, models?.BypassReasoningPicker))
-            {
-                return settings.BypassReasoning ??= new ReasoningSettings();
-            }
-
-            return null;
-        }
+            ModelSlot.Fast => settings.FastReasoning ??= new(),
+            ModelSlot.Lite => settings.LiteReasoning ??= new(),
+            ModelSlot.Heavy => settings.HeavyReasoning ??= new(),
+            ModelSlot.Router => settings.RouterReasoning ??= new(),
+            ModelSlot.Title => settings.TitleReasoning ??= new(),
+            ModelSlot.AgentFast => settings.AgentFastReasoning ??= new(),
+            ModelSlot.AgentLite => settings.AgentLiteReasoning ??= new(),
+            ModelSlot.AgentHeavy => settings.AgentHeavyReasoning ??= new(),
+            ModelSlot.SynGuard => settings.SynGuardReasoning ??= new(),
+            ModelSlot.Summary => settings.SummaryReasoning ??= new(),
+            ModelSlot.Fox => settings.FoxReasoning ??= new(),
+            ModelSlot.Bypass => settings.BypassReasoning ??= new(),
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null)
+        };
 
         private void SynGuardToggle_Changed(object sender, RoutedEventArgs e)
         {
@@ -1266,7 +1208,11 @@ namespace Amarin.UI
 
         private void ChatModelPicker_ModelPicked(object sender, ModelBinding binding)
         {
-            ModelButton.IsChecked = false;
+            if (VeniceModelCatalog.IsAuto(binding.ModelId))
+            {
+                ModelButton.IsChecked = false;
+            }
+
             _session.SelectedModelId = binding.ModelId;
             _session.SelectedKeyId = binding.KeyId;
             if (_services is not null)
@@ -1306,33 +1252,67 @@ namespace Amarin.UI
         private void ModelPicker_ProviderShown(object sender, LlmProvider provider) =>
             Detached.Run(LoadProviderCatalogAsync(provider), "load_model_catalog");
 
-        private void ChatReasoningPicker_ChoiceChanged(object sender, ReasoningChoiceChangedEventArgs e)
+        private ReasoningChoice CurrentChatReasoning() =>
+            new(_session.DisableThinking, _session.ReasoningEffort, _session.ModelSpeed);
+
+        private void ChatModelPicker_ReasoningChanged(object? sender, ReasoningChoice choice)
         {
             if (VeniceModelCatalog.IsAuto(CurrentModelId()))
             {
                 return;
             }
 
-            _session.DisableThinking = e.DisableThinking;
-            _session.ReasoningEffort = e.Effort;
-            _session.ModelSpeed = e.Speed;
+            _session.DisableThinking = choice.DisableThinking;
+            _session.ReasoningEffort = choice.Effort;
+            _session.ModelSpeed = choice.Speed;
+            UpdateModelButtonLabel(CurrentModelId());
+            if (_services is not null)
+            {
+                (_services.Settings.ChatReasoning ??= new ReasoningSettings()).Apply(choice);
+                _services.SettingsStore.SaveDeferred(_services.Settings);
+                PersistCurrent();
+            }
+        }
+
+        private void Picker_FavoriteToggled(object? sender, string modelId)
+        {
             if (_services is null)
             {
                 return;
             }
 
-            var chat = _services.Settings.ChatReasoning ??= new ReasoningSettings();
-            chat.DisableThinking = e.DisableThinking;
-            chat.ReasoningEffort = e.Effort;
-            chat.Speed = e.Speed;
-            _services.SettingsStore.Save(_services.Settings);
-            PersistCurrent();
+            var favorites = FavoriteModels();
+            if (!favorites.Add(modelId))
+            {
+                favorites.Remove(modelId);
+            }
+
+            _services.Settings.FavoriteModelIds = [.. favorites];
+            _services.SettingsStore.SaveDeferred(_services.Settings);
+            PushFavoriteModels(favorites);
+        }
+
+        private HashSet<string> FavoriteModels() => new(
+            (_services?.Settings.FavoriteModelIds ?? [])
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(ModelRef.WithoutOpenRouterRouting),
+            StringComparer.OrdinalIgnoreCase);
+
+        private void PushFavoriteModels(IReadOnlySet<string>? favorites = null)
+        {
+            favorites ??= FavoriteModels();
+            ChatModelPicker.SetFavorites(favorites);
+            SessionRail.CompactModelField.SetFavorites(favorites);
+            foreach (var field in SettingsPickers())
+            {
+                field.SetFavorites(favorites);
+            }
         }
 
         private void ModelPicker_Opened(object sender, EventArgs e)
         {
-            PushKeysToPickers();
             ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
+            ChatModelPicker.SetReasoning(CurrentChatReasoning());
             ChatModelPicker.ShowSelectedProvider();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
         }
@@ -1370,6 +1350,7 @@ namespace Amarin.UI
             }
 
             BuiltPage<SettingsModelsPage>()?.WebSearchField.SetKeys(keys);
+            PushFavoriteModels();
         }
 
         /// <summary>
@@ -1456,12 +1437,11 @@ namespace Amarin.UI
         private void ApplyCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models)
         {
             HealUnusableModelSelections(provider, models);
-            ChatModelPicker.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Chat));
-            ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
-            SessionRail.CompactModelField.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Summary));
+            ChatModelPicker.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Chat, includeRoutingSources: true));
+            SessionRail.CompactModelField.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Summary, includeRoutingSources: true));
             foreach (var (slot, field, _) in SettingsSlots())
             {
-                field.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, slot));
+                field.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, slot, includeRoutingSources: true));
             }
 
             // Поля страницы «Customize» заполняются при открытии настроек, а каталог доезжает
@@ -1470,42 +1450,7 @@ namespace Amarin.UI
             // сброшенная настройка, хотя выбор цел.
             ShowSettingsModelSelections();
 
-            var known = LoadedModels();
-            foreach (var picker in SettingsReasoningPickers())
-            {
-                picker.SetCatalog(known);
-            }
-
-            ChatReasoningPicker.SetCatalog(known);
-            UpdateReasoningPicker();
-            BindSettingsReasoningPickers();
-            RefreshContextRing();
-        }
-
-        /// <summary>Модели всех загруженных каталогов одним списком.</summary>
-        /// <remarks>
-        /// Полям размышления: слоты стоят у разных провайдеров, а поле ищет свою модель по
-        /// идентификатору. Прежде ему отдавался список последнего доехавшего провайдера, и
-        /// поле у слота соседа теряло уровни размышления своей модели. Идентификаторы несут
-        /// приставку провайдера, поэтому в общем списке они не путаются.
-        /// </remarks>
-        private List<VeniceModelInfo> LoadedModels()
-        {
-            var all = new List<VeniceModelInfo>();
-            if (_services is null)
-            {
-                return all;
-            }
-
-            foreach (var spec in _services.Keys.Providers)
-            {
-                if (_services.Models.CachedFor(spec.Provider) is { } models)
-                {
-                    all.AddRange(models);
-                }
-            }
-
-            return all;
+            UpdateModelButton();
         }
 
         /// <summary>
@@ -1597,10 +1542,10 @@ namespace Amarin.UI
                 return;
             }
 
-            foreach (var (slot, field, _) in SettingsSlots())
+            foreach (var (slot, field, withTools) in SettingsSlots())
             {
                 var binding = ModelSlots.Binding(_services.Settings, slot);
-                field.SetSelected(binding.ModelId, binding.KeyId);
+                field.SetSelected(binding.ModelId, binding.KeyId, SlotReasoning(_services.Settings, slot).ToChoice(), withTools);
             }
 
             BuiltPage<SettingsModelsPage>()?.WebSearchField.SetSelected(
@@ -1612,47 +1557,39 @@ namespace Amarin.UI
             ShowSynGuardModelName();
         }
 
-        /// <summary>
-        /// Служебные слоты вместе с их полем и выбором размышления.
-        /// </summary>
-        /// <remarks>
-        /// Одной таблицей, а не цепочкой сравнений на каждый случай: слот, поле и размышление
-        /// всегда ходят втроём, и разъехались бы они молча — при добавлении десятого слота.
-        /// </remarks>
-        private (ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)[] SettingsSlots()
+        private static (ModelSlot Slot, ModelPickerField Field, bool WithTools)[] SettingsModelSlots(SettingsModelsPage models) =>
+        [
+            (ModelSlot.Fast, models.FastModelPicker, true),
+            (ModelSlot.Lite, models.LiteModelPicker, true),
+            (ModelSlot.Heavy, models.HeavyModelPicker, true),
+            (ModelSlot.Router, models.RouterModelPicker, false),
+            (ModelSlot.Title, models.TitleModelPicker, false),
+            (ModelSlot.AgentFast, models.AgentFastModelPicker, true),
+            (ModelSlot.AgentLite, models.AgentLiteModelPicker, true),
+            (ModelSlot.AgentHeavy, models.AgentHeavyModelPicker, true),
+            (ModelSlot.Summary, models.SummaryModelPicker, true),
+            (ModelSlot.Fox, models.FoxModelPicker, true),
+            (ModelSlot.Bypass, models.BypassModelPicker, true)
+        ];
+
+        /// <summary>Только созданные страницы. Остальные прочитают настройки при открытии.</summary>
+        private IEnumerable<(ModelSlot Slot, ModelPickerField Field, bool WithTools)> SettingsSlots()
         {
-            // Только построенные страницы: таблицу читают и запуск, и доехавший каталог, а
-            // непостроенная страница, созданная позже, заполнится из настроек сама.
-            var slots = new List<(ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)>();
             if (BuiltPage<SettingsModelsPage>() is { } models)
             {
-                slots.AddRange(
-                [
-                    (ModelSlot.Fast, models.FastModelPicker, models.FastReasoningPicker),
-                    (ModelSlot.Lite, models.LiteModelPicker, models.LiteReasoningPicker),
-                    (ModelSlot.Heavy, models.HeavyModelPicker, models.HeavyReasoningPicker),
-                    (ModelSlot.Router, models.RouterModelPicker, models.RouterReasoningPicker),
-                    (ModelSlot.Title, models.TitleModelPicker, models.TitleReasoningPicker),
-                    (ModelSlot.AgentFast, models.AgentFastModelPicker, models.AgentFastReasoningPicker),
-                    (ModelSlot.AgentLite, models.AgentLiteModelPicker, models.AgentLiteReasoningPicker),
-                    (ModelSlot.AgentHeavy, models.AgentHeavyModelPicker, models.AgentHeavyReasoningPicker),
-                    (ModelSlot.Summary, models.SummaryModelPicker, models.SummaryReasoningPicker),
-                    (ModelSlot.Fox, models.FoxModelPicker, models.FoxReasoningPicker),
-                    (ModelSlot.Bypass, models.BypassModelPicker, models.BypassReasoningPicker)
-                ]);
+                foreach (var slot in SettingsModelSlots(models))
+                {
+                    yield return slot;
+                }
             }
 
             if (BuiltPage<SettingsSecurityPage>() is { } security)
             {
-                slots.Add((ModelSlot.SynGuard, security.SynGuardModelPicker, security.SynGuardReasoningPicker));
+                yield return (ModelSlot.SynGuard, security.SynGuardModelPicker, false);
             }
-
-            return [.. slots];
         }
 
-        private ModelPickerField[] SettingsPickers() => [.. SettingsSlots().Select(slot => slot.Field)];
-
-        private ReasoningPicker[] SettingsReasoningPickers() => [.. SettingsSlots().Select(slot => slot.Reasoning)];
+        private IEnumerable<ModelPickerField> SettingsPickers() => SettingsSlots().Select(slot => slot.Field);
 
         private void SaveMainPromptButton_Click(object sender, RoutedEventArgs e)
         {
@@ -3327,65 +3264,20 @@ namespace Amarin.UI
         private void UpdateModelButton()
         {
             var modelId = CurrentModelId();
-            if (_modelButtonLabel is not null)
-            {
-                _modelButtonLabel.Text = VeniceModelCatalog.GetDisplayName(modelId);
-            }
-
+            UpdateModelButtonLabel(modelId);
             ModelBrand.Apply(this, modelId, _modelButtonLogo, _modelButtonLetter, _modelButtonLightning);
             ChatModelPicker.SetSelected(modelId, CurrentKeyId());
+            ChatModelPicker.SetReasoning(CurrentChatReasoning());
             RefreshContextRing();
-            UpdateReasoningPicker();
         }
 
-        private void UpdateReasoningPicker()
+        private void UpdateModelButtonLabel(string modelId)
         {
-            var modelId = CurrentModelId();
-            var auto = VeniceModelCatalog.IsAuto(modelId);
-            ChatReasoningPicker.SetState(
-                modelId, auto, _session.DisableThinking, _session.ReasoningEffort, _session.ModelSpeed);
-            ChatReasoningPicker.Visibility = auto ? Visibility.Collapsed : Visibility.Visible;
-        }
-
-        private void BindSettingsReasoningPickers()
-        {
-            if (_services is null)
+            if (_modelButtonLabel is not null)
             {
-                return;
+                _modelButtonLabel.Text = ModelPickerField.ModelLabel(
+                    modelId, CurrentChatReasoning(), _services?.Models.Find(modelId), withTools: true);
             }
-
-            var settings = _services.Settings;
-            if (BuiltPage<SettingsModelsPage>() is { } models)
-            {
-                BindSlot(models.FastReasoningPicker, settings.FastModelId, settings.FastReasoning);
-                BindSlot(models.LiteReasoningPicker, settings.LiteModelId, settings.LiteReasoning);
-                BindSlot(models.HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
-                BindSlot(models.RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);
-                BindSlot(models.TitleReasoningPicker, settings.TitleModelId, settings.TitleReasoning);
-                BindSlot(models.AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
-                BindSlot(models.AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
-                BindSlot(models.AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
-                BindSlot(models.SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
-                BindSlot(models.FoxReasoningPicker, settings.FoxModelId, settings.FoxReasoning);
-                BindSlot(models.BypassReasoningPicker, settings.BypassModelId, settings.BypassReasoning);
-            }
-
-            if (BuiltPage<SettingsSecurityPage>() is { } security)
-            {
-                BindSlot(security.SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
-            }
-        }
-
-        private static void BindSlot(ReasoningPicker picker, string modelId, ReasoningSettings? slot)
-        {
-            var reasoning = slot ?? new ReasoningSettings();
-            picker.SetState(
-                modelId,
-                // Служебные слоты «Авто» не показывают: у каждого своя конкретная модель.
-                autoMode: false,
-                reasoning.DisableThinking,
-                reasoning.ReasoningEffort,
-                reasoning.Speed);
         }
 
         private string CurrentModelId()

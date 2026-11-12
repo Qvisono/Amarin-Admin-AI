@@ -2,9 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Amarin.UI"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime">
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
     <UserControl.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
             <!-- Подсказка строки модели: карточка общей подсказки, но без стрелки сверху —
                  она встаёт сбоку от плашки, а не под строкой, и показывать стрелке не на что.
                  Мышь её не ловит: подсказка не должна задерживать сама себя под курсором. -->
@@ -39,8 +43,7 @@
                 </Setter>
             </Style>
 
-            <!-- Кнопка провайдера в левом столбце. Форма взята у SettingsNavItem: это тот же
-                 жест выбора раздела, и расходиться им незачем. -->
+            <!-- Кнопка провайдера в раскрывающемся списке. -->
             <Style x:Key="ProviderItem" TargetType="RadioButton">
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Height" Value="30"/>
@@ -64,11 +67,169 @@
                 </Setter>
             </Style>
 
-            <Style x:Key="PickerGroupHeader" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="9.5"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
-                <Setter Property="Margin" Value="8,2,6,4"/>
+            <Style x:Key="PickerSelector" TargetType="ToggleButton">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Height" Value="30"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
+                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                    CornerRadius="7" Padding="8,0">
+                                <DockPanel VerticalAlignment="Center">
+                                    <Path DockPanel.Dock="Right" Data="M0,0 L4,4 L8,0" Width="8" Height="4"
+                                          Stretch="Uniform" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          Margin="8,0,1,0" VerticalAlignment="Center"/>
+                                    <ContentPresenter/>
+                                </DockPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PickerSelectorCaption" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10.5"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0,0,7,0"/>
+            </Style>
+
+            <Style x:Key="PickerEffortSlider" TargetType="local:ModelEffortSlider">
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="local:ModelEffortSlider">
+                            <Grid Background="Transparent">
+                                <Border Height="14" CornerRadius="7" VerticalAlignment="Center"
+                                        Background="{DynamicResource Bg.Track}"/>
+                                <local:EffortTickBar x:Name="EffortTicks" IsHitTestVisible="False"
+                                                     Fill="{DynamicResource Accent.Fill}"
+                                                     ActiveDotBrush="{DynamicResource Text.OnAccent}"
+                                                     InactiveDotBrush="{DynamicResource Text.Secondary}"
+                                                     ReservedSpace="{Binding ActualWidth, ElementName=EffortThumb}"
+                                                     Value="{TemplateBinding DisplayValue}"/>
+                                <Track x:Name="PART_Track" Value="{TemplateBinding DisplayValue}">
+                                    <Track.Thumb>
+                                        <Thumb x:Name="EffortThumb" Width="18" Height="18" VerticalAlignment="Center">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Ellipse Fill="{DynamicResource Text.OnAccent}"
+                                                             Stroke="{DynamicResource Accent.Fill}" StrokeThickness="2"/>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                                <Ellipse x:Name="FixedEffortMarker" Width="10" Height="10" Visibility="Collapsed"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         Fill="{DynamicResource Accent.Fill}"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Maximum" Value="0">
+                                    <Setter TargetName="EffortTicks" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="PART_Track" Property="Visibility" Value="Hidden"/>
+                                    <Setter TargetName="FixedEffortMarker" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PickerDropdown" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource Bg.Panel}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="7"/>
+                <Setter Property="Padding" Value="3"/>
+                <Setter Property="MaxHeight" Value="263"/>
+                <Setter Property="VerticalAlignment" Value="Top"/>
+                <Setter Property="Effect" Value="{x:Static local:PopupShadow.Effect}"/>
+            </Style>
+
+            <Style x:Key="PickerFavoriteStar" TargetType="ToggleButton">
+                <Setter Property="Width" Value="28"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bg" CornerRadius="5" Background="Transparent">
+                                <Path x:Name="Star" Width="13" Height="13" Stretch="Uniform"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M8,1 L10.2,5.4 L15,6.1 L11.5,9.5 L12.3,14.3 L8,12 L3.7,14.3 L4.5,9.5 L1,6.1 L5.8,5.4 Z"
+                                      Stroke="{DynamicResource Text.Muted}" StrokeThickness="1.25"
+                                      StrokeLineJoin="Round"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Star" Property="Fill" Value="{DynamicResource Accent.Fill}"/>
+                                    <Setter TargetName="Star" Property="Stroke" Value="{DynamicResource Accent.Fill}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PickerThinkingToggle" TargetType="CheckBox">
+                <Setter Property="Width" Value="28"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource AppFocusVisual}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Border x:Name="Bg" CornerRadius="5" Background="Transparent">
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         IsHitTestVisible="False">
+                                    <Canvas Width="24" Height="24">
+                                        <Path x:Name="Brain" Stroke="{DynamicResource Text.Muted}"
+                                              StrokeThickness="1.6" StrokeLineJoin="Round"
+                                              Data="M12,4.1
+                                                    C10.4,1.8 7.2,2.1 6.2,4.7
+                                                    C4.1,5.1 3,7 3.4,9 C1.7,10.5 1.7,13.4 3.5,14.9
+                                                    C3.1,17.2 4.6,19 6.7,19.3 C7.6,21.8 10.4,22.2 12,20.2
+                                                    C13.7,22.2 16.5,21.7 17.4,19.1 C19.6,18.9 21,17 20.5,14.8
+                                                    C22.3,13.2 22.3,10.5 20.6,8.9 C21,6.8 19.7,5 17.7,4.6
+                                                    C16.7,2.1 13.6,1.8 12,4.1 Z"/>
+                                        <Path x:Name="BrainDetail" Stroke="{DynamicResource Text.Muted}" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Data="M12,4.1 V20.2
+                                                    M6.4,7.1 C8.1,7 9.4,8.4 9.3,10.2
+                                                    M5.9,13.6 C7.6,12.7 9.4,14.1 9.2,16.3
+                                                    M17.5,7 C15.7,7 14.5,8.5 14.7,10.3
+                                                    M18.1,13.8 C16.4,12.8 14.6,14.2 14.8,16.4"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Brain" Property="Fill" Value="{DynamicResource Accent.Fill}"/>
+                                    <Setter TargetName="Brain" Property="Stroke" Value="{DynamicResource Accent.Fill}"/>
+                                    <Setter TargetName="BrainDetail" Property="Stroke" Value="{DynamicResource Text.OnAccent}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <!-- Подсказки строк ждут дольше общих и не цепляются друг за другом
@@ -79,6 +240,7 @@
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Height" Value="28"/>
                 <Setter Property="Margin" Value="0,1"/>
+                <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                 <Setter Property="ToolTipService.InitialShowDelay" Value="700"/>
                 <Setter Property="ToolTipService.BetweenShowDelay" Value="0"/>
@@ -86,7 +248,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="7,0">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6" Padding="7,0">
                                 <ContentPresenter VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -102,7 +264,7 @@
                 </Setter>
             </Style>
 
-            <!-- Строка ключа в правом столбце: показывается только имя, сам ключ здесь не нужен. -->
+            <!-- Строка ключа: показывается только имя, сам ключ здесь не нужен. -->
             <Style x:Key="KeyItem" TargetType="RadioButton">
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Height" Value="26"/>
@@ -151,33 +313,46 @@
                  может переиспользовать контейнеры, и список из трёхсот моделей перестаёт
                  строиться целиком на каждый символ в поиске. -->
             <DataTemplate x:Key="ModelRowTemplate">
-                <Button Style="{StaticResource ModelItem}"
-                        Tag="{Binding Id}" Click="ModelRow_Click">
-                    <!-- Объектом, а не строкой: объект живёт на контейнере и переживает его
-                         переиспользование, а размещение сбоку ставится именно ему. -->
-                    <Button.ToolTip>
-                        <ToolTip Style="{StaticResource ModelSideTip}" Content="{Binding Tooltip}"/>
-                    </Button.ToolTip>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Image Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}"
-                               Margin="{Binding LogoMargin}" Stretch="Uniform"
-                               Visibility="{Binding LogoVisibility}"
-                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Letter}" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Muted}"
-                                   Visibility="{Binding LetterVisibility}"
-                                   Margin="2,0,0,0"
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="PickModel" Style="{StaticResource ModelItem}" Tag="{Binding Id}" Click="ModelRow_Click"
+                            AutomationProperties.Name="{Binding Display}">
+                        <Button.ToolTip>
+                            <ToolTip Style="{StaticResource ModelSideTip}"/>
+                        </Button.ToolTip>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="18"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}"
+                                   Margin="{Binding LogoMargin}" Stretch="Uniform"
+                                   Visibility="{Binding LogoVisibility}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="{Binding Display}"/>
-                        <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"
-                              Visibility="{Binding CheckVisibility}"/>
-                    </Grid>
-                </Button>
+                            <TextBlock Text="{Binding Letter}" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Muted}"
+                                       Visibility="{Binding LetterVisibility}"
+                                       Margin="2,0,0,0"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="{Binding Display}"/>
+                            <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"
+                                  Visibility="{Binding CheckVisibility}"/>
+                        </Grid>
+                    </Button>
+                    <ToggleButton x:Name="FavoriteStar" Grid.Column="1" Style="{StaticResource PickerFavoriteStar}"
+                                  VerticalAlignment="Center" IsChecked="{Binding IsFavorite, Mode=OneWay}"
+                                  Click="FavoriteStar_Click"
+                                  ToolTip="{Binding FavoriteAction}" AutomationProperties.Name="{Binding FavoriteAction}"/>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="PickModel" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
             </DataTemplate>
 
             <Style x:Key="FilterChip" TargetType="ToggleButton">
@@ -272,124 +447,153 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Плашка живёт в попапе, и поля вокруг неё — место под тень (PopupShadow): без них тень
-         резалась краем окна попапа со всех сторон. Попапы сдвинуты на эти поля назад. -->
-    <!-- Столбец провайдеров шире прежних 112: с 1.34.0 в нём «Kimi (Moonshot)» и «Qwen (Alibaba)»,
-         а рядом может встать полоса прокрутки. Плашка подросла на столько же, и столбец моделей
-         остался прежней ширины. -->
-    <Border x:Name="PanelFrame" Width="566" Height="360" Margin="{x:Static local:PopupShadow.Margin}"
+    <Border x:Name="PanelFrame" MaxWidth="580" MaxHeight="410" Margin="{x:Static local:PopupShadow.Margin}"
             Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-            BorderThickness="1" CornerRadius="10" Padding="6" Effect="{x:Static local:PopupShadow.Effect}">
-
+            BorderThickness="1" CornerRadius="10" Padding="8" Effect="{x:Static local:PopupShadow.Effect}"
+            PreviewMouseDown="Panel_PreviewMouseDown" PreviewKeyDown="Panel_PreviewKeyDown">
         <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="130"/>
-                <ColumnDefinition Width="1"/>
+                <ColumnDefinition x:Name="SidebarColumn" Width="128"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="1"/>
-                <ColumnDefinition Width="158"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ===== Провайдер ===== -->
-            <!-- Прокручивается: провайдеров больше, чем помещается в высоту плашки. -->
-            <DockPanel Grid.Column="0" Margin="0,0,5,0">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PickerGroupHeader}"
-                           Text="{DynamicResource S.Models.ProviderColumn}"/>
-                <ScrollViewer x:Name="ProviderScroll" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
-                    <StackPanel x:Name="ProviderItems"/>
-                </ScrollViewer>
-            </DockPanel>
+            <Grid x:Name="SelectorFields">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel x:Name="ProviderField" Grid.ColumnSpan="2" Margin="0,0,0,6">
+                    <TextBlock Style="{StaticResource PickerSelectorCaption}" Margin="1,0,0,3"
+                               Text="{DynamicResource S.Models.Provider}"/>
+                    <ToggleButton x:Name="ProviderSelector" Style="{StaticResource PickerSelector}"
+                                  AutomationProperties.Name="{DynamicResource S.Models.Provider}"
+                                  ToolTip="{Binding Text, ElementName=ProviderLabel}" Click="Selector_Click">
+                        <TextBlock x:Name="ProviderLabel" Style="{StaticResource ModelName}"/>
+                    </ToggleButton>
+                </StackPanel>
+                <StackPanel x:Name="KeyField" Grid.Row="1" Grid.ColumnSpan="2">
+                    <TextBlock Style="{StaticResource PickerSelectorCaption}" Margin="1,0,0,3"
+                               Text="{DynamicResource S.Models.Key}"/>
+                    <ToggleButton x:Name="KeySelector" Style="{StaticResource PickerSelector}"
+                                  AutomationProperties.Name="{DynamicResource S.Models.Key}"
+                                  ToolTip="{Binding Text, ElementName=KeyLabel}" Click="Selector_Click">
+                        <TextBlock x:Name="KeyLabel" Style="{StaticResource ModelName}"/>
+                    </ToggleButton>
+                </StackPanel>
+            </Grid>
 
-            <Border Grid.Column="1" Background="{DynamicResource Border.Subtle}"/>
-
-            <!-- ===== Модели ===== -->
-            <Grid Grid.Column="2" Margin="5,0">
+            <Grid x:Name="ModelsPane" Grid.Column="1" Grid.RowSpan="2" Margin="12,0,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Grid x:Name="SearchRow" Margin="0,2,0,5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <Grid x:Name="FilterHeader" Margin="0,0,0,5"
+                      Visibility="{Binding Visibility, ElementName=SearchRow}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid x:Name="SearchRow">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border CornerRadius="6" Background="{DynamicResource Bg.Card}" Height="27"
+                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                            <Grid>
+                                <Path Data="M9,5 A4,4 0 1 1 1,5 A4,4 0 1 1 9,5 M8,8 L12,12"
+                                      Stroke="{DynamicResource Text.Muted}" StrokeThickness="1.3" StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" Width="12" Height="12" Stretch="Uniform"
+                                      Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                      IsHitTestVisible="False"/>
+                                <TextBox x:Name="ModelSearchBox" AutomationProperties.Name="{DynamicResource S.Models.SearchPlaceholder}"
+                                         Background="Transparent" BorderThickness="0" Padding="0" Margin="28,0,7,0"
+                                         VerticalContentAlignment="Center" FontSize="12"
+                                         Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
+                                         TextChanged="ModelSearchBox_TextChanged"/>
+                                <TextBlock Text="{DynamicResource S.Models.SearchPlaceholder}" FontSize="12"
+                                           Foreground="{DynamicResource Text.Faint}" Margin="28,0,8,0" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=ModelSearchBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                        <ToggleButton x:Name="VisionChip" Grid.Column="1" Style="{StaticResource FilterChip}"
+                                      Content="{DynamicResource S.Models.FilterVision}" Click="FilterChip_Click"/>
+                        <ToggleButton x:Name="CodeChip" Grid.Column="2" Style="{StaticResource FilterChip}"
+                                      Content="{DynamicResource S.Models.FilterCode}" Click="FilterChip_Click"/>
+                        <ToggleButton x:Name="FavoritesChip" Grid.Column="3" Style="{StaticResource PickerFavoriteStar}"
+                                      Margin="4,0,0,0" Click="FilterChip_Click"
+                                      ToolTip="{DynamicResource S.Models.Favorites}"
+                                      AutomationProperties.Name="{DynamicResource S.Models.Favorites}"/>
+                    </Grid>
 
-                    <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
-                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                        <Grid>
-                            <TextBox x:Name="ModelSearchBox"
-                                     Background="Transparent" BorderThickness="0" Padding="7,0"
-                                     VerticalContentAlignment="Center" FontSize="11"
-                                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
-                                     TextChanged="ModelSearchBox_TextChanged"/>
-                            <TextBlock Text="{DynamicResource S.Models.SearchPlaceholder}" FontSize="11" Foreground="{DynamicResource Text.Faint}"
-                                       Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Text, ElementName=ModelSearchBox}" Value="">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
-                    </Border>
-
-                    <ToggleButton x:Name="VisionChip" Grid.Column="1" Style="{StaticResource FilterChip}"
-                                  Content="{DynamicResource S.Models.FilterVision}" Click="FilterChip_Click"/>
-                    <ToggleButton x:Name="CodeChip" Grid.Column="2" Style="{StaticResource FilterChip}"
-                                  Content="{DynamicResource S.Models.FilterCode}" Click="FilterChip_Click"/>
-                    <!-- Варианты :nitro (1.37.0-beta.7): только там, где каталог их знает (OpenRouter). -->
-                    <ToggleButton x:Name="NitroChip" Grid.Column="3" Style="{StaticResource FilterChip}" Visibility="Collapsed"
-                                  Content="{DynamicResource S.Models.FilterNitro}" ToolTip="{DynamicResource S.Models.FilterNitroTip}"
-                                  Click="FilterChip_Click"/>
+                    <Grid x:Name="VariantRow" Grid.Row="1" Margin="0,5,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="VariantFilter" Style="{DynamicResource DialogComboBox}" Height="27" FontSize="11.5"
+                                  Margin="0,0,3,0" AutomationProperties.Name="{DynamicResource S.Models.Variant}"
+                                  SelectionChanged="VariantFilter_SelectionChanged"/>
+                        <ComboBox x:Name="RouteFilter" Grid.Column="1" Style="{DynamicResource DialogComboBox}" Height="27" FontSize="11.5"
+                                  Margin="3,0,0,0" AutomationProperties.Name="{DynamicResource S.Models.Route}"
+                                  SelectionChanged="VariantFilter_SelectionChanged"/>
+                    </Grid>
                 </Grid>
 
-                <!-- «Авто» закреплена над списком, а не едет вместе с ним: это не модель,
-                     а просьба выбрать её маршрутизатором, и искать её прокруткой незачем. -->
+                <!-- «Авто» остаётся над результатами поиска. -->
                 <Button x:Name="AutoItem" Grid.Row="1" Style="{StaticResource ModelItem}"
-                        Click="AutoItem_Click">
+                        AutomationProperties.Name="{DynamicResource S.Models.Auto}" Click="AutoItem_Click">
                     <Button.ToolTip>
                         <ToolTip x:Name="AutoTip" Style="{StaticResource ModelSideTip}"
                                  Content="{DynamicResource S.Models.AutoTip}"/>
                     </Button.ToolTip>
-                    <Grid>
+                    <Grid Margin="0,0,28,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="22"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="18"/>
                         </Grid.ColumnDefinitions>
-                        <Image x:Name="AutoLogo" Width="15" Height="15"
-                               HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <Image Source="{DynamicResource Auto}" Width="15" Height="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="{DynamicResource S.Models.Auto}"/>
                         <Path x:Name="AutoCheck" Grid.Column="2" Style="{StaticResource SelectedCheck}"
                               Visibility="Collapsed"/>
                     </Grid>
                 </Button>
 
-                <!-- Список виртуализован: у OpenRouter моделей сотни, и строить их все кнопками
-                     на каждый набранный в поиске символ значило вешать окно на треть секунды.
-                     Прокрутка пиксельная (ScrollUnit=Pixel) — иначе она едет строками и рвётся. -->
                 <ItemsControl x:Name="ModelItems" Grid.Row="2"
-                              VirtualizingStackPanel.IsVirtualizing="True"
-                              VirtualizingStackPanel.VirtualizationMode="Recycling"
-                              VirtualizingStackPanel.ScrollUnit="Pixel"
-                              ScrollViewer.CanContentScroll="True"
+                              VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLengthUnit="Item"
+                              VirtualizingPanel.CacheLength="0,10" ScrollViewer.CanContentScroll="True"
                               ItemTemplate="{StaticResource ModelRowTemplate}">
                     <ItemsControl.Template>
                         <ControlTemplate TargetType="ItemsControl">
-                            <ScrollViewer x:Name="PART_Scroll" Focusable="False"
-                                          CanContentScroll="True"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled"
+                            <ScrollViewer x:Name="PART_Scroll" Focusable="False" CanContentScroll="True"
+                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                           ClipToBounds="True">
                                 <ItemsPresenter/>
                             </ScrollViewer>
@@ -402,41 +606,84 @@
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
 
-                <!-- «Загрузка», «ничего не найдено» и текст отказа. Отдельной строкой, а не
-                     первым элементом списка: элемент списка виртуализуется и ездит вместе с ним.
-                     У отказа под текстом «Повторить»: повторное нажатие на того же провайдера
-                     ничего не делает, и иначе повторить было бы нечем. -->
                 <StackPanel x:Name="StatusPane" Grid.Row="2" Margin="8,10,8,8"
                             VerticalAlignment="Top" Visibility="Collapsed">
-                    <TextBlock x:Name="ModelStatus" FontSize="11"
-                               Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ModelStatus" FontSize="11" Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
                     <Button x:Name="RetryButton" Style="{StaticResource PickerRetryButton}"
                             Content="{DynamicResource S.Models.Retry}" Margin="0,10,0,0"
                             Visibility="Collapsed" Click="RetryButton_Click"/>
                 </StackPanel>
 
-                <!-- Ключа у провайдера нет: показывать список моделей не из чего, и вместо
-                     ошибки сервера человек видит, что именно надо сделать. -->
-                <StackPanel x:Name="NoKeyPane" Grid.Row="1" Grid.RowSpan="2" VerticalAlignment="Center"
-                            Margin="10,0" Visibility="Collapsed">
+                <StackPanel x:Name="NoKeyPane" Grid.Row="2" VerticalAlignment="Center"
+                            Margin="18,0" Visibility="Collapsed">
                     <TextBlock x:Name="NoKeyText" FontSize="11.5" Foreground="{DynamicResource Text.Dim}"
                                TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,10"/>
                     <Button x:Name="AddKeyButton" Style="{StaticResource PickerAddKeyButton}"
                             Content="{DynamicResource S.Models.AddKey}" Click="AddKeyButton_Click"/>
                 </StackPanel>
+
+                <Border Grid.Row="3" Margin="0,5,0,0" Padding="7,4,7,0"
+                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,1,0,0"
+                        Visibility="{Binding Visibility, ElementName=ChoicePane}">
+                    <Grid x:Name="ChoicePane" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="ChoiceModelLabel" Style="{StaticResource ModelName}" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="SpeedPicker" Grid.Column="1" Style="{DynamicResource DialogComboBox}"
+                                  AutomationProperties.Name="{DynamicResource S.Speed.Caption}" ToolTip="{DynamicResource S.Speed.Caption}"
+                                  Height="26" MinWidth="100" FontSize="11.5" VerticalAlignment="Center"
+                                  SelectionChanged="SpeedPicker_SelectionChanged"/>
+                        <Grid x:Name="ThinkingControl" Grid.Column="2" Margin="4,0,0,0" VerticalAlignment="Center">
+                            <CheckBox x:Name="ThinkingToggle" Style="{StaticResource PickerThinkingToggle}"
+                                      AutomationProperties.Name="{DynamicResource S.Reasoning.Toggle}"
+                                      ToolTip="{DynamicResource S.Reasoning.Toggle}"
+                                      Checked="ThinkingToggle_Changed" Unchecked="ThinkingToggle_Changed"/>
+                        </Grid>
+                        <StackPanel x:Name="EffortControl" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,2,0,0">
+                            <DockPanel LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource PickerSelectorCaption}"
+                                           Text="{DynamicResource S.Reasoning.Effort}"/>
+                                <TextBlock x:Name="EffortValue" DockPanel.Dock="Right" Margin="6,0,0,0"
+                                           Style="{StaticResource ModelName}" FontWeight="SemiBold"/>
+                            </DockPanel>
+                            <local:ModelEffortSlider x:Name="EffortSlider" Style="{StaticResource PickerEffortSlider}"
+                                                     AutomationProperties.Name="{DynamicResource S.Reasoning.Effort}"
+                                                     AutomationProperties.ItemStatus="{Binding Text, ElementName=EffortValue}"
+                                                     Minimum="0" TickFrequency="1" SmallChange="1" LargeChange="1"
+                                                     IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" ValueChanged="EffortSlider_Changed"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
 
-            <Border Grid.Column="3" Background="{DynamicResource Border.Subtle}"/>
-
-            <!-- ===== Ключ этой модели ===== -->
-            <DockPanel Grid.Column="4" Margin="5,0,0,0">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PickerGroupHeader}"
-                           Text="{DynamicResource S.Models.KeyColumn}"/>
-                <ScrollViewer x:Name="KeyScroll" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
-                    <StackPanel x:Name="KeyItems"/>
-                </ScrollViewer>
-            </DockPanel>
+            <!-- Выпадающие меню занимают место под обоими полями и не сдвигают список моделей. -->
+            <Grid x:Name="SelectorMenus" Grid.Row="1" Margin="0,5,0,0" Panel.ZIndex="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="ProviderMenu" Grid.ColumnSpan="2" Style="{StaticResource PickerDropdown}"
+                        Visibility="Collapsed">
+                    <ScrollViewer x:Name="ProviderScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  ClipToBounds="True" local:SmoothScroll.IsEnabled="True">
+                        <StackPanel x:Name="ProviderItems"/>
+                    </ScrollViewer>
+                </Border>
+                <Border x:Name="KeyMenu" Grid.ColumnSpan="2" Style="{StaticResource PickerDropdown}"
+                        Visibility="Collapsed">
+                    <ScrollViewer x:Name="KeyScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  ClipToBounds="True" local:SmoothScroll.IsEnabled="True">
+                        <StackPanel x:Name="KeyItems"/>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

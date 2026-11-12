@@ -1512,10 +1512,13 @@
     <system:String x:Key="S.Batch.Unsupported" xml:space="preserve">The OpenRouter batch queue rejects {0}: attachments go out as a data: string, and the queue only takes them by URL. Pick the same model without the «(batch)» mark, or drop the attachment.</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ENGINE</system:String>
+    <system:String x:Key="S.Models.Favorites" xml:space="preserve">Favorites</system:String>
+    <system:String x:Key="S.Models.FavoriteAdd" xml:space="preserve">Add to favorites</system:String>
+    <system:String x:Key="S.Models.FavoriteRemove" xml:space="preserve">Remove from favorites</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Code</system:String>
-    <system:String x:Key="S.Models.FilterNitro" xml:space="preserve">Nitro</system:String>
     <system:String x:Key="S.Models.FilterNitroTip" xml:space="preserve">Variants that OpenRouter sends to the fastest provider</system:String>
     <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Vision</system:String>
+    <system:String x:Key="S.Models.Key" xml:space="preserve">Key</system:String>
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">Default</system:String>
     <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">The key is picked automatically: the first usable one for this provider</system:String>
@@ -1526,9 +1529,16 @@
     <system:String x:Key="S.Models.LoadServer" xml:space="preserve">{0} has a server problem ({1}).</system:String>
     <system:String x:Key="S.Models.LoadTimeout" xml:space="preserve">{0} didn't answer in time.</system:String>
     <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">There is no {0} key yet. Add one to pick models from this provider.</system:String>
+    <system:String x:Key="S.Models.Provider" xml:space="preserve">Provider</system:String>
     <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">PROVIDER</system:String>
     <system:String x:Key="S.Models.Retry" xml:space="preserve">Retry</system:String>
+    <system:String x:Key="S.Models.Route" xml:space="preserve">Routing</system:String>
+    <system:String x:Key="S.Models.RouteDefault" xml:space="preserve">Default route</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Search…</system:String>
+    <system:String x:Key="S.Models.Variant" xml:space="preserve">Variant</system:String>
+    <system:String x:Key="S.Models.VariantAll" xml:space="preserve">All variants</system:String>
+    <system:String x:Key="S.Models.VariantFloor" xml:space="preserve">Lowest price</system:String>
+    <system:String x:Key="S.Models.VariantExacto" xml:space="preserve">Quality first</system:String>
 
 
     <system:String x:Key="S.Password.Chosen" xml:space="preserve">selected</system:String>

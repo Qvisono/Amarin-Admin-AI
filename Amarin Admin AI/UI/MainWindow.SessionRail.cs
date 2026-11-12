@@ -21,6 +21,7 @@ public partial class MainWindow
         SessionRail.FileOpenRequested += (_, e) => RevealRailFile(e.Path);
         SessionRail.CompactModelField.AddKeyRequested += SettingsPickerAddKeyRequested;
         SessionRail.CompactModelField.ProviderShown += SettingsPickerProviderShown;
+        SessionRail.CompactModelField.FavoriteToggled += Picker_FavoriteToggled;
         SessionRail.SettingsChanged += (_, e) => ChangeRailSettings(e.Settings);
         LayoutUpdated += (_, _) => UpdateSessionRail();
     }

@@ -164,9 +164,7 @@ public sealed partial class VeniceClient
         {
             var result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterModelsResponse)
                 ?? throw new VeniceApiException("Empty models response from OpenRouter.");
-            // С близнецами :nitro: их нет в ответе, а без них в каталоге выбранный вариант
-            // лечение слотов сочло бы пропавшей моделью.
-            return OpenRouterMapper.ToModels(result, nitro: true);
+            return OpenRouterMapper.ToModels(result);
         }
         catch (JsonException ex)
         {

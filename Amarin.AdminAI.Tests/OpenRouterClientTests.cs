@@ -175,43 +175,45 @@ public sealed class OpenRouterClientTests
         Assert.Equal("low", body.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
     }
 
-    /// <summary>
-    /// Nitro (1.37.0-beta.7): каталог OpenRouter вариантов :nitro не перечисляет, поэтому близнец
-    /// достраивается у каждой обычной модели — с той же ценой и умениями. У вариантов, подвижных
-    /// имён и Decisions близнеца нет; список показывает их только под чипом «Nitro».
-    /// </summary>
-    [Fact]
-    public async Task Nitro_twins_are_built_shown_under_their_chip_and_sent_as_is()
+    [Theory]
+    [InlineData(":nitro")]
+    [InlineData(":floor")]
+    [InlineData(":exacto")]
+    [InlineData(":online")]
+    [InlineData(":nitro:online:exacto")]
+    public async Task Routing_uses_catalog_variant_metadata_and_preserves_the_wire_id(string suffix)
     {
         var models = OpenRouterMapper.ToModels(JsonSerializer.Deserialize(
             """
             {"data":[
-              {"id":"anthropic/claude-haiku-5.5","name":"Anthropic: Claude Haiku 5.5","supported_parameters":["tools"],"pricing":{"prompt":"0.000001","completion":"0.000005"}},
-              {"id":"meta/free-model:free","supported_parameters":["tools"]},
+              {"id":"meta/model","supported_parameters":["tools"],"pricing":{"prompt":"0.000001","completion":"0.000005"}},
+              {"id":"meta/model:free","supported_parameters":["tools","reasoning"],"pricing":{"prompt":"0","completion":"0"},
+               "reasoning":{"supported_efforts":["xhigh","medium"]}},
+              {"id":"meta/model:batch","supported_parameters":["tools"]},
               {"id":"~anthropic/claude-haiku-latest","supported_parameters":["tools"]},
+              {"id":"openrouter/auto","supported_parameters":["tools"]},
               {"id":"microsoft/decision-1","architecture":{"input_modalities":["text"],"output_modalities":["decisions"]}}
             ]}
             """,
-            VeniceJsonContext.Default.OpenRouterModelsResponse)!, nitro: true);
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!);
 
-        var ids = models.Select(model => model.Id).ToList();
-        Assert.Equal(
-            ["openrouter:anthropic/claude-haiku-5.5", "openrouter:anthropic/claude-haiku-5.5:nitro", "openrouter:meta/free-model:free",
-             "openrouter:~anthropic/claude-haiku-latest", "openrouter:microsoft/decision-1"],
-            ids);
-        var twin = models[1];
-        Assert.Equal("Claude Haiku 5.5 (nitro)", twin.ModelSpec!.Name);
-        Assert.Equal(CostEstimator.PriceOf(models[0]), CostEstimator.PriceOf(twin));
-        Assert.True(twin.ModelSpec.Capabilities!.SupportsFunctionCalling);
-
-        Assert.DoesNotContain(twin, VeniceModelCatalog.FilterAllTab(models, "", vision: false, code: false));
-        Assert.Equal([twin], VeniceModelCatalog.FilterAllTab(models, "", vision: false, code: false, nitro: true));
-        Assert.Empty(ModelSpeeds.For(twin.Id));
+        Assert.Equal(6, models.Count);
+        var free = models[1];
+        var id = free.Id + suffix;
+        Assert.Same(free, ReasoningPolicy.Find(models, id));
+        Assert.True(VeniceModelCatalog.IsSelectable(models, id));
+        Assert.All(models.Skip(2), model => Assert.False(VeniceModelCatalog.CanUseOpenRouterRouting(model)));
+        Assert.False(VeniceModelCatalog.IsSelectable(models, "openrouter:meta/missing:free" + suffix));
+        Assert.True(VeniceModelCatalog.IsSelectable(models, models[2].Id));
+        Assert.False(VeniceModelCatalog.IsSelectable(models, models[2].Id + suffix));
 
         var (client, _, recorder) = Build((_, _) => Json(Completion()));
-        await client.CreateChatCompletionAsync(twin.Id, [User("привет")], tools: null, toolChoice: null, new VeniceParameters());
+        client.ResolveModelInfo = requested => ReasoningPolicy.Find(models, requested);
+        await client.CreateChatCompletionAsync(id, [User("привет")], tools: null, toolChoice: null,
+            new VeniceParameters(), CancellationToken.None, new ReasoningChoice(false, "xhigh"));
         using var body = JsonDocument.Parse(recorder.Bodies[0]);
-        Assert.Equal("anthropic/claude-haiku-5.5:nitro", body.RootElement.GetProperty("model").GetString());
+        Assert.Equal("meta/model:free" + suffix, body.RootElement.GetProperty("model").GetString());
+        Assert.Equal("xhigh", body.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
     }
 
     /// <summary>

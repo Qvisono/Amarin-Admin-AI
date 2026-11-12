@@ -58,7 +58,7 @@ public sealed class SettingsLazyTests : IDisposable
                      [
                          "LoadSettingsUi", "LoadAccountUi", "LoadUpdatesUi", "RenderUpdates", "RefreshBehaviorLinks",
                          "RefreshAppearanceLinks", "RefreshPromptLinks", "RefreshAllowedDomainsUi",
-                         "PushKeysToPickers", "ShowSettingsModelSelections", "BindSettingsReasoningPickers",
+                         "PushKeysToPickers", "ShowSettingsModelSelections",
                          "ShowSynGuardModelName", "UpdateTranslationEditButton"
                      ])
             {

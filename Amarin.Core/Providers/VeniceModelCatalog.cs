@@ -37,14 +37,33 @@ internal static class VeniceModelCatalog
     /// Модели для поля выбора слота: Decisions доступны маршрутизатору и SynGuard (остальные слоты
     /// ведут разговор), а модели, запрещённые политикой организации (1.37.0), не видны никому.
     /// </summary>
-    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot)
+    public static IReadOnlyList<VeniceModelInfo> ForSlot(
+        IReadOnlyList<VeniceModelInfo> models, ModelSlot slot, bool includeRoutingSources = false)
     {
         var shown = slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
             ? models : [.. models.Where(model => !IsDecisionModel(model))];
         var policy = OrganizationPolicy.Current;
         return policy.AllowedModels.Count == 0 && policy.AllowedProviders.Count == 0
             ? shown
-            : [.. shown.Where(model => policy.AllowsModel(model.Id))];
+            : [.. shown.Where(model => policy.AllowsModel(model.Id) ||
+                (includeRoutingSources && CanUseOpenRouterRouting(model) &&
+                 policy.AllowsProvider(LlmProvider.OpenRouter) &&
+                 ModelRef.OpenRouterRoutingVariants.Any(route =>
+                     policy.AllowsModel(ModelRef.WithOpenRouterRouting(model.Id, route)))))];
+    }
+
+    /// <summary>У каких записей меню может предложить маршрутизацию OpenRouter.</summary>
+    public static bool CanUseOpenRouterRouting(VeniceModelInfo model)
+    {
+        if (ModelRef.Of(model.Id) != LlmProvider.OpenRouter || IsDecisionModel(model) ||
+            ModelRef.IsBatchOnly(model.Id) || ModelRef.OpenRouterRouting(model.Id).Length != 0)
+        {
+            return false;
+        }
+
+        var bare = ModelRef.Bare(model.Id);
+        return bare.Contains('/', StringComparison.Ordinal) && !bare.StartsWith('~') &&
+               !bare.StartsWith("openrouter/", StringComparison.OrdinalIgnoreCase);
     }
 
     public static IReadOnlyList<VeniceModelInfo> FilterAgentic(
@@ -120,15 +139,41 @@ internal static class VeniceModelCatalog
             return true;
         }
 
+        var requested = id.Trim();
+        if (ModelRef.OpenRouterRouting(requested).Length != 0 && !OrganizationPolicy.Current.AllowsModel(requested))
+        {
+            return false;
+        }
+
+        var found = Find(catalog, requested);
+        return found is not null &&
+               (requested.Equals(found.Id, StringComparison.OrdinalIgnoreCase) || CanUseOpenRouterRouting(found));
+    }
+
+    public static VeniceModelInfo? Find(IEnumerable<VeniceModelInfo>? catalog, string? id)
+    {
+        if (catalog is null || string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        var requested = id.Trim();
+        var catalogId = ModelRef.WithoutOpenRouterRouting(requested);
+        VeniceModelInfo? fallback = null;
         foreach (var model in catalog)
         {
-            if (id.Trim().Equals(model.Id, StringComparison.OrdinalIgnoreCase))
+            if (requested.Equals(model.Id, StringComparison.OrdinalIgnoreCase))
             {
-                return true;
+                return model;
+            }
+
+            if (catalogId.Equals(model.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                fallback ??= model;
             }
         }
 
-        return false;
+        return fallback;
     }
 
     public static bool HasVision(VeniceModelInfo model) =>
@@ -177,24 +222,14 @@ internal static class VeniceModelCatalog
                name.Contains(q, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <param name="nitro">
-    /// Чип «Nitro» (1.37.0-beta.7): включён — только варианты <c>:nitro</c>, выключен — без них.
-    /// Близнец есть у каждой модели OpenRouter, и в общем списке они удвоили бы его.
-    /// </param>
     public static IEnumerable<VeniceModelInfo> FilterAllTab(
         IEnumerable<VeniceModelInfo> models,
         string? search,
         bool vision,
-        bool code,
-        bool nitro = false)
+        bool code)
     {
         foreach (var model in models)
         {
-            if (ModelRef.IsNitro(model.Id) != nitro)
-            {
-                continue;
-            }
-
             if (vision && !HasVision(model))
             {
                 continue;
@@ -243,9 +278,10 @@ internal static class VeniceModelCatalog
         return $"{thousands}k";
     }
 
-    public static string BuildTooltip(VeniceModelInfo model)
+    public static string BuildTooltip(VeniceModelInfo model, string? modelId = null)
     {
-        var parts = new List<string> { model.Id };
+        modelId ??= model.Id;
+        var parts = new List<string> { modelId };
         var context = FormatContext(model.ModelSpec?.AvailableContextTokens ?? model.ContextLength);
         if (context.Length > 0)
         {
@@ -278,7 +314,7 @@ internal static class VeniceModelCatalog
         // Пометка «(batch)» в имени модели не говорит человеку главного — что ответ придёт
         // из очереди и ждать его можно часами. Цена вдвое ниже, и без этой строки выбор
         // выглядит просто выгодным.
-        return ModelRef.IsBatchOnly(model.Id)
+        return ModelRef.IsBatchOnly(modelId)
             ? line + Environment.NewLine + Loc.Get("S.Models.BatchHint")
             : line;
     }

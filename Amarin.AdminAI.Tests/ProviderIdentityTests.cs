@@ -31,6 +31,30 @@ public sealed class ModelRefTests
     public void A_model_variant_survives_the_split(string stored, string expected) =>
         Assert.Equal(expected, ModelRef.Bare(stored));
 
+    [Theory]
+    [InlineData("openrouter:meta/model:nitro:free:EXACTO:online", "openrouter:meta/model:free", ":free", ":exacto")]
+    [InlineData("openrouter:meta/model:thinking:ONLINE", "openrouter:meta/model:thinking", ":thinking", ":online")]
+    [InlineData("openrouter:meta/model:extended", "openrouter:meta/model:extended", ":extended", "")]
+    [InlineData("openrouter:meta/model:batch", "openrouter:meta/model:batch", ":batch", "")]
+    [InlineData("custom-123:meta/model:nitro", "custom-123:meta/model:nitro", "", "")]
+    [InlineData("meta/model:nitro", "meta/model:nitro", "", "")]
+    public void Routing_variants_are_removed_only_from_openrouter_catalog_keys(
+        string id, string catalogId, string catalogVariant, string routing)
+    {
+        Assert.Equal(catalogId, ModelRef.WithoutOpenRouterRouting(id));
+        Assert.Equal(catalogVariant, ModelRef.OpenRouterCatalogVariant(id));
+        Assert.Equal(routing, ModelRef.OpenRouterRouting(id));
+    }
+
+    [Fact]
+    public void Changing_routing_keeps_the_catalog_variant()
+    {
+        Assert.Equal("openrouter:meta/model:free:floor",
+            ModelRef.WithOpenRouterRouting("openrouter:meta/model:free:nitro", ModelRef.FloorVariant));
+        Assert.Equal("openrouter:meta/model:free",
+            ModelRef.WithOpenRouterRouting("openrouter:meta/model:free:online", ""));
+    }
+
     /// <summary>
     /// Пакетный вариант приходится узнавать в лицо: обычный <c>/chat/completions</c> отвечает
     /// ему 404 «This model is only available through the Batch API», и без этой приметы такая

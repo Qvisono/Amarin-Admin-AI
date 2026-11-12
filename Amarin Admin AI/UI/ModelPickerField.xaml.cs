@@ -28,6 +28,9 @@ public partial class ModelPickerField : UserControl
 
     private ModelPickerPanel? _panel;
     private IReadOnlyList<ApiKeyEntry> _keys = [];
+    private IReadOnlySet<string> _favorites = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private ReasoningChoice? _reasoning;
+    private bool _withTools = true;
 
     /// <summary>
     /// Каталог провайдера, сказанный полю. Нет ни списка, ни ошибки — идёт загрузка; ошибка без
@@ -62,6 +65,10 @@ public partial class ModelPickerField : UserControl
 
     public event EventHandler<ModelBinding>? ModelPicked;
 
+    public event EventHandler<ReasoningChoice>? ReasoningChanged;
+
+    public event EventHandler<string>? FavoriteToggled;
+
     /// <summary>У показанного провайдера нет ключа, и человек просит его завести.</summary>
     public event EventHandler<LlmProvider>? AddKeyRequested;
 
@@ -83,11 +90,14 @@ public partial class ModelPickerField : UserControl
         panel.SetBinding(ModelPickerPanel.AutoTipKeyProperty, new Binding(nameof(AutoTipKey)) { Source = this });
         panel.ModelPicked += Panel_ModelPicked;
         panel.KeyPicked += Panel_KeyPicked;
+        panel.ReasoningChanged += Panel_ReasoningChanged;
+        panel.FavoriteToggled += (_, id) => FavoriteToggled?.Invoke(this, id);
         panel.AddKeyRequested += Panel_AddKeyRequested;
         panel.ProviderShown += Panel_ProviderShown;
         _panel = panel;
 
         panel.SetKeys(_keys);
+        panel.SetFavorites(_favorites);
         foreach (var (provider, catalog) in _catalogs)
         {
             if (catalog.Models is { } models)
@@ -105,16 +115,26 @@ public partial class ModelPickerField : UserControl
         }
 
         panel.SetSelected(SelectedModelId, SelectedKeyId);
+        panel.SetReasoning(_reasoning, _withTools);
         PickerPopup.Child = panel;
         return panel;
     }
 
-    public void SetSelected(string modelId, string? keyId)
+    public void SetSelected(string modelId, string? keyId, ReasoningChoice? reasoning = null, bool withTools = true)
     {
         SelectedModelId = modelId ?? "";
         SelectedKeyId = keyId;
+        _reasoning = reasoning;
+        _withTools = withTools;
         ShowLabel();
         _panel?.SetSelected(SelectedModelId, SelectedKeyId);
+        _panel?.SetReasoning(reasoning, withTools);
+    }
+
+    public void SetFavorites(IReadOnlySet<string> favorites)
+    {
+        _favorites = favorites;
+        _panel?.SetFavorites(favorites);
     }
 
     public void SetKeys(IReadOnlyList<ApiKeyEntry> keys)
@@ -141,6 +161,10 @@ public partial class ModelPickerField : UserControl
     {
         _catalogs[provider] = (models ?? [], null);
         _panel?.SetCatalog(provider, models ?? []);
+        if (ModelRef.Of(SelectedModelId) == provider && _reasoning is not null)
+        {
+            ShowLabel();
+        }
     }
 
     /// <summary>Список не загрузился: плашка скажет почему и предложит повторить.</summary>
@@ -163,7 +187,9 @@ public partial class ModelPickerField : UserControl
     /// </remarks>
     private void ShowLabel()
     {
-        SelectedLabel.Text = VeniceModelCatalog.GetDisplayName(SelectedModelId);
+        var catalog = _catalogs.GetValueOrDefault(ModelRef.Of(SelectedModelId)).Models;
+        var model = _reasoning is null ? null : ReasoningPolicy.Find(catalog, SelectedModelId);
+        SelectedLabel.Text = ModelLabel(SelectedModelId, _reasoning, model, _withTools);
 
         var keyLabel = KeyLabel();
         SelectedKeyLabel.Text = keyLabel ?? "";
@@ -172,6 +198,26 @@ public partial class ModelPickerField : UserControl
         OpenButton.ToolTip = keyLabel is null
             ? SelectedModelId
             : SelectedModelId + "  ·  " + keyLabel;
+    }
+
+    internal static string ModelName(string modelId, VeniceModelInfo? model)
+    {
+        var catalogId = ModelRef.WithoutOpenRouterRouting(modelId);
+        var display = model is null ? VeniceModelCatalog.GetDisplayName(catalogId) : VeniceModelCatalog.GetListDisplayName(model);
+        return display + ModelRef.OpenRouterRouting(modelId);
+    }
+
+    internal static string ModelLabel(string modelId, ReasoningChoice? reasoning, VeniceModelInfo? model, bool withTools)
+    {
+        var name = ModelName(modelId, model);
+        if (reasoning is not { } choice || VeniceModelCatalog.IsAuto(modelId))
+        {
+            return name;
+        }
+
+        var effective = ReasoningPolicy.Effective(choice, model, withTools);
+        var effort = ReasoningPolicy.ClampEffort(effective.Effort, model, withTools);
+        return effort is null ? name : name + " · " + (effective.DisableThinking ? ReasoningPolicy.None : effort);
     }
 
     private string? KeyLabel()
@@ -224,7 +270,11 @@ public partial class ModelPickerField : UserControl
 
     private void Panel_ModelPicked(object? sender, ModelBinding binding)
     {
-        OpenButton.IsChecked = false;
+        if (VeniceModelCatalog.IsAuto(binding.ModelId))
+        {
+            OpenButton.IsChecked = false;
+        }
+
         SelectedModelId = binding.ModelId;
         SelectedKeyId = binding.KeyId;
         ShowLabel();
@@ -240,6 +290,13 @@ public partial class ModelPickerField : UserControl
         SelectedKeyId = binding.KeyId;
         ShowLabel();
         ModelPicked?.Invoke(this, binding);
+    }
+
+    private void Panel_ReasoningChanged(object? sender, ReasoningChoice choice)
+    {
+        _reasoning = choice;
+        ShowLabel();
+        ReasoningChanged?.Invoke(this, choice);
     }
 
     private void Panel_AddKeyRequested(object? sender, LlmProvider provider)

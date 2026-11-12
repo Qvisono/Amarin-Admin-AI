@@ -425,9 +425,7 @@ namespace Amarin.UI
                 return true;
             }
 
-            var catalog = _services?.Models.Cached;
-            var info = catalog?.FirstOrDefault(
-                item => item.Id.Equals(modelId, StringComparison.OrdinalIgnoreCase));
+            var info = _services?.Models.Find(modelId);
 
             // Неизвестная модель: лучше промолчать, чем кричать по ещё не загруженному каталогу.
             return info is null || VeniceModelCatalog.HasVision(info);

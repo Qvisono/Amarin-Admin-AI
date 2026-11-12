@@ -211,6 +211,28 @@ public sealed class OrganizationPolicyTests : IDisposable
     }
 
     [Fact]
+    public void An_exact_openrouter_route_can_be_selected_without_allowing_the_base_model()
+    {
+        const string baseId = "openrouter:minimax/minimax-m3.1-flash";
+        var routeId = baseId + ModelRef.NitroVariant;
+        IReadOnlyList<VeniceModelInfo> models = [new() { Id = baseId }];
+        OrganizationPolicy.Current = new OrganizationPolicy { AllowedModels = [routeId] };
+
+        var visible = VeniceModelCatalog.ForSlot(models, ModelSlot.Chat, includeRoutingSources: true);
+        Assert.Same(models[0], Assert.Single(visible));
+        Assert.Empty(VeniceModelCatalog.ForSlot(models, ModelSlot.Chat));
+        Assert.False(OrganizationPolicy.Current.AllowsModel(baseId));
+        Assert.True(VeniceModelCatalog.IsSelectable(visible, routeId));
+        Assert.False(VeniceModelCatalog.IsSelectable(visible, baseId + ModelRef.FloorVariant));
+        Assert.Equal(routeId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.AgentFast, models));
+        Assert.Equal(routeId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.Chat, models));
+
+        var settings = new AppSettings { ChatModelId = routeId };
+        ModelSlotHealing.Heal(settings, LlmProvider.OpenRouter, models, LlmProvider.OpenRouter, _ => true, _ => true);
+        Assert.Equal(routeId, settings.ChatModelId);
+    }
+
+    [Fact]
     public void Blocked_providers_are_not_offered()
     {
         OrganizationPolicy.Current = new OrganizationPolicy { AllowedProviders = ["openRouter"] };

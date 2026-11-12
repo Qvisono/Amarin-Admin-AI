@@ -1,14 +1,17 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Amarin.Core;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Плашка выбора модели: провайдеры слева, модели посередине, ключи справа.
+/// Меню выбора модели, провайдера и ключа.
 /// </summary>
 /// <remarks>
 /// До версии 1.23.0 плашка показывала модели одного провайдера — того, чей ключ активен, —
@@ -38,7 +41,7 @@ public sealed class ModelPickerPanelTests
     /// откладывается до кадра — в тесте её просим сразу.
     /// </summary>
     private T Shown<T>(Action<ModelPickerPanel> arrange, Func<ModelPickerPanel, T> read) =>
-        _wpf.Ui.Invoke(() =>
+        _wpf.Ui.Invoke(async () =>
         {
             var host = (Panel)Application.Current.Windows
                 .OfType<MainWindow>()
@@ -52,19 +55,31 @@ public sealed class ModelPickerPanelTests
                 arrange(panel);
                 panel.RebuildNow();
                 host.UpdateLayout();
+                await host.Dispatcher.InvokeAsync(host.UpdateLayout, DispatcherPriority.ApplicationIdle);
                 return read(panel);
             }
             finally
             {
                 host.Children.Remove(panel);
             }
-        });
+        }).GetAwaiter().GetResult();
 
     private static Panel Part(ModelPickerPanel panel, string name) =>
         (Panel)panel.FindName(name)!;
 
     private static ItemsControl Models(ModelPickerPanel panel) =>
         (ItemsControl)panel.FindName("ModelItems")!;
+
+    private static string[] ModelIds(ModelPickerPanel panel) =>
+        [.. Models(panel).Items.OfType<ModelPickerRow>().Select(row => row.Id)];
+
+    private static void SetVariant(ModelPickerPanel panel, string selector, string suffix)
+    {
+        var combo = (ComboBox)panel.FindName(selector)!;
+        combo.SelectedItem = combo.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, suffix));
+        panel.RebuildNow();
+        panel.UpdateLayout();
+    }
 
     [Theory]
     [InlineData(ModelSlot.Router, true)]
@@ -446,8 +461,234 @@ public sealed class ModelPickerPanelTests
         Assert.Equal(LlmProvider.OpenRouter, asked);
     }
 
+    [Fact]
+    public void The_favorite_star_does_not_pick_the_model_and_the_filter_shows_only_favorites()
+    {
+        const string selected = "openrouter:vendor/other";
+        const string favorite = "openrouter:vendor/model";
+        Shown(panel =>
+        {
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter,
+            [
+                new VeniceModelInfo { Id = favorite },
+                new VeniceModelInfo { Id = selected }
+            ]);
+            panel.SetSelected(selected, "o1");
+            panel.ShowSelectedProvider();
+        }, panel =>
+        {
+            var toggled = new List<string>();
+            panel.FavoriteToggled += (_, id) => toggled.Add(id);
+            var picked = false;
+            panel.ModelPicked += (_, _) => picked = true;
+            var star = Descendants(Models(panel)).OfType<ToggleButton>().Single(button =>
+                button.Name == "FavoriteStar" && button.DataContext is ModelPickerRow { Id: favorite });
+            star.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Assert.True(star.IsChecked);
+
+            var filter = (ToggleButton)panel.FindName("FavoritesChip")!;
+            filter.IsChecked = true;
+            filter.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            panel.RebuildNow();
+            panel.UpdateLayout();
+            Assert.Equal([favorite], ModelIds(panel));
+            var remaining = Descendants(Models(panel)).OfType<ToggleButton>().Single(button => button.Name == "FavoriteStar");
+            remaining.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            panel.RebuildNow();
+
+            Assert.Empty(ModelIds(panel));
+            Assert.Equal([favorite, favorite], toggled);
+            Assert.False(picked);
+            Assert.Equal(selected, panel.SelectedModelId);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void Catalog_variants_are_filtered_and_routing_variants_keep_the_same_favorite()
+    {
+        const string model = "openrouter:vendor/model";
+        const string free = model + ModelRef.FreeVariant;
+        const string nitro = model + ModelRef.NitroVariant;
+        Shown(panel =>
+        {
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter,
+            [
+                new VeniceModelInfo { Id = model },
+                new VeniceModelInfo { Id = free }
+            ]);
+            panel.SetFavorites(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { model });
+            panel.SetSelected(model, "o1");
+            panel.ShowSelectedProvider();
+        }, panel =>
+        {
+            SetVariant(panel, "VariantFilter", ModelRef.FreeVariant);
+            Assert.Equal([free], ModelIds(panel));
+            Assert.False(Assert.IsType<ModelPickerRow>(Models(panel).Items[0]).IsFavorite);
+
+            SetVariant(panel, "VariantFilter", "");
+            SetVariant(panel, "RouteFilter", ModelRef.NitroVariant);
+            var routed = Models(panel).Items.OfType<ModelPickerRow>().Single(row => row.Id == nitro);
+            Assert.True(routed.IsFavorite);
+            ModelBinding? picked = null;
+            panel.ModelPicked += (_, binding) => picked = binding;
+            var row = Descendants(Models(panel)).OfType<Button>().Single(button => Equals(button.Tag, nitro));
+            row.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Assert.Equal(new ModelBinding(nitro, "o1"), picked);
+            return true;
+        });
+    }
+
+    [Theory]
+    [InlineData(900, 550, 580, 410, false)]
+    [InlineData(480, 450, 440, 410, false)]
+    [InlineData(479, 450, 439, 410, true)]
+    [InlineData(450, 320, 410, 280, true)]
+    public void Selectors_move_above_the_model_list_below_440_dips(
+        double width, double height, double cardWidth, double cardHeight, bool compact)
+    {
+        const string model = "openrouter:vendor/model:free";
+        Shown(panel =>
+        {
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter, [new VeniceModelInfo { Id = model }]);
+            panel.SetSelected(model, "o1");
+            panel.ShowSelectedProvider();
+        }, panel =>
+        {
+            var bounds = new Size(width, height);
+            panel.Measure(bounds);
+            panel.Arrange(new Rect(panel.DesiredSize));
+
+            var frame = (Border)panel.FindName("PanelFrame")!;
+            var provider = Part(panel, "ProviderField");
+            var key = Part(panel, "KeyField");
+            var search = Part(panel, "SearchRow");
+            var variants = Part(panel, "VariantRow");
+            Assert.Equal(cardWidth, frame.ActualWidth, precision: 1);
+            Assert.Equal(cardHeight, frame.ActualHeight, precision: 1);
+            Assert.Equal(Visibility.Visible, search.Visibility);
+            Assert.Equal(Visibility.Visible, variants.Visibility);
+            var providerOrigin = provider.TranslatePoint(new Point(0, 0), frame);
+            var keyOrigin = key.TranslatePoint(new Point(0, 0), frame);
+            var searchOrigin = search.TranslatePoint(new Point(0, 0), frame);
+            var variantOrigin = variants.TranslatePoint(new Point(0, 0), frame);
+            Assert.Equal(searchOrigin.X, variantOrigin.X, precision: 1);
+            Assert.True(variantOrigin.Y >= searchOrigin.Y + search.ActualHeight);
+            Assert.True(Models(panel).ActualHeight >= 30);
+            if (compact)
+            {
+                Assert.Equal(providerOrigin.Y, keyOrigin.Y, precision: 1);
+                Assert.True(keyOrigin.X >= providerOrigin.X + provider.ActualWidth);
+                Assert.True(searchOrigin.Y >= keyOrigin.Y + key.ActualHeight);
+            }
+            else
+            {
+                Assert.Equal(128, provider.ActualWidth, precision: 1);
+                Assert.Equal(providerOrigin.X, keyOrigin.X, precision: 1);
+                Assert.True(keyOrigin.Y >= providerOrigin.Y + provider.ActualHeight);
+                Assert.True(searchOrigin.X >= providerOrigin.X + provider.ActualWidth);
+            }
+
+            return true;
+        });
+    }
+
+    [Fact]
+    public void Selector_menus_open_below_both_fields_without_covering_or_resizing_models()
+    {
+        Shown(panel =>
+        {
+            panel.Width = 620;
+            panel.Height = 450;
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter, [new VeniceModelInfo { Id = "openrouter:vendor/model" }]);
+            panel.SetSelected("openrouter:vendor/model", "o1");
+            panel.ShowSelectedProvider();
+        }, panel =>
+        {
+            var frame = (Border)panel.FindName("PanelFrame")!;
+            var models = Models(panel);
+            var listSize = models.RenderSize;
+            var listOrigin = models.TranslatePoint(new Point(0, 0), frame);
+            var providerSelector = (ToggleButton)panel.FindName("ProviderSelector")!;
+            var keySelector = (ToggleButton)panel.FindName("KeySelector")!;
+            var providerMenu = (Border)panel.FindName("ProviderMenu")!;
+            var keyMenu = (Border)panel.FindName("KeyMenu")!;
+            var keyBottom = keySelector.TranslatePoint(new Point(0, keySelector.ActualHeight), frame).Y;
+
+            Open(providerSelector, providerMenu);
+            Assert.Equal(Visibility.Collapsed, keyMenu.Visibility);
+            Open(keySelector, keyMenu);
+            Assert.Equal(Visibility.Collapsed, providerMenu.Visibility);
+            return true;
+
+            void Open(ToggleButton selector, Border menu)
+            {
+                selector.IsChecked = true;
+                selector.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                panel.UpdateLayout();
+                Assert.Equal(Visibility.Visible, menu.Visibility);
+                Assert.Equal(128, menu.ActualWidth, precision: 1);
+                var origin = menu.TranslatePoint(new Point(0, 0), frame);
+                Assert.True(origin.Y >= keyBottom);
+                Assert.True(origin.X + menu.ActualWidth <= listOrigin.X);
+                Assert.Equal(listSize, models.RenderSize);
+            }
+        });
+    }
+
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public void Openrouter_suffixes_keep_their_exact_labels_in_both_languages(string language)
+    {
+        const string model = "openrouter:vendor/model";
+        Shown(panel =>
+        {
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter,
+            [
+                new VeniceModelInfo { Id = model },
+                new VeniceModelInfo { Id = model + ModelRef.ExtendedVariant },
+                new VeniceModelInfo { Id = model + ModelRef.FreeVariant }
+            ]);
+            panel.SetSelected(model, "o1");
+            panel.ShowSelectedProvider();
+        }, panel =>
+        {
+            var previous = LanguageManager.Current;
+            try
+            {
+                LanguageManager.Apply(language);
+                panel.RebuildNow();
+                var variants = (ComboBox)panel.FindName("VariantFilter")!;
+                var routes = (ComboBox)panel.FindName("RouteFilter")!;
+                Assert.Equal(Loc.Get("S.Models.Variant"), AutomationProperties.GetName(variants));
+                Assert.Equal(Loc.Get("S.Models.Route"), AutomationProperties.GetName(routes));
+                AssertOptions(variants, "S.Models.VariantAll", [":extended", ":free"]);
+                AssertOptions(routes, "S.Models.RouteDefault", [":nitro", ":floor", ":exacto", ":online"]);
+                return true;
+            }
+            finally
+            {
+                LanguageManager.Apply(previous);
+            }
+        });
+
+        static void AssertOptions(ComboBox selector, string defaultKey, string[] suffixes)
+        {
+            var items = selector.Items.OfType<ComboBoxItem>().ToArray();
+            Assert.Equal(Loc.Get(defaultKey), items[0].Content);
+            Assert.Equal(suffixes, items.Skip(1).Select(item => item.Content as string));
+            Assert.All(items.Skip(1), item => Assert.Equal(item.Tag, item.Content));
+        }
+    }
+
     /// <summary>
-    /// Список виртуализован: из четырёхсот моделей строк создаётся десяток.
+    /// Визуальные строки создаются для области просмотра и десяти следующих моделей.
     /// </summary>
     /// <remarks>
     /// У OpenRouter моделей сотни. Прежняя редакция строила их все кнопками — и на каждый
@@ -456,7 +697,7 @@ public sealed class ModelPickerPanelTests
     [Fact]
     public void A_long_list_builds_only_what_is_on_screen()
     {
-        var (total, realized) = Shown(
+        var (total, realized, visible, virtualized, cache) = Shown(
             panel =>
             {
                 panel.SetKeys(BothProviders());
@@ -467,15 +708,22 @@ public sealed class ModelPickerPanelTests
             panel =>
             {
                 var list = Models(panel);
-                return (list.Items.Count, Descendants(list).OfType<Button>().Count());
+                var scroll = Descendants(list).OfType<ScrollViewer>().First();
+                var itemsPanel = Descendants(list).OfType<VirtualizingStackPanel>().Single();
+                var first = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(0)!;
+                return (list.Items.Count, itemsPanel.Children.Count,
+                    (int)Math.Ceiling(scroll.ViewportHeight / first.ActualHeight),
+                    scroll.CanContentScroll, VirtualizingPanel.GetCacheLength(list));
             });
 
         Assert.Equal(400, total);
-        Assert.InRange(realized, 1, 60);
+        Assert.True(virtualized);
+        Assert.Equal(new VirtualizationCacheLength(0, 10), cache);
+        Assert.InRange(realized, visible, visible + 11);
     }
 
     /// <summary>
-    /// Три столбца видно и глазами: снимок плашки не должен оказаться пустым прямоугольником.
+    /// Снимок плашки не должен оказаться пустым прямоугольником.
     /// </summary>
     /// <remarks>
     /// Через <see cref="RenderTargetBitmap"/>, а не запуском программы: окно вылезло бы поверх

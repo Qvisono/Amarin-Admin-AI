@@ -55,13 +55,9 @@ public sealed class SettingsInventoryTests
         ]),
         ("NavModels",
         [
-            "FastModelPicker", "FastReasoningPicker",
-            "LiteModelPicker", "LiteReasoningPicker", "HeavyModelPicker", "HeavyReasoningPicker",
-            "RouterModelPicker", "RouterReasoningPicker",
-            "AgentFastModelPicker", "AgentFastReasoningPicker", "AgentLiteModelPicker", "AgentLiteReasoningPicker",
-            "AgentHeavyModelPicker", "AgentHeavyReasoningPicker",
-            "TitleModelPicker", "TitleReasoningPicker", "SummaryModelPicker", "SummaryReasoningPicker",
-            "FoxModelPicker", "FoxReasoningPicker", "WebSearchField", "BypassModelPicker", "BypassReasoningPicker",
+            "FastModelPicker", "LiteModelPicker", "HeavyModelPicker", "RouterModelPicker",
+            "AgentFastModelPicker", "AgentLiteModelPicker", "AgentHeavyModelPicker",
+            "TitleModelPicker", "SummaryModelPicker", "FoxModelPicker", "WebSearchField", "BypassModelPicker",
             "FoxLinkRow", "FoxSettings", "AgentMemoryCombo"
         ]),
         ("NavPrompts",
@@ -75,7 +71,7 @@ public sealed class SettingsInventoryTests
         ("NavSecurity",
         [
             "Security:ModeCombo", "Security:SynGuardToggle", "Security:SynGuardModelToggle",
-            "Security:SynGuardReasoningPicker", "Security:SynGuardModelPicker",
+            "Security:SynGuardModelPicker",
             "Security:PlanLiteToggle", "Security:PlanFastToggle", "Security:PlanHeavyToggle",
             "Security:ComputerControlToggle", "Security:EncryptChatsToggle", "Security:ToolsLinkRow", "Security:EnableAllToolsButton",
             "Security:SourcesLinkRow", "Security:AddDomainButton", "Security:AllowedDomainsList",

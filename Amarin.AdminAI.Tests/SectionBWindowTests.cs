@@ -8,7 +8,7 @@ using Amarin.UI;
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Что видно в окне от раздела B 1.37.0: скорость в попапе размышления, кнопка ветки у ответа и
+/// Что видно в окне от раздела B 1.37.0: скорость в меню модели, кнопка ветки у ответа и
 /// плашка временного чата.
 /// </summary>
 [Collection(WpfCollection.Name)]
@@ -26,46 +26,52 @@ public sealed class SectionBWindowTests
     [Fact]
     public void The_picker_offers_the_speeds_of_the_model_and_nothing_for_others()
     {
-        var (astra, venice) = _wpf.Ui.Invoke(() =>
-        {
-            var picker = Picker("openai:gpt-6-astra");
-            var chips = ((WrapPanel)picker.FindName("SpeedHost")!).Children.OfType<RadioButton>()
-                .Select(chip => (string)chip.Tag).ToList();
-            var other = Picker("grok-4-6");
-            return (chips, ((WrapPanel)other.FindName("SpeedHost")!).Visibility);
-        });
+        var astra = WithPicker("openai:gpt-6-astra", (_, speed) =>
+            speed.Items.OfType<ComboBoxItem>().Select(item => (string)item.Tag).ToList());
+        var venice = WithPicker("grok-4-6", (_, speed) => speed.Visibility);
 
         Assert.Equal(["flex", "", "fast", "ultrafast"], astra);
         Assert.Equal(Visibility.Collapsed, venice);
     }
 
     [Fact]
-    public void Choosing_a_speed_is_reported_and_shown_on_the_button()
+    public void Choosing_a_speed_is_reported_and_shown_in_the_picker()
     {
-        var (speed, label) = _wpf.Ui.Invoke(() =>
+        var (speed, selected) = WithPicker("anthropic:claude-opus-5-5", (picker, speeds) =>
         {
-            var picker = Picker("anthropic:claude-opus-5-5");
             string? chosen = null;
-            picker.ChoiceChanged += (_, e) => chosen = e.Speed;
-            var fast = ((WrapPanel)picker.FindName("SpeedHost")!).Children.OfType<RadioButton>()
-                .Single(chip => (string)chip.Tag == ModelSpeeds.Fast);
-            fast.IsChecked = true;
-            return (chosen, picker.LabelText);
+            picker.ReasoningChanged += (_, choice) => chosen = choice.Speed;
+            speeds.SelectedItem = speeds.Items.OfType<ComboBoxItem>()
+                .Single(item => (string)item.Tag == ModelSpeeds.Fast);
+            return (chosen, ((ComboBoxItem)speeds.SelectedItem).Tag as string);
         });
 
         Assert.Equal(ModelSpeeds.Fast, speed);
-        Assert.Contains(ModelSpeeds.Label(ModelSpeeds.Fast), label, StringComparison.Ordinal);
+        Assert.Equal(ModelSpeeds.Fast, selected);
     }
 
-    private static ReasoningPicker Picker(string model)
+    private T WithPicker<T>(string model, Func<ModelPickerPanel, ComboBox, T> read) => _wpf.Ui.Invoke(() =>
     {
-        var picker = new ReasoningPicker();
-        picker.SetState(model, autoMode: false, disableThinking: true, effort: null);
-        picker.Measure(new Size(240, 40));
-        picker.Arrange(new Rect(0, 0, 240, 40));
-        picker.UpdateLayout();
-        return picker;
-    }
+        var host = (Panel)Window().FindName("MessagesPanel")!;
+        var picker = new ModelPickerPanel();
+        host.Children.Add(picker);
+        try
+        {
+            var provider = ModelRef.Of(model);
+            picker.SetKeys([new ApiKeyEntry("test", "Test", "fake", ApiKeySource.Stored, true, provider)]);
+            picker.SetCatalog(provider, [new VeniceModelInfo { Id = model }]);
+            picker.SetSelected(model, null);
+            picker.SetReasoning(ReasoningChoice.Disabled, withTools: false);
+            picker.ShowSelectedProvider();
+            picker.RebuildNow();
+            host.UpdateLayout();
+            return read(picker, (ComboBox)picker.FindName("SpeedPicker")!);
+        }
+        finally
+        {
+            host.Children.Remove(picker);
+        }
+    });
 
     // ───────────────────────── ветка ─────────────────────────
 

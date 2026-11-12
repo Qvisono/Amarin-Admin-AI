@@ -732,8 +732,18 @@ public sealed class DataBundleTests
         var target = NewTempRoot();
         try
         {
-            new AppSettingsStore(source).Save(new AppSettings { MainPrompt = "из архива" });
-            new AppSettingsStore(target).Save(new AppSettings { MainPrompt = "моё" });
+            var fromArchive = AppSettings.CreateDefault();
+            fromArchive.MainPrompt = "из архива";
+            fromArchive.FavoriteModelIds = ["openrouter:vendor/model:free", "venice-uncensored"];
+            fromArchive.ChatReasoning = new ReasoningSettings { DisableThinking = false, ReasoningEffort = "high" };
+            new AppSettingsStore(source).SaveDeferred(fromArchive);
+
+            var mine = AppSettings.CreateDefault();
+            mine.MainPrompt = "моё";
+            mine.FavoriteModelIds = ["openrouter:vendor/other"];
+            mine.ChatReasoning = new ReasoningSettings { DisableThinking = false, ReasoningEffort = "low" };
+            var targetStore = new AppSettingsStore(target);
+            targetStore.Save(mine);
 
             var archive = Export(source, DataCategory.Settings);
             try
@@ -742,10 +752,16 @@ public sealed class DataBundleTests
 
                 // Слить настройки по полям значило бы тихо поменять полсотни переключателей
                 // одним кликом. «Взять чужой файл целиком» — это уже замена.
-                Assert.Equal("моё", new AppSettingsStore(target).Load().MainPrompt);
+                var merged = targetStore.Load();
+                Assert.Equal(mine.MainPrompt, merged.MainPrompt);
+                Assert.Equal(mine.FavoriteModelIds, merged.FavoriteModelIds);
+                Assert.Equal(mine.ChatReasoning.ToChoice(), merged.ChatReasoning.ToChoice());
 
                 new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Replace);
-                Assert.Equal("из архива", new AppSettingsStore(target).Load().MainPrompt);
+                var replaced = targetStore.Load();
+                Assert.Equal(fromArchive.MainPrompt, replaced.MainPrompt);
+                Assert.Equal(fromArchive.FavoriteModelIds, replaced.FavoriteModelIds);
+                Assert.Equal(fromArchive.ChatReasoning.ToChoice(), replaced.ChatReasoning.ToChoice());
             }
             finally
             {

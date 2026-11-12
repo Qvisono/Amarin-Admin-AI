@@ -77,23 +77,8 @@ internal static class ReasoningPolicy
         @"gpt-5[.-]?[456](?:$|[^0-9])|gpt-6(?:$|[^0-9])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    public static VeniceModelInfo? Find(IEnumerable<VeniceModelInfo>? models, string? id)
-    {
-        if (models is null || string.IsNullOrWhiteSpace(id))
-        {
-            return null;
-        }
-
-        foreach (var model in models)
-        {
-            if (model.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
-            {
-                return model;
-            }
-        }
-
-        return null;
-    }
+    public static VeniceModelInfo? Find(IEnumerable<VeniceModelInfo>? models, string? id) =>
+        VeniceModelCatalog.Find(models, id);
 
     public static bool SupportsEffort(VeniceModelInfo? model)
     {
