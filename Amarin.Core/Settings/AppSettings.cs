@@ -589,6 +589,18 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public AgentMemory AgentMemory { get; set; } = AgentMemory.Chat;
 
+    /// <summary>
+    /// Все агенты работают на модели чата (1.38.0). Включено — маршрутизатор уровней не
+    /// спрашивается, а слоты моделей агентов не используются.
+    /// </summary>
+    /// <remarks>
+    /// Настройка профиля, как и модели агентов: чат может переопределить её у себя
+    /// (<see cref="ChatSession.InheritAgentModelOverride"/>), а ручная команда <c>/agent-*</c>
+    /// остаётся сильнее и запускает агента на модели своего уровня. Прогон по расписанию
+    /// наследование не применяет: выбранной модели чата у него нет.
+    /// </remarks>
+    public bool InheritAgentModel { get; set; }
+
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();
 

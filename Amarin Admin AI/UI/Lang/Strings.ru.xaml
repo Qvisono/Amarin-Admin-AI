@@ -1086,6 +1086,8 @@
     <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">До конца ответа</system:String>
     <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">Пока открыта программа</system:String>
     <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Сохранять в чате</system:String>
+    <system:String x:Key="S.Models.InheritAgent" xml:space="preserve">Наследование агентов</system:String>
+    <system:String x:Key="S.Models.InheritAgentDesc" xml:space="preserve">Все агенты работают на модели чата, маршрутизатор не выбирает их модель</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Быстрые задачи</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Ответ в чате</system:String>
@@ -1867,6 +1869,7 @@
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
     <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Размер вложений в токенах неизвестен.</system:String>
     <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Браузер</system:String>
+    <system:String x:Key="S.SessionRail.InheritAgent" xml:space="preserve">Наследование агентов</system:String>
     <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Сжать первое сообщение</system:String>
     <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Освободится ≈ {0}</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Свои инструкции</system:String>

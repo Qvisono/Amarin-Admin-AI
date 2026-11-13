@@ -174,6 +174,13 @@ internal sealed partial class ChatEngine
             turn.Access = access;
         }
 
+        // Наследование агентами модели чата (1.38.0): снимок на ход, потому что к запуску агента
+        // ни чата, ни его клиента рядом уже нет. Модель здесь разрешённая — «Авто» и fallback
+        // оставили в ней ту, что отвечает на самом деле.
+        var inherited = turn is not null && session.InheritsAgentModel(_settings())
+            ? new InheritedAgentModel(turn.ModelId, turn.Credential, turn.Reasoning)
+            : null;
+
         var conversations = turn?.Agents;
         Task<GateDecision>[] decisions;
         try
@@ -238,6 +245,7 @@ internal sealed partial class ChatEngine
                             HumanWords = humanWords,
                             Conversations = conversations,
                             Access = access,
+                            InheritedModel = inherited,
                             TemporaryChat = session.IsTemporary
                         }))
                         {

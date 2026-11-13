@@ -49,6 +49,24 @@ public sealed class AgentOptionsCopyTests
     }
 
     [Fact]
+    public void An_inherited_copy_pays_with_the_chat_key()
+    {
+        var source = new AgentOptions
+        {
+            Keys = new ApiKeyProvider("slot-key", LlmProvider.OpenRouter)
+        };
+        var chat = new ApiCredential(LlmProvider.Venice, "chat-key");
+
+        var copy = AgentHost.CloneOptions(
+            source, "chat-model", new ReasoningSettings { DisableThinking = false, ReasoningEffort = "high" },
+            credential: chat);
+
+        Assert.Equal(chat, copy.Binding);
+        Assert.Equal(chat, copy.Credential);
+        Assert.Equal("chat-model", copy.Model);
+    }
+
+    [Fact]
     public async Task A_title_answer_reports_the_balance_it_saw()
     {
         var seen = new List<decimal?>();

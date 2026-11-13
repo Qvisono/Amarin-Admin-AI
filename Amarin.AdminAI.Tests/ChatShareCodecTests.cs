@@ -17,7 +17,8 @@ public sealed class ChatShareCodecTests
             DisableThinking = false,
             ReasoningEffort = "low",
             ComputerControlOverride = false,
-            AgentBrowserOverride = true
+            AgentBrowserOverride = true,
+            InheritAgentModelOverride = true
         };
 
         for (var i = 1; i <= 3; i++)
@@ -62,6 +63,7 @@ public sealed class ChatShareCodecTests
         Assert.Equal("low", decoded.ReasoningEffort);
         Assert.False(decoded.ComputerControlOverride);
         Assert.True(decoded.AgentBrowserOverride);
+        Assert.True(decoded.InheritAgentModelOverride);
         Assert.Equal("ответ 3", decoded.Messages[^1].Text);
         Assert.Equal("grok-4-6", decoded.Messages[^1].ResolvedModelId);
         Assert.Equal(AssistantStatus.Complete, decoded.Messages[^1].Status);
@@ -213,6 +215,7 @@ public sealed class ChatShareCodecTests
         Assert.Equal("grok-4-6", imported.SelectedModelId);
         Assert.False(imported.ComputerControlOverride);
         Assert.True(imported.AgentBrowserOverride);
+        Assert.True(imported.InheritAgentModelOverride);
     }
 
     [Fact]
@@ -225,8 +228,19 @@ public sealed class ChatShareCodecTests
 
         Assert.Null(old.ComputerControlOverride);
         Assert.Null(old.AgentBrowserOverride);
+        Assert.Null(old.InheritAgentModelOverride);
         Assert.True(old.Access(settings).CanControlComputer);
         Assert.True(old.Access(settings).CanUseAgentBrowser);
+
+        // Наследование — не доступ, поэтому у старого чата оно следует настройке профиля.
+        Assert.True(old.InheritsAgentModel(new AppSettings { InheritAgentModel = true }));
+        Assert.False(old.InheritsAgentModel(new AppSettings()));
+
+        // Локальный выбор сильнее профиля в обе стороны.
+        Assert.False(new ChatSession { InheritAgentModelOverride = false }
+            .InheritsAgentModel(new AppSettings { InheritAgentModel = true }));
+        Assert.True(new ChatSession { InheritAgentModelOverride = true }
+            .InheritsAgentModel(new AppSettings()));
     }
 
     [Fact]

@@ -1,5 +1,19 @@
 namespace Amarin.Core;
 
+/// <summary>
+/// Модель хода чата, которой наследуют агенты (1.38.0): уже разрешённая модель, фактический ключ
+/// хода и его размышление.
+/// </summary>
+/// <remarks>
+/// Снимок делается на ход и едет в область агента, потому что к моменту запуска у агента нет ни
+/// чата, ни его клиента: только область вызова инструмента. Без ключа агент платил бы ключом
+/// слота агента, а он может быть у другого провайдера.
+/// </remarks>
+internal sealed record InheritedAgentModel(
+    string ModelId,
+    ApiCredential Credential,
+    ReasoningChoice Reasoning);
+
 internal sealed class AgentRunContext
 {
     public required ToolCallRecord Call { get; init; }
@@ -23,7 +37,8 @@ internal sealed class AgentRunContext
     /// <remarks>
     /// Не через аргументы инструмента: их пишет модель, и ключ, которым можно продиктовать
     /// уровень, вернул бы ей выбор исполнителя, ради отъёма которого всё и делалось. Пусто —
-    /// обычный вызов, и уровень решает <see cref="AgentTierRouter"/>.
+    /// обычный вызов: уровень решает <see cref="AgentTierRouter"/>, а при наследовании модели чата
+    /// (1.38.0) он не спрашивается.
     /// </remarks>
     public string? ForcedTier { get; init; }
 
@@ -54,6 +69,12 @@ internal sealed class AgentRunContext
     /// настройки, чтобы переключатель одного чата не менял одновременно работающий другой.
     /// </summary>
     public ChatSessionAccess? Access { get; init; }
+
+    /// <summary>
+    /// Модель, ключ и размышление чата для наследования агентами (1.38.0). Null — наследование
+    /// выключено или хода чата нет (расписание).
+    /// </summary>
+    public InheritedAgentModel? InheritedModel { get; init; }
 
     /// <summary>
     /// Ход идёт во временном чате (1.37.0): то, что инструмент сохранил бы на диск вместе с

@@ -58,7 +58,7 @@ public sealed class SettingsInventoryTests
             "FastModelPicker", "LiteModelPicker", "HeavyModelPicker", "RouterModelPicker",
             "AgentFastModelPicker", "AgentLiteModelPicker", "AgentHeavyModelPicker",
             "TitleModelPicker", "SummaryModelPicker", "FoxModelPicker", "WebSearchField", "BypassModelPicker",
-            "FoxLinkRow", "FoxSettings", "AgentMemoryCombo"
+            "FoxLinkRow", "FoxSettings", "AgentMemoryCombo", "InheritAgentModelToggle"
         ]),
         ("NavPrompts",
         [

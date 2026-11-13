@@ -126,6 +126,15 @@ internal sealed class AgentHost : IAgentHost
 
         try
         {
+            // При наследовании (1.38.0) агенты идут на модели чата, и поднимать их некуда:
+            // следующий уровень запустил бы другую модель и забрал бы у наследования смысл.
+            if (AgentRunScope.Current?.InheritedModel is not null)
+            {
+                return ToolResult.Fail(
+                    $"Другой модели для агента {conversation.Id} сейчас нет: наследование агентами включено. " +
+                    "Переубеди его через message_agent; не выйдет — передай человеку его причины.");
+            }
+
             if (NextTier(conversation.Tier, _settings()) is not { } tier)
             {
                 return ToolResult.Fail(
@@ -257,6 +266,11 @@ internal sealed class AgentHost : IAgentHost
         var resuming = false;
         IReadOnlyList<string> humanNotes = [];
 
+        // Наследование (1.38.0): модель, ключ и размышление чата. Ручная команда /agent-* сильнее
+        // и снимает его до конца прогона — вместе с пересадкой, которую она делает на ходу.
+        var inherited = scope?.InheritedModel;
+        var useChatModel = inherited is not null;
+
         string currentComplexity;
         if (!string.IsNullOrWhiteSpace(tier))
         {
@@ -268,13 +282,20 @@ internal sealed class AgentHost : IAgentHost
             // Уровень назвал человек командой. Спрашивать о нём модель — тратить его деньги на
             // уже принятое решение.
             currentComplexity = scope.ForcedTier.Trim().ToLowerInvariant();
+            useChatModel = false;
         }
-        else
+        else if (inherited is null)
         {
             var decision = await (Route ?? RouteAsync)(currentPrompt, notes, cancellationToken)
                 .ConfigureAwait(false);
             currentComplexity = decision.Tier;
             spent = decision.Cost ?? VeniceCost.Zero;
+        }
+        else
+        {
+            // Модель придёт из чата, и маршрутизатор не нужен. Уровень остаётся служебным: по нему
+            // решаются план и отчёт, а в разговоре он не называется.
+            currentComplexity = "lite";
         }
 
         // Уточнения, не дошедшие до прошлой попытки, потому что её оборвали пересадкой.
@@ -320,12 +341,13 @@ internal sealed class AgentHost : IAgentHost
 
         while (true)
         {
-            var modelId = ResolveModel(currentComplexity, settings);
+            var modelId = useChatModel ? inherited!.ModelId : ResolveModel(currentComplexity, settings);
             var options = CloneOptions(
                 _parentOptions,
                 modelId,
-                ReasoningFor(currentComplexity, settings),
-                ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
+                useChatModel ? ReasoningOf(inherited!.Reasoning) : ReasoningFor(currentComplexity, settings),
+                ModelSlots.ReadKey(settings, SlotFor(currentComplexity)),
+                useChatModel ? inherited!.Credential : null);
             // Работа в окнах и на сайтах идёт мелкими шагами: раундов нужно больше обычного.
             if (session is not null || browser is not null)
             {
@@ -464,7 +486,7 @@ internal sealed class AgentHost : IAgentHost
                 Keep(scope, conversation, agentId, currentPrompt, currentComplexity, agent.SessionHistory);
                 return ToolResult.Ok(
                     (switched ? "Агент был пересажен на другую модель по просьбе пользователя. " : "") +
-                    ReportFor(agentId, result, modelId, currentComplexity, settings));
+                    ReportFor(agentId, result, modelId, currentComplexity, settings, inherited is not null));
             }
             catch (OperationCanceledException) when (
                 entry is not null && !cancellationToken.IsCancellationRequested)
@@ -485,6 +507,7 @@ internal sealed class AgentHost : IAgentHost
                     }
 
                     currentComplexity = pending.Complexity;
+                    useChatModel = false;
                     if (!string.IsNullOrWhiteSpace(pending.Prompt))
                     {
                         currentPrompt = pending.Prompt.Trim();
@@ -547,7 +570,8 @@ internal sealed class AgentHost : IAgentHost
     /// <summary>
     /// Что чат получает в ответ: отчёт агента с его id — или отказ с тем, что можно сделать дальше.
     /// </summary>
-    private static string ReportFor(string? agentId, AgentRunResult result, string modelId, string tier, AppSettings settings)
+    private static string ReportFor(
+        string? agentId, AgentRunResult result, string modelId, string tier, AppSettings settings, bool inherited)
     {
         var who = agentId is null ? "Агент" : "Агент " + agentId;
         if (result.Refusal is { } reasons)
@@ -556,6 +580,13 @@ internal sealed class AgentHost : IAgentHost
                 ? reasons.Trim()
                 : string.IsNullOrWhiteSpace(result.AssistantText) ? "не названы" : result.AssistantText.Trim();
             var model = VeniceModelCatalog.GetDisplayName(modelId);
+            if (inherited)
+            {
+                return $"{who} ({model}) отказался. Причины: {why}. " +
+                       "Модели сильнее нет: наследование агентами включено, и другой модели для него сейчас нет. " +
+                       "Переубедить его можно через message_agent; не выйдет — передай человеку его причины.";
+            }
+
             return NextTier(tier, settings) is null
                 ? $"{who} ({model}) отказался, и модели сильнее нет. Причины: {why}. " +
                   "Переубедить его можно через message_agent; не выйдет — передай человеку его причины."
@@ -683,20 +714,33 @@ internal sealed class AgentHost : IAgentHost
         return slot ?? new ReasoningSettings();
     }
 
+    /// <summary>Размышление хода чата в виде, который ждёт <see cref="CloneOptions"/>.</summary>
+    private static ReasoningSettings ReasoningOf(ReasoningChoice choice) => new()
+    {
+        DisableThinking = choice.DisableThinking,
+        ReasoningEffort = choice.Effort,
+        Speed = choice.Speed
+    };
+
     /// <param name="keyId">
     /// Ключ слота, чью модель этот прогон и берёт. Ставится здесь, в миг сборки копии: клиент
     /// у прогона свой, и внутренние вызовы агента про ключи ничего не знают.
+    /// </param>
+    /// <param name="credential">
+    /// Ключ хода при наследовании модели чата: у слота агента может быть ключ другого провайдера,
+    /// и искать его по id здесь было бы нечем. Null — ключ слота, как раньше.
     /// </param>
     internal static AgentOptions CloneOptions(
         AgentOptions source,
         string model,
         ReasoningSettings reasoning,
-        string? keyId = null) =>
+        string? keyId = null,
+        ApiCredential? credential = null) =>
         source with
         {
             // Ключ, каким он виден сейчас, а не поле за ним: так копии делались и до записи.
             ApiKey = source.ApiKey,
-            Binding = source.Keys?.CredentialFor(model, keyId),
+            Binding = credential ?? source.Keys?.CredentialFor(model, keyId),
             Model = model,
             EnableXSearch = false,
             DisableThinking = reasoning.DisableThinking,

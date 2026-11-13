@@ -43,6 +43,11 @@ public partial class MainWindow
             _session.AgentBrowserOverride = settings.BrowserEnabled;
         }
 
+        if (settings.InheritAgentEnabled != _railSettings.InheritAgentEnabled)
+        {
+            _session.InheritAgentModelOverride = settings.InheritAgentEnabled;
+        }
+
         Persist(_session);
         RefreshSessionRail();
     }
@@ -81,7 +86,8 @@ public partial class MainWindow
         var allowed = ChatSessionAccess.For(null, _services.Settings);
         var access = _session.Access(_services.Settings);
         _railSettings = new SessionRailSettings(access.CanControlComputer, access.CanUseAgentBrowser,
-            allowed.CanControlComputer, allowed.CanUseAgentBrowser);
+            allowed.CanControlComputer, allowed.CanUseAgentBrowser,
+            _session.InheritsAgentModel(_services.Settings));
 
         var agents = new List<SessionRailAgent>();
         var files = new List<SessionRailFile>();

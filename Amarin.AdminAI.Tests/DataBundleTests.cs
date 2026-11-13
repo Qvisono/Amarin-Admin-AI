@@ -243,7 +243,7 @@ public sealed class DataBundleTests
             // в новый профиль. Замена проверяется на текущем профиле.
             var profileId = mode == DataImportMode.Merge ? "route001" : ProfileStore.DefaultProfileId;
             SeedProfiles(source, Profile(ProfileStore.DefaultProfileId, "Default"), Profile("route001", "Router"));
-            var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model };
+            var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model, InheritAgentModel = true };
             var sourceRoot = new ProfileStore(source).DataRootFor(profileId);
             new AppSettingsStore(sourceRoot).Save(settings);
             var chat = SeedChat(sourceRoot, "routing-chat", "Routing");
@@ -255,6 +255,7 @@ public sealed class DataBundleTests
             chat.SpentCountedUsd = 0.005m;
             chat.ComputerControlOverride = false;
             chat.AgentBrowserOverride = false;
+            chat.InheritAgentModelOverride = true;
             chat.Messages.Add(new ChatDisplayMessage
             {
                 Role = "assistant", Text = "Answer",
@@ -272,6 +273,7 @@ public sealed class DataBundleTests
                 var restored = new AppSettingsStore(targetRoot).Load();
                 Assert.Equal(model, restored.RouterModelId);
                 Assert.Equal(model, restored.SynGuardModelId);
+                Assert.True(restored.InheritAgentModel);
                 Assert.Equal(AppSettings.CurrentFactoryModels, restored.FactoryModelsRevision);
                 var restoredChat = new ChatStore(targetRoot).TryLoad(chat.Id);
                 Assert.NotNull(restoredChat);
@@ -283,6 +285,7 @@ public sealed class DataBundleTests
                 Assert.Equal(0.5m, ChatCost.Total(restoredChat));
                 Assert.False(restoredChat.ComputerControlOverride);
                 Assert.False(restoredChat.AgentBrowserOverride);
+                Assert.True(restoredChat.InheritAgentModelOverride);
                 Assert.Equal(0.003m, Assert.Single(restoredChat.Messages).RouterCost?.Usd);
                 Assert.Equal(0.002m, Assert.Single(restoredChat.Messages).GuardCost?.Usd);
                 ModelSlotHealing.Heal(restored, LlmProvider.OpenRouter,

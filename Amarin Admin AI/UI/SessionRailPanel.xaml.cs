@@ -104,7 +104,11 @@ public enum SessionRailFileChange
 
 /// <summary>Локальные переключатели, принадлежащие одному чату.</summary>
 public sealed record SessionRailSettings(
-    bool ComputerEnabled, bool BrowserEnabled, bool ComputerAvailable = true, bool BrowserAvailable = true);
+    bool ComputerEnabled,
+    bool BrowserEnabled,
+    bool ComputerAvailable = true,
+    bool BrowserAvailable = true,
+    bool InheritAgentEnabled = false);
 
 /// <summary>Новые локальные настройки после нажатия переключателя панели.</summary>
 public sealed class SessionRailSettingsChangedEventArgs(SessionRailSettings settings) : EventArgs
@@ -178,6 +182,7 @@ public partial class SessionRailPanel : UserControl
             BrowserToggle.IsEnabled = _settings.BrowserAvailable;
             ComputerToggle.ToolTip = _settings.ComputerAvailable ? null : Loc.Get("S.SessionRail.GlobalDisabled");
             BrowserToggle.ToolTip = _settings.BrowserAvailable ? null : Loc.Get("S.SessionRail.GlobalDisabled");
+            InheritAgentToggle.IsChecked = _settings.InheritAgentEnabled;
             _snapshot = snapshot;
             CompactButton.IsEnabled = snapshot.CanCompact || snapshot.IsCompacted;
             CompactUndoButton.Visibility = snapshot.IsCompacted ? Visibility.Visible : Visibility.Collapsed;
@@ -481,7 +486,12 @@ public partial class SessionRailPanel : UserControl
             return;
         }
 
-        _settings = new SessionRailSettings(ComputerToggle.IsChecked == true, BrowserToggle.IsChecked == true);
+        _settings = _settings with
+        {
+            ComputerEnabled = ComputerToggle.IsChecked == true,
+            BrowserEnabled = BrowserToggle.IsChecked == true,
+            InheritAgentEnabled = InheritAgentToggle.IsChecked == true
+        };
         SettingsChanged?.Invoke(this, new SessionRailSettingsChangedEventArgs(_settings));
     }
 

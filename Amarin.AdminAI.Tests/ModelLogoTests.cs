@@ -139,7 +139,7 @@ public sealed class ModelLogoTests
         Assert.Contains("Brush=\"#FF1E3207\"", LogoMarkup(light, "Reflection"), StringComparison.Ordinal);
 
         // Brand colours are identity, not ink: they must survive in both.
-        foreach (var brand in new[] { "#FF76B900", "#FF4285F4", "#FFFA520F", "#FF6950EF" })
+        foreach (var brand in new[] { "#FFD97757", "#FF4285F4", "#FF0055E9", "#FF3859FF" })
         {
             Assert.Contains(brand, dark, StringComparison.Ordinal);
             Assert.Contains(brand, light, StringComparison.Ordinal);

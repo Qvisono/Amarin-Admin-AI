@@ -228,6 +228,36 @@ public sealed class SessionRailPanelTests
     }
 
     [Fact]
+    public void The_inheritance_toggle_is_local_and_keeps_availability()
+    {
+        _wpf.Ui.Invoke(() =>
+        {
+            var panel = new SessionRailPanel { Width = 250 };
+            SessionRailSettings? changed = null;
+            panel.SettingsChanged += (_, e) => changed = e.Settings;
+            panel.ShowSession(new SessionRailSnapshot(
+                null, [], [], new SessionRailSettings(true, true, false, true, false), false));
+            Arrange(panel);
+
+            Assert.False(panel.InheritAgentToggle.IsChecked);
+            Assert.False(panel.ComputerToggle.IsEnabled);
+            Assert.True(panel.BrowserToggle.IsEnabled);
+
+            panel.InheritAgentToggle.IsChecked = true;
+
+            Assert.NotNull(changed);
+            Assert.True(changed!.InheritAgentEnabled);
+
+            // Переключатель наследования меняет только своё поле: доступы и их флаги остаются.
+            Assert.True(changed.ComputerEnabled);
+            Assert.True(changed.BrowserEnabled);
+            Assert.False(changed.ComputerAvailable);
+            Assert.True(changed.BrowserAvailable);
+            return true;
+        });
+    }
+
+    [Fact]
     public void The_compaction_screen_goes_back_and_offers_undo_only_for_a_compacted_chat()
     {
         _wpf.Ui.Invoke(() =>

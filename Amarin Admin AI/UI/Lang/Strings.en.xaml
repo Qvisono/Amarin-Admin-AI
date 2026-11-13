@@ -1086,6 +1086,8 @@
     <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">Until the answer ends</system:String>
     <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">While the app is open</system:String>
     <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Saved in the chat</system:String>
+    <system:String x:Key="S.Models.InheritAgent" xml:space="preserve">Agent model inheritance</system:String>
+    <system:String x:Key="S.Models.InheritAgentDesc" xml:space="preserve">Every agent uses the chat model; the router does not pick their model</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Fast tasks</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Agent</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Chat answers</system:String>
@@ -1867,6 +1869,7 @@
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
     <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Attachment token usage is unknown.</system:String>
     <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Browser</system:String>
+    <system:String x:Key="S.SessionRail.InheritAgent" xml:space="preserve">Agent inheritance</system:String>
     <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Compact the first message</system:String>
     <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Frees ≈ {0}</system:String>
     <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Custom instructions</system:String>

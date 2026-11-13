@@ -94,6 +94,23 @@ public sealed class ChatSession
     public bool? AgentBrowserOverride { get; set; }
 
     /// <summary>
+    /// Локальный выбор наследования модели агента: <c>null</c> наследует настройку профиля,
+    /// <c>true</c> включает его только в этом чате, <c>false</c> выключает.
+    /// </summary>
+    /// <remarks>
+    /// Как и доступы, поле принадлежит разговору: переключатель правой панели одного чата не
+    /// меняет остальные. Старые файлы поля не знают, и при <c>null</c> оно не пишется.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? InheritAgentModelOverride { get; set; }
+
+    /// <summary>
+    /// Работают ли агенты этого чата на его модели: локальное значение сильнее настройки профиля.
+    /// </summary>
+    public bool InheritsAgentModel(AppSettings settings) =>
+        InheritAgentModelOverride ?? settings.InheritAgentModel;
+
+    /// <summary>
     /// Эффективные возможности этого чата для интерфейса и хода. Интерфейс меняет только
     /// <see cref="ComputerControlOverride"/> и <see cref="AgentBrowserOverride"/>, а доступ
     /// проверяет через этот метод, чтобы локальное включение не обошло общий запрет.

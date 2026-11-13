@@ -90,11 +90,13 @@ public sealed class ChatBranchCopyTests
         var source = TwoTurns();
         source.ComputerControlOverride = false;
         source.AgentBrowserOverride = true;
+        source.InheritAgentModelOverride = true;
 
         var branch = ChatBranchCopy.FromAnswer(source, "a1", "Branch", Now)!;
 
         Assert.False(branch.ComputerControlOverride);
         Assert.True(branch.AgentBrowserOverride);
+        Assert.True(branch.InheritAgentModelOverride);
     }
 
     [Fact]

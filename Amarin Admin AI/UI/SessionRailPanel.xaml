@@ -90,6 +90,10 @@
                 <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Browser}"/>
                 <CheckBox x:Name="BrowserToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" ToolTipService.ShowOnDisabled="True" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.Browser}"/>
             </Grid>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.InheritAgent}" TextTrimming="CharacterEllipsis"/>
+                <CheckBox x:Name="InheritAgentToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.InheritAgent}"/>
+            </Grid>
         </StackPanel></Border>
         <Border x:Name="FilesCard" Style="{StaticResource RailCard}"><StackPanel>
             <Grid Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

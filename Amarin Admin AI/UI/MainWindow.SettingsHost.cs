@@ -474,6 +474,7 @@ namespace Amarin.UI
                         models.FoxSettings.Load(this, _services);
                         RefreshFoxLink();
                         models.AgentMemoryCombo.SelectedIndex = (int)settings.AgentMemory;
+                        models.InheritAgentModelToggle.IsChecked = settings.InheritAgentModel;
                         break;
                     case SettingsPromptsPage prompts:
                         prompts.MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -629,6 +630,8 @@ namespace Amarin.UI
             p.WebSearchField.Changed += WebSearchTargetChanged;
             p.WebSearchField.AddKeyRequested += SettingsPickerAddKeyRequested;
             p.AgentMemoryCombo.SelectionChanged += AgentMemoryCombo_SelectionChanged;
+            p.InheritAgentModelToggle.Checked += InheritAgentModelToggle_Changed;
+            p.InheritAgentModelToggle.Unchecked += InheritAgentModelToggle_Changed;
         }
 
         /// <summary>
@@ -646,6 +649,22 @@ namespace Amarin.UI
 
             _services.Settings.AgentMemory = mode;
             _services.SettingsStore.Save(_services.Settings);
+        }
+
+        /// <summary>
+        /// Наследование агентами модели чата (1.38.0). Действует со следующего запуска агента;
+        /// панель сеанса перечитывает эффективное значение, если у чата нет своего переключателя.
+        /// </summary>
+        private void InheritAgentModelToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.InheritAgentModel = ModelsPage.InheritAgentModelToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+            RefreshSessionRail();
         }
 
         private void WireSlot(ModelPickerField picker)
