@@ -20,7 +20,10 @@ public enum PayloadDialect
     OpenRouter,
 
     /// <summary>Только то, что знает любой OpenAI-совместимый сервер.</summary>
-    Generic
+    Generic,
+
+    /// <summary>Общий API Polza.ai со своим каталогом и вложенным управлением размышлением.</summary>
+    Polza
 }
 
 /// <summary>
@@ -76,7 +79,17 @@ public enum BalanceSource
     /// <c>dashboard/billing/subscription</c> и <c>/usage</c>: так остаток отдают шлюзы семейства
     /// one-api, на которых работает большинство перепродавцов.
     /// </summary>
-    ResellerBilling
+    ResellerBilling,
+
+    /// <summary><c>GET /balance</c> Polza.ai, суммы в рублях.</summary>
+    PolzaBalance
+}
+
+/// <summary>Валюта, в которой провайдер называет стоимость ответа и цены каталога.</summary>
+public enum ProviderCurrency
+{
+    Usd,
+    Rub
 }
 
 /// <summary>
@@ -143,6 +156,9 @@ public sealed record ProviderSpec
     /// </summary>
     public bool ReportsCost { get; init; }
 
+    /// <summary>В какой валюте сервер сообщает стоимость до перевода во внутренние доллары.</summary>
+    public ProviderCurrency CostCurrency { get; init; } = ProviderCurrency.Usd;
+
     /// <summary>Есть ли эндпоинт рисования картинок.</summary>
     public bool HasImages { get; init; }
 
@@ -188,8 +204,8 @@ public sealed record ProviderSpec
     /// </summary>
     public bool IsLegacy => Provider == LlmProvider.Venice || Provider == LlmProvider.OpenRouter;
 
-    /// <summary>Производители за OpenRouter, у которых кэш работает только по меткам.</summary>
-    private static readonly string[] MarkedVendors = ["anthropic/", "qwen/"];
+    /// <summary>Производители за этим провайдером, которым нужны явные метки кэша.</summary>
+    public IReadOnlyList<string> CacheMarkedVendors { get; init; } = [];
 
     /// <summary>Нужны ли этой модели метки <c>cache_control</c> в OpenAI-совместимом запросе.</summary>
     /// <remarks>
@@ -198,9 +214,8 @@ public sealed record ProviderSpec
     /// </remarks>
     public bool NeedsCacheMarkers(string model) =>
         Caching == PromptCaching.Markers ||
-        (Dialect == PayloadDialect.OpenRouter && Array.Exists(
-            MarkedVendors,
-            vendor => ModelRef.Bare(model).TrimStart('~').StartsWith(vendor, StringComparison.OrdinalIgnoreCase)));
+        CacheMarkedVendors.Any(
+            vendor => ModelRef.Bare(model).TrimStart('~').StartsWith(vendor, StringComparison.OrdinalIgnoreCase));
 
     private static readonly ProviderSpec VeniceSpec = new()
     {
@@ -231,6 +246,7 @@ public sealed record ProviderSpec
         KeysUrl = "https://openrouter.ai/settings/keys",
         Dialect = PayloadDialect.OpenRouter,
         Caching = PromptCaching.KeyField,
+        CacheMarkedVendors = ["anthropic/", "qwen/"],
         SendsTemperature = true,
         ReportsCost = true,
         Balance = BalanceSource.OpenRouterCredits,
@@ -359,11 +375,25 @@ public sealed record ProviderSpec
         KeyPrefixes = ["gsk_"]
     };
 
+    private static readonly ProviderSpec PolzaSpec = new()
+    {
+        Provider = LlmProvider.Polza,
+        Name = "Polza.ai",
+        BaseUrl = "https://polza.ai/api/v1",
+        Prefix = "polza:",
+        KeysUrl = "https://polza.ai/dashboard/api-keys",
+        Dialect = PayloadDialect.Polza,
+        CacheMarkedVendors = ["anthropic/"],
+        ReportsCost = true,
+        CostCurrency = ProviderCurrency.Rub,
+        Balance = BalanceSource.PolzaBalance
+    };
+
     /// <summary>Встроенные провайдеры в порядке, в каком их видит человек.</summary>
     public static IReadOnlyList<ProviderSpec> All { get; } =
     [
         VeniceSpec, OpenRouterSpec, OpenAISpec, AnthropicSpec, GoogleSpec, XAiSpec, DeepSeekSpec,
-        MoonshotSpec, MistralSpec, ZAiSpec, QwenSpec, GroqSpec
+        MoonshotSpec, MistralSpec, ZAiSpec, QwenSpec, GroqSpec, PolzaSpec
     ];
 
     /// <summary>

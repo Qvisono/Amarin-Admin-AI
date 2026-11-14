@@ -1434,6 +1434,10 @@
     <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Rename key</system:String>
     <system:String x:Key="S.Key.Restore" xml:space="preserve">Bring back</system:String>
     <system:String x:Key="S.Key.Section" xml:space="preserve">Keys</system:String>
+    <system:String x:Key="S.Key.PolzaRate" xml:space="preserve">Polza.ai: rubles per $1</system:String>
+    <system:String x:Key="S.Key.PolzaRateHint" xml:space="preserve">For estimated dollar prices and balance. Leave empty for tokens only. Past spending is not recalculated.</system:String>
+    <system:String x:Key="S.Key.PolzaRateError" xml:space="preserve">Enter a number greater than zero or leave the field empty.</system:String>
+    <system:String x:Key="S.Key.PolzaBalanceError" xml:space="preserve">Could not read the Polza.ai balance. Please try again later.</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Show</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">{0} left</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Adding up…</system:String>

@@ -64,7 +64,6 @@ internal static class AppComposition
         // же объекты, иначе смена ключа или запись траты не дошли бы до агента и генераторов.
         var keys = new ApiKeyProvider(configuration.VeniceKey);
         var ledger = new SpendLedger(dataRoot);
-        var balances = new BalanceBook();
 
         // Ключи из строк журнала вычищаются тем же списком, что и из отчётов о сбоях.
         var audit = new AuditLog(dataRoot, () => secrets.Current);
@@ -89,6 +88,8 @@ internal static class AppComposition
             audit,
             mcp,
             secrets);
+
+        var balances = new BalanceBook(() => scope.Settings.RublesPerUsd, keys.DefaultFor);
 
         // Только теперь известно, чей это профиль, — а ключи у каждого свои. До этой строки
         // программа работает на ключе из окружения, и так же она работает дальше, если своих
@@ -125,6 +126,7 @@ internal static class AppComposition
             // Приватность OpenRouter — из настроек открытого профиля, на каждом запросе.
             NoRetention = () => scope.Settings.OpenRouterNoRetention,
             BalanceSink = balances.Remember,
+            RublesPerUsd = () => scope.Settings.RublesPerUsd,
             Audit = audit,
             BaseUrl = configuration.BaseUrl,
             Model = StartupModel(startup, settingsStore, settings, configuration.Model),

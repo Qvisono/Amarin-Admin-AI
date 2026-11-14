@@ -20,6 +20,7 @@ public sealed class AgentOptionsCopyTests
         Action<string, VeniceCost, string> spend = (_, _, _) => { };
         Action<ApiCredential, VeniceBalance> balance = (_, _) => { };
         Func<ApiCredential, CancellationToken, Task> gate = (_, _) => Task.CompletedTask;
+        Func<decimal?> rate = () => 95m;
         var audit = new AuditLog(Path.GetTempPath());
         var source = new AgentOptions
         {
@@ -27,6 +28,7 @@ public sealed class AgentOptionsCopyTests
             SpendSink = spend,
             BalanceSink = balance,
             SpendGate = gate,
+            RublesPerUsd = rate,
             Audit = audit,
             MaxToolRounds = 7,
             Download = new DownloadOptions { MaxSizeBytes = 42 }
@@ -37,6 +39,7 @@ public sealed class AgentOptionsCopyTests
         Assert.Same(spend, copy.SpendSink);
         Assert.Same(balance, copy.BalanceSink);
         Assert.Same(gate, copy.SpendGate);
+        Assert.Same(rate, copy.RublesPerUsd);
         Assert.Same(audit, copy.Audit);
         Assert.Equal(7, copy.MaxToolRounds);
         Assert.Equal(42, copy.Download.MaxSizeBytes);

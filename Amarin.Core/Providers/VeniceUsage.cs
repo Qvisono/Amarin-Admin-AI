@@ -103,6 +103,10 @@ public sealed class VeniceRateLimitsData
     /// </summary>
     [JsonIgnore]
     public decimal? SpentUsd { get; init; }
+
+    /// <summary>Курс, по которому посчитан остаток Polza.ai, до передачи в общую книгу.</summary>
+    [JsonIgnore]
+    public decimal? RublesPerUsd { get; init; }
 }
 
 /// <summary>

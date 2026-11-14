@@ -23,7 +23,7 @@ asks you and waits for your answer.
 
 A chat window on your desktop. It is a single `.exe` that needs no installation. Answers come from
 the models of the services you choose, paid with your own key: [Venice.ai](https://venice.ai),
-[OpenRouter](https://openrouter.ai), or directly OpenAI, Anthropic (Claude), Google Gemini, xAI
+[OpenRouter](https://openrouter.ai), [Polza.ai](https://polza.ai), or directly OpenAI, Anthropic (Claude), Google Gemini, xAI
 (Grok), DeepSeek, Kimi, Mistral, Z.ai (GLM), Qwen and Groq. A reseller or gateway with an
 OpenAI- or Anthropic-compatible API works too: give the program its address. You can use several
 services at once and give different tasks to different models. Conversations stay on your disk.
@@ -156,6 +156,10 @@ profile on this computer. If a key came as a package of tokens, set its limit in
 and the program shows what's left. The same page shows the account balances and a chart of
 spending by day; for services that don't report prices, the program estimates the cost from the
 tokens used.
+
+For Polza.ai, enter the number of rubles per US dollar on the same page to see approximate USD
+spending and balances. Until a rate is set, the program tracks tokens. Prompt caching uses
+explicit cache markers for Claude and automatic caching for the other supported models.
 
 If you don't want the program to store a Venice or OpenRouter key, set an environment variable
 instead. The program reads it at startup and never saves it anywhere. Keys of other services are

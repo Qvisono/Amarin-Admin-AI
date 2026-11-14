@@ -1434,6 +1434,10 @@
     <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Переименовать ключ</system:String>
     <system:String x:Key="S.Key.Restore" xml:space="preserve">Вернуть</system:String>
     <system:String x:Key="S.Key.Section" xml:space="preserve">Ключи</system:String>
+    <system:String x:Key="S.Key.PolzaRate" xml:space="preserve">Polza.ai: рублей за $1</system:String>
+    <system:String x:Key="S.Key.PolzaRateHint" xml:space="preserve">Для оценки цен и остатка в долларах. Пусто - только токены. Прошлые траты не пересчитываются.</system:String>
+    <system:String x:Key="S.Key.PolzaRateError" xml:space="preserve">Введите число больше нуля или оставьте поле пустым.</system:String>
+    <system:String x:Key="S.Key.PolzaBalanceError" xml:space="preserve">Не удалось прочитать остаток Polza.ai. Повторите позже.</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Показать</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">осталось {0}</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Считаю…</system:String>

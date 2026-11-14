@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amarin.AdminAI.Tests</AssemblyName>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzers>false</RunAnalyzers>
+    <AppOutputDir Condition="'$(AppOutputDir)' == ''">$(MSBuildThisFileDirectory)..\..\..\Amarin Admin AI\bin\Release\net10.0-windows</AppOutputDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Amarin Admin AI">
+      <HintPath>$(AppOutputDir)\Amarin Admin AI.dll</HintPath>
+    </Reference>
+    <Reference Include="Amarin.Core">
+      <HintPath>$(AppOutputDir)\Amarin.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Markdig">
+      <HintPath>$(AppOutputDir)\Markdig.dll</HintPath>
+    </Reference>
+    <Reference Include="ColorCode.Core">
+      <HintPath>$(AppOutputDir)\ColorCode.Core.dll</HintPath>
+    </Reference>
+    <None Include="$(AppOutputDir)\*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Using Remove="System.Windows" />
+    <Using Remove="System.Windows.Controls" />
+    <Using Remove="System.Windows.Documents" />
+    <Using Remove="System.Windows.Input" />
+    <Using Remove="System.Windows.Media" />
+    <Using Remove="System.Windows.Shapes" />
+  </ItemGroup>
+</Project>

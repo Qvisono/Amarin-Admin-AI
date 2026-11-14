@@ -105,8 +105,10 @@ internal sealed class SpendLedger
             bucket.Requests++;
             bucket.Usd += cost.Usd;
             bucket.Diem += cost.Diem;
+            bucket.Estimated |= cost.Estimated;
             day.Usd += cost.Usd;
             day.Diem += cost.Diem;
+            day.Estimated |= cost.Estimated;
 
             var tokens = Math.Max(0, cost.InputTokens) + Math.Max(0, cost.OutputTokens);
             if (tokens > 0)
@@ -165,11 +167,13 @@ internal sealed class SpendLedger
                     Date = day.Date,
                     Usd = day.Usd,
                     Diem = day.Diem,
+                    Estimated = day.Estimated,
                     Skus = day.Skus.Select(bucket => new SpendSkuBucket
                     {
                         Sku = bucket.Sku,
                         Usd = bucket.Usd,
                         Diem = bucket.Diem,
+                        Estimated = bucket.Estimated,
                         Requests = bucket.Requests
                     }).ToList()
                 }).ToList()
@@ -241,6 +245,11 @@ internal sealed class SpendLedger
             var local = mine.Days.FirstOrDefault(item => item.Date.Date == date);
             if (local is not null && !Richer(day, local))
             {
+                if (MergeEstimates(local, day))
+                {
+                    changed++;
+                }
+
                 continue;
             }
 
@@ -249,7 +258,13 @@ internal sealed class SpendLedger
                 mine.Days.Remove(local);
             }
 
-            mine.Days.Add(CopyDay(day, date));
+            var copy = CopyDay(day, date);
+            if (local is not null)
+            {
+                _ = MergeEstimates(copy, local);
+            }
+
+            mine.Days.Add(copy);
             changed++;
         }
 
@@ -272,11 +287,36 @@ internal sealed class SpendLedger
         return theirs != ours ? theirs > ours : candidate.Usd > local.Usd;
     }
 
+    /// <summary>Более полный импорт не превращает ранее оценённую сумму в точную.</summary>
+    private static bool MergeEstimates(SpendDay target, SpendDay source)
+    {
+        var changed = false;
+        foreach (var bucket in source.Skus.Where(bucket => bucket is { Estimated: true }))
+        {
+            var into = target.Skus.FirstOrDefault(item => string.Equals(item.Sku, bucket.Sku, StringComparison.Ordinal));
+            if (into is { Estimated: false })
+            {
+                into.Estimated = true;
+                changed = true;
+            }
+        }
+
+        if (!target.Estimated && (source.Estimated || source.Skus.Any(bucket => bucket is { Estimated: true }) ||
+                                  target.Skus.Any(bucket => bucket is { Estimated: true })))
+        {
+            target.Estimated = true;
+            changed = true;
+        }
+
+        return changed;
+    }
+
     private static SpendDay CopyDay(SpendDay day, DateTime date) => new()
     {
         Date = date,
         Usd = Math.Max(0m, day.Usd),
         Diem = Math.Max(0m, day.Diem),
+        Estimated = day.Estimated || day.Skus.Any(bucket => bucket is { Estimated: true }),
         Tokens = day.Tokens,
         Skus = day.Skus
             .Where(bucket => bucket is not null)
@@ -285,6 +325,7 @@ internal sealed class SpendLedger
                 Sku = bucket.Sku ?? SpendFold.OtherSku,
                 Usd = Math.Max(0m, bucket.Usd),
                 Diem = Math.Max(0m, bucket.Diem),
+                Estimated = bucket.Estimated,
                 Requests = Math.Max(0, bucket.Requests),
                 InputTokens = bucket.InputTokens,
                 OutputTokens = bucket.OutputTokens
@@ -568,6 +609,7 @@ internal sealed class SpendLedger
             bucket.Requests++;
             bucket.Usd += cost.Usd;
             bucket.Diem += cost.Diem;
+            bucket.Estimated |= cost.Estimated;
         }
 
         return collected;
@@ -620,11 +662,15 @@ internal sealed class SpendLedger
                 existing.Requests = Math.Max(0, existing.Requests + (sign * bucket.Requests));
                 existing.Usd = Math.Max(0m, existing.Usd + (sign * bucket.Usd));
                 existing.Diem = Math.Max(0m, existing.Diem + (sign * bucket.Diem));
+                // После вычитания часть SKU может остаться смешанной: без отдельных проводок
+                // доказать её точность нельзя, поэтому признак оценки сохраняется.
+                existing.Estimated |= bucket.Estimated;
             }
 
             day.Skus.RemoveAll(item => item.Usd <= 0m && item.Diem <= 0m);
             day.Usd = day.Skus.Sum(item => item.Usd);
             day.Diem = day.Skus.Sum(item => item.Diem);
+            day.Estimated = day.Skus.Any(item => item.Estimated);
         }
 
         file.Days.RemoveAll(item => item.Skus.Count == 0);

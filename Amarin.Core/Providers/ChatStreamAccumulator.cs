@@ -83,6 +83,8 @@ internal sealed class ChatStreamAccumulator
 
     public VeniceCost Cost { get; private set; } = VeniceCost.Zero;
 
+    private bool _hasSeparateCost;
+
     /// <summary>
     /// Прочитанный моделью контекст — из последнего кусочка потока с расходом. Ноль — расход не
     /// пришёл.
@@ -112,7 +114,12 @@ internal sealed class ChatStreamAccumulator
 
         if (chunk.Cost is not null)
         {
-            Cost = Cost.Add(chunk.Cost.ToCost());
+            var cost = chunk.Cost.ToCost();
+            if (cost.HasData)
+            {
+                Cost = _hasSeparateCost ? Cost.Add(cost) : cost;
+                _hasSeparateCost = true;
+            }
         }
 
         // До выбора варианта, а не после: у кусочка с расходом пустой «choices», и ранний выход
@@ -150,9 +157,9 @@ internal sealed class ChatStreamAccumulator
         // Цена от OpenRouter приходит внутри usage и считает весь ответ целиком, а не этот
         // кусок: поэтому присваивание, а не сложение. Venice кладёт свою цену отдельным полем
         // выше — если ответили оба, верхнее поле старше, и записанное им не перетирается.
-        if (chunk.Usage?.Cost is { } usd and > 0m && !Cost.HasData)
+        if (!_hasSeparateCost && chunk.Usage?.ReportedCost() is { } reported)
         {
-            Cost = new VeniceCost { Usd = usd, HasData = true };
+            Cost = reported;
         }
 
         var choice = chunk.Choices.FirstOrDefault();

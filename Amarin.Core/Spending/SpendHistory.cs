@@ -47,6 +47,9 @@ public sealed class SpendSkuBucket
 
     public int Requests { get; set; }
 
+    /// <summary>В сумме есть цена, посчитанная программой, в том числе по ручному курсу.</summary>
+    public bool Estimated { get; set; }
+
     /// <summary>
     /// Токены запросов по этой статье. Необязательные: журналы прежних версий их не знают, а у
     /// ключа, выданного пакетом токенов, только по ним и виден расход.
@@ -66,6 +69,9 @@ public sealed class SpendDay
     public decimal Usd { get; set; }
 
     public decimal Diem { get; set; }
+
+    /// <summary>Хотя бы часть суммы рассчитана программой.</summary>
+    public bool Estimated { get; set; }
 
     /// <summary>Токены за сутки — запросы и ответы вместе.</summary>
     public long? Tokens { get; set; }
@@ -195,6 +201,7 @@ internal sealed class SpendHistoryStore
 
         foreach (var day in file.Days)
         {
+            day.Estimated |= day.Skus.Any(item => item.Estimated);
             if (day.Skus.Count <= MaxSkusPerDay)
             {
                 continue;
@@ -208,7 +215,8 @@ internal sealed class SpendHistoryStore
                 Sku = SpendFold.OtherSku,
                 Usd = tail.Sum(item => item.Usd),
                 Diem = tail.Sum(item => item.Diem),
-                Requests = tail.Sum(item => item.Requests)
+                Requests = tail.Sum(item => item.Requests),
+                Estimated = tail.Any(item => item.Estimated)
             });
         }
     }
@@ -334,6 +342,7 @@ internal static class SpendFold
 
                 target.Usd += day.Usd;
                 target.Diem += day.Diem;
+                target.Estimated |= day.Estimated || day.Skus.Any(item => item.Estimated);
 
                 foreach (var bucket in day.Skus)
                 {
@@ -348,6 +357,7 @@ internal static class SpendFold
                     into.Usd += bucket.Usd;
                     into.Diem += bucket.Diem;
                     into.Requests += bucket.Requests;
+                    into.Estimated |= bucket.Estimated;
                 }
             }
         }

@@ -79,7 +79,7 @@ public sealed class SettingsInventoryTests
             "Security:DownloadAnySiteToggle", "Security:DownloadSizeLimitToggle", "Security:DownloadMaxSizeBox",
             "Security:WindowsLogToggle"
         ]),
-        ("NavKey", ["Key:AddKeyButton", "Key:LimitsLinkRow", "Key:LimitsBlock"]),
+        ("NavKey", ["Key:AddKeyButton", "Key:PolzaRateBox", "Key:LimitsLinkRow", "Key:LimitsBlock"]),
         ("NavData",
         [
             "ChatSharingToggle", "ImportChatButton", "DataExportButton", "DataImportButton",

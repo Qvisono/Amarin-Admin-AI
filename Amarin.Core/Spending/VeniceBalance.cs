@@ -9,6 +9,7 @@ public sealed class VeniceBalance
 {
     public bool CanConsume { get; init; }
     public decimal? Usd { get; init; }
+    public decimal? RublesPerUsd { get; init; }
     public decimal? Diem { get; init; }
     public decimal? DiemEpochAllocation { get; init; }
 

@@ -1,0 +1,741 @@
+{
+  "measuredAtUtc": "2026-11-07T13:49:17.3907519Z",
+  "framework": ".NET 10.0.12",
+  "os": "Microsoft Windows 10.0.26200",
+  "culture": "ru-RU",
+  "uiCulture": "en-US",
+  "cpuCount": 12,
+  "appVersion": "1.38.0.0",
+  "setupMs": 603.0751,
+  "samples": 5,
+  "tieredCompilation": "0",
+  "warmup": 1,
+  "widthDip": 760,
+  "bodyFont": "Segoe UI 13.5 DIP",
+  "codeFont": "Consolas, Cascadia Mono, Courier New",
+  "pixelsPerDip": 1,
+  "previewHeightPx": 900,
+  "visibleWindows": 0,
+  "notes": [
+    "Standalone synthetic WPF probe; no Window objects, app.Run, AppComposition, UiServices, settings or profile stores.",
+    "Application.Resources loads only embedded palette, icons and styles; ThemeManager/LanguageManager initialization is not called.",
+    "No network images, URLs, files from user storage, tool execution, clipboard or input actions.",
+    "Warm exploratory medians, not a cold startup measurement and not a Rust comparison.",
+    "Allocations are managed bytes on the STA thread only; native WPF and GPU allocations are not counted.",
+    "Render captures only top 900px after full disconnected Measure/Arrange; no presentation target or monitor frame.",
+    "finished_cached repeats identical text, matching repeated rebuilds of completed code blocks; changing input will miss caches."
+  ],
+  "scenarios": [
+    {
+      "kind": "rich_markdown",
+      "inputChars": 20000,
+      "codeChars": 0,
+      "codeLines": 0,
+      "blocks": 595,
+      "desiredHeight": 24483.5,
+      "boxHeight": 24483.5,
+      "nonBlackPixels": 33665,
+      "preview": "D:\\Amarin Microsoft\\Amarin Admin AI\\.claude-tmp\\rust-chat-tools-audit-20261107\\ui-probe\\preview-rich_markdown-20000.png",
+      "stages": [
+        {
+          "Name": "parse_only",
+          "MedianMs": 0.8823,
+          "MinMs": 0.7475,
+          "MaxMs": 1.4213,
+          "MedianAllocatedBytes": 773480,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            0.76,
+            0.8823,
+            0.7475,
+            1.0235,
+            1.4213
+          ],
+          "SamplesAllocatedBytes": [
+            773480,
+            773480,
+            773480,
+            773480,
+            773480
+          ]
+        },
+        {
+          "Name": "build_from_parsed_streaming",
+          "MedianMs": 231.2422,
+          "MinMs": 206.3948,
+          "MaxMs": 239.4736,
+          "MedianAllocatedBytes": 16087152,
+          "Gen0": 13,
+          "Gen1": 3,
+          "Gen2": 1,
+          "SamplesMs": [
+            206.3948,
+            238.211,
+            214.495,
+            239.4736,
+            231.2422
+          ],
+          "SamplesAllocatedBytes": [
+            16087152,
+            16077344,
+            16087152,
+            16079720,
+            16087152
+          ]
+        },
+        {
+          "Name": "layout_after_build_streaming",
+          "MedianMs": 581.565,
+          "MinMs": 568.2032,
+          "MaxMs": 598.5725,
+          "MedianAllocatedBytes": 24790520,
+          "Gen0": 34,
+          "Gen1": 11,
+          "Gen2": 2,
+          "SamplesMs": [
+            568.2032,
+            581.565,
+            598.5725,
+            591.8993,
+            573.7395
+          ],
+          "SamplesAllocatedBytes": [
+            24790520,
+            24795944,
+            24790520,
+            24790520,
+            24790520
+          ]
+        },
+        {
+          "Name": "build_and_layout_streaming",
+          "MedianMs": 876.2639,
+          "MinMs": 828.7601,
+          "MaxMs": 1259.1634,
+          "MedianAllocatedBytes": 41020200,
+          "Gen0": 32,
+          "Gen1": 10,
+          "Gen2": 0,
+          "SamplesMs": [
+            862.8312,
+            876.2639,
+            828.7601,
+            979.3211,
+            1259.1634
+          ],
+          "SamplesAllocatedBytes": [
+            41020208,
+            41020232,
+            41020080,
+            41020200,
+            41020080
+          ]
+        },
+        {
+          "Name": "build_from_parsed_finished_cached",
+          "MedianMs": 257.4916,
+          "MinMs": 233.1084,
+          "MaxMs": 345.7132,
+          "MedianAllocatedBytes": 16105096,
+          "Gen0": 12,
+          "Gen1": 3,
+          "Gen2": 0,
+          "SamplesMs": [
+            238.1382,
+            257.4916,
+            233.1084,
+            345.7132,
+            304.9358
+          ],
+          "SamplesAllocatedBytes": [
+            16105096,
+            16095288,
+            16105096,
+            16095568,
+            16105096
+          ]
+        },
+        {
+          "Name": "layout_after_build_finished_cached",
+          "MedianMs": 623.4479,
+          "MinMs": 603.9808,
+          "MaxMs": 673.8873,
+          "MedianAllocatedBytes": 24790520,
+          "Gen0": 32,
+          "Gen1": 10,
+          "Gen2": 0,
+          "SamplesMs": [
+            623.4479,
+            604.3256,
+            603.9808,
+            634.5218,
+            673.8873
+          ],
+          "SamplesAllocatedBytes": [
+            24790520,
+            24790520,
+            24790520,
+            24790520,
+            24790520
+          ]
+        },
+        {
+          "Name": "build_and_layout_finished_cached",
+          "MedianMs": 1105.2064,
+          "MinMs": 982.5966,
+          "MaxMs": 1281.0324,
+          "MedianAllocatedBytes": 41020080,
+          "Gen0": 32,
+          "Gen1": 10,
+          "Gen2": 0,
+          "SamplesMs": [
+            1047.6728,
+            982.5966,
+            1105.2064,
+            1281.0324,
+            1119.3701
+          ],
+          "SamplesAllocatedBytes": [
+            41020280,
+            41020080,
+            41020080,
+            41020080,
+            41020320
+          ]
+        },
+        {
+          "Name": "render_visible_900px_after_layout",
+          "MedianMs": 29.3094,
+          "MinMs": 26.6329,
+          "MaxMs": 33.8604,
+          "MedianAllocatedBytes": 78472,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            33.8604,
+            29.3094,
+            28.5488,
+            31.4016,
+            26.6329
+          ],
+          "SamplesAllocatedBytes": [
+            78472,
+            78472,
+            78472,
+            78472,
+            78472
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "csharp_block",
+      "inputChars": 20038,
+      "codeChars": 20000,
+      "codeLines": 364,
+      "blocks": 2,
+      "desiredHeight": 6659,
+      "boxHeight": 6659,
+      "nonBlackPixels": 645665,
+      "preview": "D:\\Amarin Microsoft\\Amarin Admin AI\\.claude-tmp\\rust-chat-tools-audit-20261107\\ui-probe\\preview-csharp_block-20000.png",
+      "stages": [
+        {
+          "Name": "parse_only",
+          "MedianMs": 0.1401,
+          "MinMs": 0.1002,
+          "MaxMs": 0.2221,
+          "MedianAllocatedBytes": 174960,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            0.2092,
+            0.2221,
+            0.1401,
+            0.1002,
+            0.1103
+          ],
+          "SamplesAllocatedBytes": [
+            174960,
+            174960,
+            174960,
+            174960,
+            174960
+          ]
+        },
+        {
+          "Name": "highlight_uncached",
+          "MedianMs": 9.8405,
+          "MinMs": 7.8363,
+          "MaxMs": 11.2959,
+          "MedianAllocatedBytes": 5189472,
+          "Gen0": 4,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            7.8363,
+            9.5511,
+            9.8405,
+            10.3274,
+            11.2959
+          ],
+          "SamplesAllocatedBytes": [
+            5189472,
+            5189472,
+            5189472,
+            5189472,
+            5189472
+          ]
+        },
+        {
+          "Name": "highlight_cached_hit",
+          "MedianMs": 0.0079,
+          "MinMs": 0.0079,
+          "MaxMs": 0.0356,
+          "MedianAllocatedBytes": 40240,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            0.0356,
+            0.0101,
+            0.0079,
+            0.0079,
+            0.0079
+          ],
+          "SamplesAllocatedBytes": [
+            40240,
+            40240,
+            40240,
+            40240,
+            40240
+          ]
+        },
+        {
+          "Name": "code_line_width_uncached",
+          "MedianMs": 3.3112,
+          "MinMs": 2.6356,
+          "MaxMs": 4.0003,
+          "MedianAllocatedBytes": 672608,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            4.0003,
+            3.3112,
+            3.3889,
+            2.6356,
+            3.0348
+          ],
+          "SamplesAllocatedBytes": [
+            672608,
+            672608,
+            672608,
+            672608,
+            672608
+          ]
+        },
+        {
+          "Name": "code_line_width_cached_hit",
+          "MedianMs": 0.0132,
+          "MinMs": 0.0129,
+          "MaxMs": 0.0287,
+          "MedianAllocatedBytes": 24,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            0.0287,
+            0.014,
+            0.0132,
+            0.013,
+            0.0129
+          ],
+          "SamplesAllocatedBytes": [
+            24,
+            24,
+            24,
+            24,
+            24
+          ]
+        },
+        {
+          "Name": "build_from_parsed_streaming",
+          "MedianMs": 490.1086,
+          "MinMs": 427.0879,
+          "MaxMs": 597.6434,
+          "MedianAllocatedBytes": 33156344,
+          "Gen0": 26,
+          "Gen1": 4,
+          "Gen2": 0,
+          "SamplesMs": [
+            490.1086,
+            597.6434,
+            542.1399,
+            469.3807,
+            427.0879
+          ],
+          "SamplesAllocatedBytes": [
+            33165952,
+            33156352,
+            33156144,
+            33156296,
+            33156344
+          ]
+        },
+        {
+          "Name": "layout_after_build_streaming",
+          "MedianMs": 113.4388,
+          "MinMs": 103.1384,
+          "MaxMs": 150.9483,
+          "MedianAllocatedBytes": 17294824,
+          "Gen0": 40,
+          "Gen1": 5,
+          "Gen2": 0,
+          "SamplesMs": [
+            150.9483,
+            131.4481,
+            111.5759,
+            113.4388,
+            103.1384
+          ],
+          "SamplesAllocatedBytes": [
+            17294816,
+            17294832,
+            17294848,
+            17294808,
+            17294824
+          ]
+        },
+        {
+          "Name": "build_and_layout_streaming",
+          "MedianMs": 495.1993,
+          "MinMs": 493.2099,
+          "MaxMs": 549.2776,
+          "MedianAllocatedBytes": 50471424,
+          "Gen0": 40,
+          "Gen1": 5,
+          "Gen2": 0,
+          "SamplesMs": [
+            493.221,
+            511.291,
+            549.2776,
+            495.1993,
+            493.2099
+          ],
+          "SamplesAllocatedBytes": [
+            50471152,
+            50471480,
+            50472280,
+            50471424,
+            50461728
+          ]
+        },
+        {
+          "Name": "build_from_parsed_finished_cached",
+          "MedianMs": 404.4016,
+          "MinMs": 374.2155,
+          "MaxMs": 413.656,
+          "MedianAllocatedBytes": 27334528,
+          "Gen0": 21,
+          "Gen1": 6,
+          "Gen2": 0,
+          "SamplesMs": [
+            413.656,
+            404.4016,
+            404.4246,
+            374.3811,
+            374.2155
+          ],
+          "SamplesAllocatedBytes": [
+            27344136,
+            27335120,
+            27334528,
+            27334328,
+            27334072
+          ]
+        },
+        {
+          "Name": "layout_after_build_finished_cached",
+          "MedianMs": 118.7446,
+          "MinMs": 108.1069,
+          "MaxMs": 154.7603,
+          "MedianAllocatedBytes": 17295728,
+          "Gen0": 35,
+          "Gen1": 5,
+          "Gen2": 0,
+          "SamplesMs": [
+            154.7603,
+            108.1069,
+            112.1368,
+            118.7446,
+            120.9619
+          ],
+          "SamplesAllocatedBytes": [
+            17295736,
+            17295696,
+            17295712,
+            17295728,
+            17295744
+          ]
+        },
+        {
+          "Name": "build_and_layout_finished_cached",
+          "MedianMs": 537.482,
+          "MinMs": 503.5913,
+          "MaxMs": 564.9977,
+          "MedianAllocatedBytes": 44638544,
+          "Gen0": 35,
+          "Gen1": 6,
+          "Gen2": 0,
+          "SamplesMs": [
+            503.5913,
+            537.482,
+            564.9977,
+            555.5656,
+            512.035
+          ],
+          "SamplesAllocatedBytes": [
+            44649728,
+            44640224,
+            44638512,
+            44638528,
+            44638544
+          ]
+        },
+        {
+          "Name": "render_visible_900px_after_layout",
+          "MedianMs": 17.4927,
+          "MinMs": 17.1307,
+          "MaxMs": 19.0701,
+          "MedianAllocatedBytes": 27840,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            17.1307,
+            19.0701,
+            17.4927,
+            17.4236,
+            18.1518
+          ],
+          "SamplesAllocatedBytes": [
+            27840,
+            27840,
+            27840,
+            27840,
+            27840
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "plain_prose",
+      "inputChars": 20000,
+      "codeChars": 0,
+      "codeLines": 0,
+      "blocks": 28,
+      "desiredHeight": 4290,
+      "boxHeight": 4290,
+      "nonBlackPixels": 115514,
+      "preview": "D:\\Amarin Microsoft\\Amarin Admin AI\\.claude-tmp\\rust-chat-tools-audit-20261107\\ui-probe\\preview-plain_prose-20000.png",
+      "stages": [
+        {
+          "Name": "parse_only",
+          "MedianMs": 0.0828,
+          "MinMs": 0.0759,
+          "MaxMs": 0.1152,
+          "MedianAllocatedBytes": 11720,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            0.1152,
+            0.0828,
+            0.076,
+            0.0858,
+            0.0759
+          ],
+          "SamplesAllocatedBytes": [
+            11720,
+            11720,
+            11720,
+            11720,
+            11720
+          ]
+        },
+        {
+          "Name": "build_from_parsed_streaming",
+          "MedianMs": 4.4116,
+          "MinMs": 4.017,
+          "MaxMs": 6.1626,
+          "MedianAllocatedBytes": 580840,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            6.1626,
+            4.4116,
+            4.3957,
+            5.3887,
+            4.017
+          ],
+          "SamplesAllocatedBytes": [
+            590648,
+            580840,
+            580840,
+            580840,
+            580840
+          ]
+        },
+        {
+          "Name": "layout_after_build_streaming",
+          "MedianMs": 62.1277,
+          "MinMs": 59.2754,
+          "MaxMs": 65.6754,
+          "MedianAllocatedBytes": 3250760,
+          "Gen0": 3,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            60.8518,
+            62.1277,
+            63.9104,
+            59.2754,
+            65.6754
+          ],
+          "SamplesAllocatedBytes": [
+            3250672,
+            3250760,
+            3250760,
+            3250760,
+            3250760
+          ]
+        },
+        {
+          "Name": "build_and_layout_streaming",
+          "MedianMs": 64.4167,
+          "MinMs": 58.7871,
+          "MaxMs": 66.215,
+          "MedianAllocatedBytes": 3835888,
+          "Gen0": 3,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            65.6992,
+            66.215,
+            58.7871,
+            64.4167,
+            63.9087
+          ],
+          "SamplesAllocatedBytes": [
+            3845440,
+            3835632,
+            3835888,
+            3835632,
+            3835888
+          ]
+        },
+        {
+          "Name": "build_from_parsed_finished_cached",
+          "MedianMs": 5.3197,
+          "MinMs": 4.138,
+          "MaxMs": 5.6982,
+          "MedianAllocatedBytes": 580840,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            5.6982,
+            5.3825,
+            5.3197,
+            4.3273,
+            4.138
+          ],
+          "SamplesAllocatedBytes": [
+            590648,
+            580840,
+            580840,
+            580840,
+            580840
+          ]
+        },
+        {
+          "Name": "layout_after_build_finished_cached",
+          "MedianMs": 62.5228,
+          "MinMs": 57.5272,
+          "MaxMs": 66.0298,
+          "MedianAllocatedBytes": 3250760,
+          "Gen0": 3,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            57.5272,
+            66.0298,
+            60.0205,
+            62.5228,
+            64.4496
+          ],
+          "SamplesAllocatedBytes": [
+            3250760,
+            3250760,
+            3250760,
+            3250760,
+            3250760
+          ]
+        },
+        {
+          "Name": "build_and_layout_finished_cached",
+          "MedianMs": 68.5902,
+          "MinMs": 62.7074,
+          "MaxMs": 73.0254,
+          "MedianAllocatedBytes": 3835888,
+          "Gen0": 3,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            68.5902,
+            73.0254,
+            62.7074,
+            71.3463,
+            66.9348
+          ],
+          "SamplesAllocatedBytes": [
+            3845440,
+            3835632,
+            3837960,
+            3835632,
+            3835888
+          ]
+        },
+        {
+          "Name": "render_visible_900px_after_layout",
+          "MedianMs": 8.8849,
+          "MinMs": 8.3702,
+          "MaxMs": 11.2319,
+          "MedianAllocatedBytes": 14720,
+          "Gen0": 0,
+          "Gen1": 0,
+          "Gen2": 0,
+          "SamplesMs": [
+            10.0679,
+            11.2319,
+            8.8849,
+            8.6802,
+            8.3702
+          ],
+          "SamplesAllocatedBytes": [
+            14720,
+            14720,
+            14720,
+            14720,
+            14720
+          ]
+        }
+      ]
+    }
+  ]
+}

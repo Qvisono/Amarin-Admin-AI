@@ -223,7 +223,8 @@ public sealed class VeniceUsage
     /// <summary>
     /// Цена запроса в долларах. Так её сообщает OpenRouter — и только когда об этом попросили
     /// (<see cref="UsageAccounting"/>). Venice кладёт цену отдельным полем <c>cost</c> рядом,
-    /// объектом с двумя валютами.
+    /// объектом с двумя валютами. У Polza.ai это псевдоним рублёвой цены, который клиент
+    /// переводит в доллары до передачи ответа вызывающему.
     /// </summary>
     /// <remarks>
     /// Изменяемое: у провайдера, который цену не называет, её вписывает клиент по каталогу
@@ -232,6 +233,21 @@ public sealed class VeniceUsage
     /// </remarks>
     [JsonPropertyName("cost")]
     public decimal? Cost { get; set; }
+
+    /// <summary>Цена Polza.ai в рублях; на границе клиента переводится в <see cref="Cost"/>.</summary>
+    [JsonPropertyName("cost_rub")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? CostRub { get; init; }
+
+    /// <summary>Цена пересчитана программой, в том числе по заданному человеком курсу.</summary>
+    [JsonIgnore]
+    public bool CostEstimated { get; set; }
+
+    /// <summary>Цена в валюте журнала; нулевая пересчитанная цена остаётся известной ценой.</summary>
+    internal VeniceCost? ReportedCost() =>
+        Cost is { } usd && (usd > 0m || usd == 0m && CostEstimated)
+            ? new VeniceCost { Usd = usd, HasData = true, Estimated = CostEstimated }
+            : null;
 
     /// <summary>
     /// Разбивка токенов запроса. Необязательным разбором, а не типом: у посредников здесь бывает
@@ -318,6 +334,16 @@ public sealed class VeniceParameters
 /// </summary>
 public sealed class ReasoningConfig
 {
+    /// <summary>Режим адаптивного размышления у шлюзов, которые его принимают.</summary>
+    [JsonPropertyName("type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Type { get; init; }
+
+    /// <summary>Глубина адаптивного размышления Polza; обычный effort в этом режиме игнорируется.</summary>
+    [JsonPropertyName("effort_level")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EffortLevel { get; init; }
+
     [JsonPropertyName("enabled")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Enabled { get; init; }
@@ -444,8 +470,8 @@ public sealed class ChatCompletionResponse
     public string? ServiceTier { get; set; }
 
     /// <summary>
-    /// Во что обошёлся ответ — так, как назвал провайдер. <c>null</c> — цены не назвали или
-    /// ответ бесплатный.
+    /// Во что обошёлся ответ в валюте журнала. <c>null</c> — цены не назвали или у долларового
+    /// провайдера ответ бесплатный; пересчитанный из рублей ноль остаётся известной ценой.
     /// </summary>
     /// <remarks>
     /// Venice называет цену своим полем <c>cost</c>, OpenRouter — внутри <c>usage</c>, и только
@@ -457,8 +483,7 @@ public sealed class ChatCompletionResponse
     /// </remarks>
     public VeniceCost? ReportedCost() =>
         Cost is not null ? Cost.ToCost()
-        : Usage?.Cost is { } usd and > 0m ? new VeniceCost { Usd = usd, HasData = true }
-        : null;
+        : Usage?.ReportedCost();
 }
 
 public sealed class ChatChoice

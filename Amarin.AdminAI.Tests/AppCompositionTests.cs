@@ -115,6 +115,19 @@ public sealed class AppCompositionTests : IDisposable
         }
     }
 
+    [Fact]
+    public void The_polza_exchange_rate_callback_follows_the_active_profile()
+    {
+        using var services = Build([]);
+        services.Settings.RublesPerUsd = 90m;
+        Assert.Equal(90m, services.Options.RublesPerUsd!());
+
+        var other = Path.Combine(_root, "other-profile");
+        new AppSettingsStore(other).Save(new AppSettings { RublesPerUsd = 105m });
+        services.UseProfile(other);
+        Assert.Equal(105m, services.Options.RublesPerUsd!());
+    }
+
     private AppServices Build(string[] args, SecretRegistry? secrets = null)
     {
         var settingsStore = new AppSettingsStore(_root);

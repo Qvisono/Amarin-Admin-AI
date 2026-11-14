@@ -104,6 +104,8 @@ public sealed partial class VeniceClient
 
         switch (spec.Dialect)
         {
+            case PayloadDialect.Polza:
+                return await ListPolzaModelsAsync(credential, cancellationToken).ConfigureAwait(false);
             case PayloadDialect.OpenRouter:
                 return await ListOpenRouterModelsAsync(credential, cancellationToken).ConfigureAwait(false);
             case PayloadDialect.Generic:
@@ -307,6 +309,9 @@ public sealed partial class VeniceClient
         {
             switch (spec.Balance)
             {
+                case BalanceSource.PolzaBalance:
+                    return await GetPolzaBalanceAsync(credential, cancellationToken).ConfigureAwait(false);
+
                 case BalanceSource.DeepSeekBalance:
                     return ProviderBalances.FromDeepSeek(
                         await GetJsonAsync("user/balance", credential, trackBalance: false, cancellationToken)

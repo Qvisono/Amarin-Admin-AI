@@ -72,6 +72,6 @@ internal static class ChatFormat
         var usd = cost.Usd < 0.0001m && cost.Usd > 0
             ? "<0,0001"
             : cost.Usd.ToString("0.####", CultureInfo.InvariantCulture).Replace('.', ',');
-        return "$" + usd;
+        return (cost.Estimated ? "≈" : "") + "$" + usd;
     }
 }

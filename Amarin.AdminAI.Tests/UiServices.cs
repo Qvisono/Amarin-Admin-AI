@@ -41,7 +41,6 @@ internal static class UiServices
         Directory.CreateDirectory(Path.Combine(root, "chats"));
 
         var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
         var settingsStore = new AppSettingsStore(root);
         var settings = settingsStore.Load();
         var profile = new ProfileScope(
@@ -57,6 +56,14 @@ internal static class UiServices
             profile.KeyStore.Load();
         }
 
+        var balances = new BalanceBook(() => profile.Settings.RublesPerUsd, profile.Keys.DefaultFor);
+        options = options with
+        {
+            RublesPerUsd = options.RublesPerUsd ?? (() => profile.Settings.RublesPerUsd),
+            BalanceSink = options.BalanceSink ?? balances.Remember
+        };
+        var venice = new VeniceClient(http, options);
+
         return new AppServices
         {
             Options = options,
@@ -70,7 +77,7 @@ internal static class UiServices
             Venice = venice,
             Models = new VeniceModelListCache(venice),
             AudioModels = new AudioModelCatalog(http),
-            Balances = new BalanceBook(),
+            Balances = balances,
             Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
             Titles = new ChatTitleGenerator(http, options, () => settings),
             Summaries = new ChatSummaryGenerator(http, options, () => settings),

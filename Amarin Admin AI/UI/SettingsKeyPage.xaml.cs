@@ -327,7 +327,7 @@ public partial class SettingsKeyPage : UserControl
     private void ShowReport(SpendReport report)
     {
         SpendTotalCaption.Text = Loc.Get(SpendPeriods.LabelKey(_period));
-        SpendTotalUsd.Text = FormatUsd(report.TotalUsd);
+        SpendTotalUsd.Text = FormatUsd(report.TotalUsd, report.Estimated);
         SpendTotalCredits.Text = Loc.Format(
             "S.Spend.TotalCredits",
             SpendReport.ToCredits(report.TotalUsd).ToString("0.##", CultureInfo.InvariantCulture));
@@ -425,7 +425,7 @@ public partial class SettingsKeyPage : UserControl
 
         var amount = new TextBlock
         {
-            Text = FormatUsd(row.Usd),
+            Text = FormatUsd(row.Usd, row.Estimated),
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
@@ -493,14 +493,22 @@ public partial class SettingsKeyPage : UserControl
             return;
         }
 
+        if (credential.Provider == LlmProvider.Polza && !HasPolzaRate)
+        {
+            BalanceUsdValue.Text = "-";
+            BalanceCreditsValue.Text = "-";
+            BalanceNote.Text = Loc.Get("S.Key.PolzaRateHint");
+            return;
+        }
+
         try
         {
             var limits = await _services.Venice
-                .GetRateLimitsAsync(cancellationToken: cancellationToken)
+                .GetRateLimitsAsync(credential, cancellationToken)
                 .ConfigureAwait(true);
 
             var usd = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
-            BalanceUsdValue.Text = FormatUsd(usd);
+            BalanceUsdValue.Text = FormatProviderUsd(usd, credential.Provider);
             ShowLeftTile(credential.Provider, usd, limits.SpentUsd);
             BalanceNote.Text = BuildBalanceNote(limits);
         }
@@ -518,8 +526,12 @@ public partial class SettingsKeyPage : UserControl
         catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
         {
             // Остаток из заголовков прошлого ответа — лучше, чем прочерк; он же лежит на плашке.
-            var cached = _services.Venice.LastBalance?.Usd;
-            BalanceUsdValue.Text = cached is { } value ? FormatUsd(value) : "-";
+            var cached = credential.Provider == LlmProvider.Polza
+                ? _services.Balances.Breakdown(_services.KeyStore.List())
+                    .FirstOrDefault(row => row.Provider == LlmProvider.Polza &&
+                        row.Fingerprint == ApiKeyStore.Fingerprint(credential.Secret)).Usd
+                : _services.Venice.LastBalance?.Usd;
+            BalanceUsdValue.Text = cached is { } value ? FormatProviderUsd(value, credential.Provider) : "-";
             if (cached is { } known)
             {
                 ShowLeftTile(credential.Provider, known, spent: null);
@@ -562,6 +574,12 @@ public partial class SettingsKeyPage : UserControl
         var total = 0m;
         var venice = 0m;
         var answered = false;
+        var approximate = false;
+        var polzaSecret = _services.Keys.DefaultFor(LlmProvider.Polza).Secret;
+        if (!credentials.Any(credential => credential.Provider == LlmProvider.Polza && credential.Secret == polzaSecret))
+        {
+            polzaSecret = credentials.FirstOrDefault(credential => credential.Provider == LlmProvider.Polza).Secret;
+        }
 
         // Ключ с пакетом токенов в сумму долларов не идёт: перепродавец, бывает, пишет токены в
         // поля остатка, и сумма вышла бы на порядки больше настоящей.
@@ -573,7 +591,8 @@ public partial class SettingsKeyPage : UserControl
         foreach (var credential in credentials)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (tokenKeys.Contains(credential.Secret))
+            if (tokenKeys.Contains(credential.Secret) ||
+                (credential.Provider == LlmProvider.Polza && (!HasPolzaRate || credential.Secret != polzaSecret)))
             {
                 continue;
             }
@@ -592,6 +611,7 @@ public partial class SettingsKeyPage : UserControl
                 }
 
                 answered = true;
+                approximate |= credential.Provider == LlmProvider.Polza;
             }
             catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
             {
@@ -608,7 +628,7 @@ public partial class SettingsKeyPage : UserControl
             return;
         }
 
-        BalanceUsdValue.Text = FormatUsd(total);
+        BalanceUsdValue.Text = (approximate ? "≈" : "") + FormatUsd(total);
         BalanceCreditsValue.Text = SpendReport
             .ToCredits(venice)
             .ToString("0.##", CultureInfo.InvariantCulture);
@@ -690,6 +710,7 @@ public partial class SettingsKeyPage : UserControl
         _keyStats.Clear();
         var rows = new List<UIElement>();
         var entries = _services.KeyStore.List();
+        RefreshPolzaRate(entries);
         foreach (var entry in entries)
         {
             rows.Add(BuildKeyRow(entry));
@@ -1064,14 +1085,17 @@ public partial class SettingsKeyPage : UserControl
                         // Без цены у модели денег в журнале нет, а токены есть: тогда они и показываются.
                         parts.Add(report.TotalUsd == 0 && used > 0
                             ? Loc.Format("S.Key.StatsTokensUsed", TokenCount.Format(used))
-                            : Loc.Format("S.Key.StatsSpent", FormatUsd(report.TotalUsd)));
+                            : Loc.Format("S.Key.StatsSpent", FormatProviderUsd(report.TotalUsd, entry.Provider)));
                     }
 
-                    var limits = await _services.Venice
-                        .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
-                        .ConfigureAwait(true);
-                    var left = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
-                    parts.Add(Loc.Format("S.Key.StatsLeft", FormatUsd(left)));
+                    if (entry.Provider != LlmProvider.Polza || HasPolzaRate)
+                    {
+                        var limits = await _services.Venice
+                            .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
+                            .ConfigureAwait(true);
+                        var left = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
+                        parts.Add(Loc.Format("S.Key.StatsLeft", FormatProviderUsd(left, entry.Provider)));
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -1304,5 +1328,5 @@ public partial class SettingsKeyPage : UserControl
     private DateFormat DateFormat => _services?.Settings.DateFormat ?? DateFormat.DayMonthShort;
 
     /// <summary>Доллары так же, как их показывает график: один формат на всю страницу.</summary>
-    internal static string FormatUsd(decimal value) => SpendReport.FormatUsd(value);
+    internal static string FormatUsd(decimal value, bool estimated = false) => SpendReport.FormatUsd(value, estimated);
 }

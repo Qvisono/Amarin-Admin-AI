@@ -236,6 +236,9 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public bool SpendScopeAllKeys { get; set; } = true;
 
+    /// <summary>Рублей за доллар для оценки цен Polza.ai. Пусто - учитывать только токены.</summary>
+    public decimal? RublesPerUsd { get; set; }
+
     /// <summary>Лимиты трат (E1). Заводское — всё выключено.</summary>
     public SpendLimits SpendLimits { get; set; } = new();
 

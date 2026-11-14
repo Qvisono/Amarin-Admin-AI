@@ -523,6 +523,7 @@ public sealed partial class VeniceClient
             throw new VeniceApiException(result.Error.Message ?? "Unknown Venice API error.");
         }
 
+        NormalizeUsageCost(result.Usage, credential);
         RecordCost(result, model, credential);
         return result;
     }
@@ -638,6 +639,7 @@ public sealed partial class VeniceClient
                     throw new VeniceApiException(streamFriendly);
                 }
 
+                NormalizeUsageCost(chunk.Usage, credential);
                 var added = accumulator.Apply(chunk);
                 if (added)
                 {
@@ -842,6 +844,7 @@ public sealed partial class VeniceClient
         {
             PayloadDialect.Venice => BuildVenicePayload(request, model, prepareMessages, stream),
             PayloadDialect.OpenRouter => BuildOpenRouterPayload(request, model, prepareMessages, stream),
+            PayloadDialect.Polza => BuildPolzaPayload(request, model, prepareMessages, stream),
             _ => BuildGenericPayload(request, model, spec, prepareMessages, stream)
         };
 
@@ -1007,7 +1010,8 @@ public sealed partial class VeniceClient
         }
 
         var dialect = ProviderSpec.For(ModelRef.Of(model)).Dialect;
-        if (dialect == PayloadDialect.Generic && status is 400 or 422 && NamesOptionalField(payload, error))
+        if ((dialect is PayloadDialect.Generic or PayloadDialect.Polza) &&
+            status is 400 or 422 && NamesOptionalField(payload, error))
         {
             return WithoutOptionalFields(payload);
         }
@@ -1035,6 +1039,7 @@ public sealed partial class VeniceClient
         bool Names(string field) => error.Contains(field, StringComparison.OrdinalIgnoreCase);
 
         return (payload.ReasoningEffort is not null && Names("reasoning_effort")) ||
+               (payload.Reasoning is not null && Names("reasoning")) ||
                (payload.Thinking is not null && Names("thinking")) ||
                (payload.EnableThinking is not null && Names("enable_thinking")) ||
                (payload.StreamOptions is not null && Names("stream_options")) ||
