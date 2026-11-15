@@ -12,7 +12,7 @@ public sealed class VeniceCost
     public bool HasData { get; set; }
 
     /// <summary>
-    /// Цену назвал не провайдер, а посчитала программа: токены × цена модели из каталога.
+    /// Долларовую цену посчитала программа: по токенам и каталогу либо по заданному человеком курсу.
     /// </summary>
     public bool Estimated { get; set; }
 
@@ -67,7 +67,7 @@ public sealed class VeniceCost
             parts.Add($"{Diem:0.####} DIEM");
         }
 
-        return parts.Count > 0 ? string.Join(" · ", parts) : "нет данных";
+        return parts.Count > 0 ? (Estimated ? "≈" : "") + string.Join(" · ", parts) : "нет данных";
     }
 }
 

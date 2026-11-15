@@ -274,6 +274,9 @@ namespace Amarin.UI
             // Удаление могло опустошить чат: тогда снова видна плашка временного чата.
             RefreshTemporaryUi();
 
+            // Правка или удаление в сжатой части отменяет сводку, а с ней и значки.
+            _compactedIds = null;
+
             var present = new HashSet<ChatDisplayMessage>(_session.Messages, ReferenceEqualityComparer.Instance);
             var kept = 0;
             foreach (var host in _messageHosts)
@@ -349,11 +352,14 @@ namespace Amarin.UI
             var message = host.Message;
             if (message.Role == "user")
             {
-                FillHost(host, WithCompactionMark(message, ChatMessageViews.CreateUser(this, message, host.Actions, ActiveDateFormat).Root));
+                var question = ChatMessageViews.CreateUser(this, message, host.Actions, ActiveDateFormat);
+                AddCompactionIcon(message, question.Meta, first: true);
+                FillHost(host, WithCompactionMark(message, question.Root));
                 return;
             }
 
             var view = ChatMessageViews.CreateAssistant(this, message, host.Actions, ActiveDateFormat);
+            AddCompactionIcon(message, view.Meta, first: false);
             FillHost(host, WithCompactionMark(message, view.Root));
 
             // Вернулись в чат, который ещё отвечает, — подхватываем его вьюшку заново.

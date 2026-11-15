@@ -44,7 +44,6 @@ public sealed partial class SourceLiteralTests
     [InlineData("UI", "MainWindow.Lock.cs")]
     [InlineData("UI", "LockScreen.xaml.cs")]
     [InlineData("UI", "MainWindow.Appearance.cs")]
-    [InlineData("UI", "ReasoningPicker.xaml.cs")]
     [InlineData("UI", "ChatMessageViews.cs")]
     [InlineData("UI", "SettingsSecurityPage.xaml.cs")]
     [InlineData("UI", "MainWindow.Notice.cs")]

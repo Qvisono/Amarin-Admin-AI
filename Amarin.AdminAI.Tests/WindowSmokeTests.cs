@@ -74,9 +74,8 @@ public sealed class WindowSmokeTests
                 "ChangeAvatarButton", "RemoveAvatarButton", "AccountPasswordHint",
                 "ChatSharingToggle", "ImportChatButton",
                 "AttachmentsPanel", "AttachmentsHost", "AttachmentsWarning",
-                "ComposerBorder", "AttachFileButton", "ChatReasoningPicker",
-                "LiteReasoningPicker", "AgentHeavyReasoningPicker",
-                "AgentFastReasoningPicker", "AgentFastModelPicker",
+                "ComposerBorder", "AttachFileButton", "ChatModelPicker",
+                "LiteModelPicker", "AgentHeavyModelPicker", "AgentFastModelPicker",
                 "JournalButton", "JournalOverlay", "JournalDetails", "JournalAskButton",
                 "ConfirmationCodeHost", "ConfirmationDetailsHost",
                 "ProfileList", "NameInput", "NameSaveButton", "ProfileOverlay", "NameOverlay"

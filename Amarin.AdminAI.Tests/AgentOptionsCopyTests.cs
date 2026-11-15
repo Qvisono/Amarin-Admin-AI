@@ -20,6 +20,7 @@ public sealed class AgentOptionsCopyTests
         Action<string, VeniceCost, string> spend = (_, _, _) => { };
         Action<ApiCredential, VeniceBalance> balance = (_, _) => { };
         Func<ApiCredential, CancellationToken, Task> gate = (_, _) => Task.CompletedTask;
+        Func<decimal?> rate = () => 95m;
         var audit = new AuditLog(Path.GetTempPath());
         var source = new AgentOptions
         {
@@ -27,6 +28,7 @@ public sealed class AgentOptionsCopyTests
             SpendSink = spend,
             BalanceSink = balance,
             SpendGate = gate,
+            RublesPerUsd = rate,
             Audit = audit,
             MaxToolRounds = 7,
             Download = new DownloadOptions { MaxSizeBytes = 42 }
@@ -37,6 +39,7 @@ public sealed class AgentOptionsCopyTests
         Assert.Same(spend, copy.SpendSink);
         Assert.Same(balance, copy.BalanceSink);
         Assert.Same(gate, copy.SpendGate);
+        Assert.Same(rate, copy.RublesPerUsd);
         Assert.Same(audit, copy.Audit);
         Assert.Equal(7, copy.MaxToolRounds);
         Assert.Equal(42, copy.Download.MaxSizeBytes);
@@ -46,6 +49,24 @@ public sealed class AgentOptionsCopyTests
 
         // Копия — новый объект: сдвиг модели у одного клиента не уводит другой.
         Assert.Equal(AppSettings.FactoryAgentHeavyModelId, source.Model);
+    }
+
+    [Fact]
+    public void An_inherited_copy_pays_with_the_chat_key()
+    {
+        var source = new AgentOptions
+        {
+            Keys = new ApiKeyProvider("slot-key", LlmProvider.OpenRouter)
+        };
+        var chat = new ApiCredential(LlmProvider.Venice, "chat-key");
+
+        var copy = AgentHost.CloneOptions(
+            source, "chat-model", new ReasoningSettings { DisableThinking = false, ReasoningEffort = "high" },
+            credential: chat);
+
+        Assert.Equal(chat, copy.Binding);
+        Assert.Equal(chat, copy.Credential);
+        Assert.Equal("chat-model", copy.Model);
     }
 
     [Fact]
@@ -67,7 +88,7 @@ public sealed class AgentOptionsCopyTests
         using var http = Http();
         var summaries = new ChatSummaryGenerator(http, Options(seen), () => new AppSettings());
 
-        await summaries.CompactAsync("человек: привет\nассистент: здравствуйте");
+        await summaries.CompactAsync(["человек: привет\nассистент: здравствуйте"], null, null, null);
 
         Assert.Equal([4.20m], seen);
     }

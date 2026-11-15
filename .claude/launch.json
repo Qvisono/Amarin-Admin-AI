@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rosa-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "C:/Users/RRR/AppData/Local/Temp/claude/D--Amarin-Microsoft-Amarin-Admin-AI/6daab2f7-bf14-4c8a-ba00-1edada1bde71/scratchpad/rosa"],
+      "port": 8765
+    },
+    {
+      "name": "rosa-preview-d4",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8766", "--bind", "127.0.0.1", "--directory", "C:/Users/RRR/AppData/Local/Temp/claude/D--Amarin-Microsoft-Amarin-Admin-AI/da25efec-0074-4797-b323-9073f9c21fe6/scratchpad/rosa"],
+      "port": 8766
+    }
+  ]
+}

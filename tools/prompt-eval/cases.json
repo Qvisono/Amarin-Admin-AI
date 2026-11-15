@@ -1,0 +1,1496 @@
+[
+  {
+    "id": "image-find-default",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи настоящую фотографию снежного барса."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "search_web"
+      ],
+      "tools_none": [
+        "generate_image",
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Find an existing photograph via web search; do not substitute a generated image.",
+    "judge": false
+  },
+  {
+    "id": "image-draw-explicit",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Нарисуй новую иллюстрацию: маленькая лиса читает книгу под сосной. Нужна одна картинка."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "generate_image"
+      ],
+      "tools_none": [
+        "search_web",
+        "fetch_image"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Generate one original illustration with the requested fox, book and pine.",
+    "judge": false
+  },
+  {
+    "id": "image-linked-page",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи фотографию с этой страницы: https://gallery.example.test/pictures/aurora"
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image"
+      ],
+      "args_contains": {
+        "fetch_image": [
+          "https://gallery.example.test/pictures/aurora"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Fetch the supplied page directly rather than generate an image or ask the user to open it.",
+    "judge": false
+  },
+  {
+    "id": "image-linked-file",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи https://images.example.test/moon.jpg прямо в ответе."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image"
+      ],
+      "args_contains": {
+        "fetch_image": [
+          "https://images.example.test/moon.jpg"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Fetch the supplied image URL.",
+    "judge": false
+  },
+  {
+    "id": "image-from-search",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Найди фотографию полярного сияния."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "search_1",
+            "type": "function",
+            "function": {
+              "name": "search_web",
+              "arguments": "{\"query\":\"полярное сияние фотография\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "search_1",
+        "content": "Найдены фотографии.\nSources:\nhttps://gallery.example.test/aurora-a\nhttps://gallery.example.test/aurora-b\nhttps://gallery.example.test/aurora-c"
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use a URL from the search result with fetch_image; do not generate a substitute.",
+    "judge": false
+  },
+  {
+    "id": "image-retry-after-first-failure",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Найди существующую фотографию северного сияния."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "search_1",
+            "type": "function",
+            "function": {
+              "name": "search_web",
+              "arguments": "{\"query\":\"северное сияние фотография\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "search_1",
+        "content": "Sources:\nhttps://gallery.example.test/north-a\nhttps://gallery.example.test/north-b\nhttps://gallery.example.test/north-c"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "fetch_1",
+            "type": "function",
+            "function": {
+              "name": "fetch_image",
+              "arguments": "{\"url\":\"https://gallery.example.test/north-a\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "fetch_1",
+        "content": "По ссылке нет доступной картинки. Попробуй следующую ссылку."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image"
+      ],
+      "args_contains": {
+        "fetch_image": [
+          "north-"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "After the first fetch failed, try another candidate instead of abandoning the search or drawing.",
+    "judge": false
+  },
+  {
+    "id": "image-retry-third-candidate",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Найди существующее фото Красной площади."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "search_1",
+            "type": "function",
+            "function": {
+              "name": "search_web",
+              "arguments": "{\"query\":\"Красная площадь фотография\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "search_1",
+        "content": "Sources:\nhttps://gallery.example.test/square-a\nhttps://gallery.example.test/square-b\nhttps://gallery.example.test/square-c"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "fetch_1",
+            "type": "function",
+            "function": {
+              "name": "fetch_image",
+              "arguments": "{\"url\":\"https://gallery.example.test/square-a\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "fetch_1",
+        "content": "Не удалось получить картинку: HTTP 404."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "fetch_2",
+            "type": "function",
+            "function": {
+              "name": "fetch_image",
+              "arguments": "{\"url\":\"https://gallery.example.test/square-b\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "fetch_2",
+        "content": "На странице не найдено изображения."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image"
+      ],
+      "args_contains": {
+        "fetch_image": [
+          "square-c"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Try the third remaining URL; two failures are not grounds to silently draw a replacement.",
+    "judge": false
+  },
+  {
+    "id": "image-generated-handle",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Нарисуй один зелёный воздушный шар на белом фоне."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "draw_1",
+            "type": "function",
+            "function": {
+              "name": "generate_image",
+              "arguments": "{\"prompt\":\"One green balloon on a white background\",\"orientation\":\"square\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "draw_1",
+        "content": "Изображение создано. Write this exact handle in a Markdown image: amarin-image:balloon-7. You have one generated image."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "!\\[[^\\]]*\\]\\(amarin-image:balloon-7\\)"
+      ],
+      "content_none": [
+        "data:image",
+        "base64",
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Display the existing tool handle as a Markdown image. Do not generate again or invent a handle.",
+    "judge": false
+  },
+  {
+    "id": "image-fetched-handle",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи фотографию по ссылке https://images.example.test/forest.jpg"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "fetch_1",
+            "type": "function",
+            "function": {
+              "name": "fetch_image",
+              "arguments": "{\"url\":\"https://images.example.test/forest.jpg\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "fetch_1",
+        "content": "Изображение получено. Include it with Markdown handle amarin-image:forest-2."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "!\\[[^\\]]*\\]\\(amarin-image:forest-2\\)"
+      ],
+      "content_none": [
+        "!\\[[^\\]]*\\]\\(https://images\\.example\\.test",
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Render the tool handle rather than the external URL.",
+    "judge": false
+  },
+  {
+    "id": "image-no-redraw-after-refusal",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Нарисуй один маяк у моря."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "draw_1",
+            "type": "function",
+            "function": {
+              "name": "generate_image",
+              "arguments": "{\"prompt\":\"A lighthouse by the sea\",\"orientation\":\"portrait\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "draw_1",
+        "content": "Изображение создано: amarin-image:lighthouse-8. Use this handle in your reply."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "draw_2",
+            "type": "function",
+            "function": {
+              "name": "generate_image",
+              "arguments": "{\"prompt\":\"A lighthouse by the sea with more detail\",\"orientation\":\"portrait\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "draw_2",
+        "content": "Повторная генерация почти такой же картинки в этом ходе запрещена. Используй уже полученное изображение amarin-image:lighthouse-8."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "amarin-image:lighthouse-8"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Recover from the refused duplicate by showing the existing image; never retry generation.",
+    "judge": false
+  },
+  {
+    "id": "image-existing-no-license-refusal",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи существующее фото картины «Звёздная ночь» Ван Гога в этом чате."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "search_web",
+        "fetch_image"
+      ],
+      "tools_none": [
+        "generate_image",
+        "i_refuse"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Find and fetch a public image for private viewing without an unsupported copyright refusal.",
+    "judge": false
+  },
+  {
+    "id": "image-many-requested",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Нарисуй две отдельные новые картинки: красный воздушный шар и синий воздушный шар."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "generate_image"
+      ],
+      "tools_none": [
+        "search_web"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Begin creating the explicitly requested multiple images. Do not apply the one-image default as a refusal.",
+    "judge": false
+  },
+  {
+    "id": "agent-system-task",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Проверь, почему на этом ПК не работает Wi-Fi. Сам выясни состояние адаптера и службы WLAN, ничего пока не меняй."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "init_agent": [
+          "Wi-Fi"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Delegate PC inspection with the user's read-only constraint; do not give manual troubleshooting instructions.",
+    "judge": false
+  },
+  {
+    "id": "agent-context-complete",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Папка игры D:\\Games\\Aurora, запускаемый файл aurora.exe. Нужен только ярлык, не установка."
+      },
+      {
+        "role": "assistant",
+        "content": "Понял: существующая игра, папка D:\\Games\\Aurora, исполняемый файл aurora.exe."
+      },
+      {
+        "role": "user",
+        "content": "Сделай для неё ярлык на рабочем столе."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "init_agent": [
+          "Aurora",
+          "aurora.exe"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "The agent sees no chat: include the known game location, executable and desktop shortcut goal in the task.",
+    "judge": false
+  },
+  {
+    "id": "agent-speed-note",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Срочно проверь, установлен ли на этом ПК 7-Zip. Ничего не устанавливай, мне нужен ответ как можно быстрее."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "init_agent": [
+          "7-Zip"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Keep the inspection task complete and read-only. Urgency belongs in optional router notes, not a forced model/tier in the task.",
+    "judge": true
+  },
+  {
+    "id": "agent-model-choice",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Проверь, сколько свободного места на диске D:. Выбор модели агента оставляю приложению."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Delegate disk inspection without trying to choose a model or tier.",
+    "judge": false
+  },
+  {
+    "id": "agent-repeat-clarification",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Проверь свободное место на D: и E:."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "agent_1",
+            "type": "function",
+            "function": {
+              "name": "init_agent",
+              "arguments": "{\"prompt\":\"Проверь свободное место на дисках D: и E:.\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "agent_1",
+        "content": "Отчёт агента disk-a7: D: свободно 48 ГБ. Диск E: не проверен: путь не найден."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "message_agent"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "message_agent": [
+          "disk-a7"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Ask the same available agent to clarify/check the missing disk rather than start from scratch or ignore half the task.",
+    "judge": false
+  },
+  {
+    "id": "agent-report-preserves-facts",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Проверь состояние трёх служб и сообщи итоги."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "agent_1",
+            "type": "function",
+            "function": {
+              "name": "init_agent",
+              "arguments": "{\"prompt\":\"Проверь службы Spooler, WlanSvc и wuauserv, сообщи состояние и ничего не меняй.\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "agent_1",
+        "content": "Отчёт агента services-b2: Spooler: Running, Automatic.\nWlanSvc: Running, Automatic.\nwuauserv: Stopped, Manual.\nНикаких изменений не выполнено."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "Spooler",
+        "WlanSvc",
+        "wuauserv"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Retain all three service names and their running/stopped and startup statuses; mention that nothing was changed.",
+    "judge": true
+  },
+  {
+    "id": "agent-new-message-steering",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Проверь установленную версию 7-Zip, ничего не меняй."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "agent_1",
+            "type": "function",
+            "function": {
+              "name": "init_agent",
+              "arguments": "{\"prompt\":\"Проверь установленную версию 7-Zip, ничего не меняй.\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "agent_1",
+        "content": "Отчёт агента apps-a4: Установлен 7-Zip 26.02, версия x64. Изменения не выполнялись."
+      },
+      {
+        "role": "user",
+        "content": "Ещё проверь, есть ли у него обновление."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "message_agent",
+        "search_web"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Acknowledge the new request and either reuse the contextual agent or verify the latest version by search; do not restart the same inspection.",
+    "judge": false
+  },
+  {
+    "id": "agent-browser-action",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "На сайте https://forms.example.test/contact отправь сообщение получателю support@example.test с темой «Тест» и текстом «Спасибо за помощь»."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "init_agent": [
+          "https://forms.example.test/contact",
+          "support@example.test",
+          "Спасибо за помощь"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Pass site, recipient, subject and exact text to the browser-capable agent without new confirmation conditions.",
+    "judge": true
+  },
+  {
+    "id": "agent-show-clicks",
+    "variant": "on",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи мне по шагам, куда нажать в Блокноте, чтобы включить перенос строк. Я хочу нажимать сам."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Delegate in show/highlight mode and state that the user wants to click themselves; do not silently perform the action.",
+    "judge": true
+  },
+  {
+    "id": "computer-disabled",
+    "variant": "off",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Нажми кнопку «Сохранить» в открытом окне Блокнота."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "SendKeys",
+        "run_powershell",
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Explain that mouse/keyboard control must be enabled on the Security settings page before window work; do not claim success or use scripts.",
+    "judge": true
+  },
+  {
+    "id": "browser-disabled",
+    "variant": "off",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Заполни форму на https://forms.example.test/request и нажми кнопку отправки."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "With both browser and computer control disabled, identify the browser switch on the Security settings page and avoid pretending to submit.",
+    "judge": true
+  },
+  {
+    "id": "file-text-read",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Прочитай файл D:\\Sandbox\\notes.txt и кратко перескажи его."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "read_file": [
+          "notes.txt"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Read the named text file directly before summarizing.",
+    "judge": false
+  },
+  {
+    "id": "file-directory-list",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи список файлов в папке D:\\Sandbox\\Reports."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use the native folder listing capability of read_file.",
+    "judge": false
+  },
+  {
+    "id": "file-relative-downloads",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Прочитай файл todo.txt из моей папки загрузок."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "read_file": [
+          "todo.txt"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use read_file with a path referring to the user's Downloads, not the application directory.",
+    "judge": false
+  },
+  {
+    "id": "attachment-read-unseen",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Что написано в заключении документа?\n<document name=\"report.docx\" path=\"amarin-attachment:c1f4a6b8d2e0/report.docx\">\nПоказаны абзацы 1-3 из 12.\n1: Введение.\n2: Исследование начато.\n3: Основные результаты.\nПродолжение: read_file offset=4.\n</document>"
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "args_contains": {
+        "read_file": [
+          "amarin-attachment:c1f4a6b8d2e0/report.docx"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Read the unshown part using the attachment handle; do not invent the conclusion.",
+    "judge": false
+  },
+  {
+    "id": "attachment-answer-visible",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Кто руководитель проекта?\n<document name=\"brief.docx\" path=\"amarin-attachment:a1b2c3d4e5f6/brief.docx\">\nПоказан весь документ.\n1: Проект «Орион».\n2: Руководитель проекта: Анна Соколова.\n</document>"
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "Анна Соколова"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Answer from the visible attachment without needlessly delegating or denying access.",
+    "judge": false
+  },
+  {
+    "id": "file-create-word",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Создай файл Documents\\hello.docx с заголовком «Привет» и одним абзацем «Документ готов»."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "create_document"
+      ],
+      "tools_none": [
+        "write_file",
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Create the Word document with the document tool rather than writing a ZIP as text.",
+    "judge": false
+  },
+  {
+    "id": "file-save-chat-image",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Сохрани картинку amarin-image:fox-3 из нашего чата в Downloads\\fox.png."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "save_image"
+      ],
+      "tools_none": [
+        "fetch_image",
+        "generate_image",
+        "init_agent"
+      ],
+      "args_contains": {
+        "save_image": [
+          "amarin-image:fox-3",
+          "fox.png"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Save the existing chat image handle to the requested file without generating or fetching a replacement.",
+    "judge": false
+  },
+  {
+    "id": "file-edit-existing-read-first",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "В файле D:\\Sandbox\\config.txt замени строку mode=slow на mode=fast, остальное не трогай."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "write_file",
+        "edit_file",
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Read the existing relevant content before editing it.",
+    "judge": false
+  },
+  {
+    "id": "file-edit-known-fragment",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "В D:\\Sandbox\\config.txt замени mode=slow на mode=fast."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "read_1",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"D:\\\\Sandbox\\\\config.txt\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "read_1",
+        "content": "D:\\Sandbox\\config.txt\n1: enabled=true\n2: mode=slow\n3: retries=3\nФайл прочитан целиком, версия актуальна."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "edit_file"
+      ],
+      "tools_none": [
+        "write_file",
+        "init_agent"
+      ],
+      "args_contains": {
+        "edit_file": [
+          "mode=slow",
+          "mode=fast"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Perform an exact targeted edit based on the current read; preserve unrelated lines.",
+    "judge": false
+  },
+  {
+    "id": "file-edit-failure-reread",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "В D:\\Sandbox\\config.txt замени mode=slow на mode=fast."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "read_1",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"D:\\\\Sandbox\\\\config.txt\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "read_1",
+        "content": "1: mode=slow"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "edit_1",
+            "type": "function",
+            "function": {
+              "name": "edit_file",
+              "arguments": "{\"path\":\"D:\\\\Sandbox\\\\config.txt\",\"old_string\":\"mode=slow\",\"new_string\":\"mode=fast\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "edit_1",
+        "content": "Правка не выполнена: файл изменился после чтения. Прочитай его заново."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "read_file"
+      ],
+      "tools_none": [
+        "write_file",
+        "edit_file",
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "After the stale-file edit failure, reread rather than guessing or retrying blindly.",
+    "judge": false
+  },
+  {
+    "id": "table-native-analysis",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "В файле D:\\Sandbox\\sales.csv посчитай общую сумму продаж по каждой категории, учитывая все строки."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "analyze_table",
+        "read_file"
+      ],
+      "tools_none": [
+        "init_agent"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use table analysis over all rows; reading the schema first is also valid, but manual summation or sampling is not.",
+    "judge": false
+  },
+  {
+    "id": "file-show-with-reference",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Покажи полностью прочитанный файл D:\\Sandbox\\hello.py."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "read_1",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"D:\\\\Sandbox\\\\hello.py\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "read_1",
+        "content": "D:\\Sandbox\\hello.py\n1: print('hello')\nФайл прочитан целиком."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "```file",
+        "path: D:\\\\Sandbox\\\\hello\\.py"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use the application file block with the full path instead of retyping file contents.",
+    "judge": false
+  },
+  {
+    "id": "deferred-relative-delay",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Напомни через 25 минут выпить воды."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "deferred_task"
+      ],
+      "args_contains": {
+        "deferred_task": [
+          "remind",
+          "25"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Schedule remind with the original relative delay, without converting to a guessed clock time.",
+    "judge": false
+  },
+  {
+    "id": "deferred-window-work",
+    "variant": "on",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Завтра в 10:00 открой Блокнот и напиши в нём «Доброе утро»."
+      }
+    ],
+    "expect": {
+      "tools_any": [
+        "deferred_task"
+      ],
+      "args_contains": {
+        "deferred_task": [
+          "run_agent"
+        ]
+      },
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Schedule window interaction as run_agent rather than run_command.",
+    "judge": false
+  },
+  {
+    "id": "chat-greeting",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Привет! Ответь коротко, без картинок."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "A natural short Russian greeting, warm and not overloaded with emoticons.",
+    "judge": true
+  },
+  {
+    "id": "explain-correlation",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Только текстом: объясни старшекласснику, почему корреляция не доказывает причинность. Не больше 120 слов."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Explain confounding and/or reverse causation accurately in Russian within 120 words, without claiming that correlation is useless.",
+    "judge": true
+  },
+  {
+    "id": "math-derivative",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Найди производную функции f(x)=x^3-6x^2+9x. Дай решение и точки, где производная равна нулю. Только текст и формулы."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "1",
+        "3",
+        "\\$"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Correct derivative is 3x^2-12x+9=3(x-1)(x-3); zeroes 1 and 3; mathematical expressions use LaTeX.",
+    "judge": true
+  },
+  {
+    "id": "math-bayes",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Только текст и формулы. Болезнь есть у 1% людей. Чувствительность теста 90%, специфичность 95%. Какова вероятность болезни при положительном тесте? Покажи расчёт."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "\\$"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Use Bayes correctly: 0.009/(0.009+0.0495)=2/13, about 15.38%, not 90%. Explain base rates and write formulas as LaTeX.",
+    "judge": true
+  },
+  {
+    "id": "math-proof",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Докажи от противного, что квадратный корень из двух иррационален. Только текст и формулы, без картинок."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "\\$"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "A complete parity contradiction using a reduced fraction; no circular premise and no unsupported final leap.",
+    "judge": true
+  },
+  {
+    "id": "code-debug-csharp",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Найди ошибку и исправь код C#, не используя внешние инструменты. Только текст и код.\nstatic readonly object Gate = new();\nstatic async Task SaveAsync() {\n    lock (Gate) {\n        await WriteAsync();\n    }\n}\nНужно сохранить взаимное исключение для параллельных вызовов SaveAsync."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Explain that await is forbidden inside lock; use an asynchronously awaited SemaphoreSlim with Release in finally, preserving mutual exclusion.",
+    "judge": true
+  },
+  {
+    "id": "code-python-boundary",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Только текст и код: напиши функцию Python is_prime(n), корректную для целых отрицательных чисел, 0, 1 и больших положительных чисел. Без сторонних библиотек."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Correct primality test rejects n<2, handles 2 and even numbers, checks divisors through integer sqrt without off-by-one errors.",
+    "judge": true
+  },
+  {
+    "id": "editing-latest-version",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Напиши две строки уведомления."
+      },
+      {
+        "role": "assistant",
+        "content": "Встреча состоится в пятницу.\nВозьмите с собой паспорт."
+      },
+      {
+        "role": "user",
+        "content": "Замени пятницу на субботу и больше ничего не меняй. Верни текст целиком."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "Встреча состоится в субботу\\.",
+        "Возьмите с собой паспорт\\."
+      ],
+      "content_none": [
+        "пятницу",
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Return both sentences, changing only the day in the latest version and preserving the rest word for word.",
+    "judge": true
+  },
+  {
+    "id": "translation-preserve",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Переведи на английский, сохрани цифры и смысл. Только перевод, без картинок: «Заказ №4827 будет готов 12 ноября. В комплект входят 3 кабеля, но адаптер нужно купить отдельно»."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "4827",
+        "12",
+        "3"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Faithful natural translation preserving order number, November 12, three cables, and the adapter being purchased separately.",
+    "judge": true
+  },
+  {
+    "id": "writing-constrained",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Только текст: напиши спокойный отказ от приглашения на вечеринку. Два предложения, без оправданий, с благодарностью и предложением встретиться на следующей неделе."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Exactly two natural Russian sentences including gratitude, declining the party and offering to meet next week; no fabricated excuses.",
+    "judge": true
+  },
+  {
+    "id": "reasoning-scheduling",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Только текстом реши задачу: три работы A, B, C выполняет один сотрудник. A длится 2 часа, B 1 час, C 3 часа. B обязательно идёт после A, C нельзя прерывать. Начало в 9:00, обед 12:00-13:00. Когда самое раннее можно закончить все работы? Объясни расписание."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Correct earliest finish is 16:00; feasible A 9-11, B 11-12, C 13-16, or C 9-12 then A and B 13-16. Account for lunch and precedence.",
+    "judge": true
+  },
+  {
+    "id": "english-smalltalk",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I had a tiring day. Say something kind in one sentence, without advice or pictures."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "One warm English sentence, no advice, no exaggerated reassurance or needless tools.",
+    "judge": true
+  }
+]

@@ -496,6 +496,14 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Программа запущена без прав администратора: многие действия недоступны</system:String>
 
     <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Выполни этот скрипт на этом ПК без изменений и сообщи результат:</system:String>
+    <system:String x:Key="S.Code.CommandBusy" xml:space="preserve">Выполняется команда. Дождитесь её завершения или остановите её. Сообщение осталось в поле ввода.</system:String>
+    <system:String x:Key="S.Code.RunBusy" xml:space="preserve">В этом чате уже идёт работа. Дождитесь её завершения или остановите её.</system:String>
+    <system:String x:Key="S.Code.RunCancelled" xml:space="preserve">Команда остановлена</system:String>
+    <system:String x:Key="S.Code.RunDone" xml:space="preserve">Команда выполнена</system:String>
+    <system:String x:Key="S.Code.RunFailed" xml:space="preserve">Не удалось выполнить команду</system:String>
+    <system:String x:Key="S.Code.RunLocal" xml:space="preserve">Выполнить на этом компьютере</system:String>
+    <system:String x:Key="S.Code.RunOrigin" xml:space="preserve">Блок кода PowerShell</system:String>
+    <system:String x:Key="S.Code.StopLocal" xml:space="preserve">Остановить команду</system:String>
     <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Не переносить строки</system:String>
     <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Выполнить через агента: задача появится в поле ввода</system:String>
     <system:String x:Key="S.Code.Save" xml:space="preserve">Сохранить в файл</system:String>
@@ -560,8 +568,9 @@
     <system:String x:Key="S.Compact.Hint" xml:space="preserve">Сжать</system:String>
     <system:String x:Key="S.Compact.HintTip" xml:space="preserve">Контекст модели почти заполнен. Сжать старую часть переписки в сводку?</system:String>
     <system:String x:Key="S.Compact.Mark" xml:space="preserve">Выше этой черты модель видит только сводку</system:String>
-    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">Сообщения остаются на экране, но модель получает их пересказ. Отменить можно в меню кольца контекста.</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">Сообщения остаются на экране, но модель получает их пересказ. Вернуть оригинал можно значком у сжатого сообщения.</system:String>
     <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Сжать контекст</system:String>
+    <system:String x:Key="S.Compact.MessageTip" xml:space="preserve">Модель видит это сообщение в пересказе. Нажмите, чтобы вернуть оригинал.</system:String>
     <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Сжимать нечего: переписка короткая или уже сжата.</system:String>
     <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">Провайдер отказал: контекст превышен. Сжать старую часть переписки в сводку и повторить?</system:String>
     <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">Переписка не помещается в модель</system:String>
@@ -1077,6 +1086,8 @@
     <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">До конца ответа</system:String>
     <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">Пока открыта программа</system:String>
     <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Сохранять в чате</system:String>
+    <system:String x:Key="S.Models.InheritAgent" xml:space="preserve">Наследование агентов</system:String>
+    <system:String x:Key="S.Models.InheritAgentDesc" xml:space="preserve">Все агенты работают на модели чата, маршрутизатор не выбирает их модель</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Быстрые задачи</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Ответ в чате</system:String>
@@ -1115,6 +1126,12 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">Правила работы, которые программа даёт чату и агенту</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">Модель {0} сейчас перегружена или упёрлась в лимит запросов. Повторите чуть позже или выберите другую модель.</system:String>
+    <system:String x:Key="S.FileBlock.Missing" xml:space="preserve">Файл не показан: {0} не найден.</system:String>
+    <system:String x:Key="S.FileBlock.Forbidden" xml:space="preserve">Файл не показан: {0} может содержать секреты, программа его не открывает.</system:String>
+    <system:String x:Key="S.FileBlock.Unknown" xml:space="preserve">Файл не показан: модель не открывала {0} в этом чате.</system:String>
+    <system:String x:Key="S.FileBlock.NotText" xml:space="preserve">Файл не показан: {0} не текстовый файл.</system:String>
+    <system:String x:Key="S.FileBlock.Failed" xml:space="preserve">Файл не показан: не удалось прочитать {0}.</system:String>
+    <system:String x:Key="S.FileBlock.Cut" xml:space="preserve">Показаны первые {0} знаков: файл длиннее.</system:String>
     <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">У этой модели в OpenRouter нет провайдеров без хранения данных, а в «Безопасности» включено «Только провайдеры без хранения данных». Выберите другую модель или выключите эту настройку.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">Модель отказалась отвечать на этот запрос: сработала защита провайдера. Переформулируйте запрос или выберите другую модель.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">Я, {0}, отказываюсь выполнять эту задачу по причинам: {1}</system:String>
@@ -1417,6 +1434,10 @@
     <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Переименовать ключ</system:String>
     <system:String x:Key="S.Key.Restore" xml:space="preserve">Вернуть</system:String>
     <system:String x:Key="S.Key.Section" xml:space="preserve">Ключи</system:String>
+    <system:String x:Key="S.Key.PolzaRate" xml:space="preserve">Polza.ai: рублей за $1</system:String>
+    <system:String x:Key="S.Key.PolzaRateHint" xml:space="preserve">Для оценки цен и остатка в долларах. Пусто - только токены. Прошлые траты не пересчитываются.</system:String>
+    <system:String x:Key="S.Key.PolzaRateError" xml:space="preserve">Введите число больше нуля или оставьте поле пустым.</system:String>
+    <system:String x:Key="S.Key.PolzaBalanceError" xml:space="preserve">Не удалось прочитать остаток Polza.ai. Повторите позже.</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Показать</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">осталось {0}</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Считаю…</system:String>
@@ -1497,10 +1518,13 @@
     <system:String x:Key="S.Batch.Unsupported" xml:space="preserve">Пакетная очередь OpenRouter не принимает {0}: вложения уходят в запрос строкой data:, а очередь берёт их только ссылкой. Выберите ту же модель без пометки «(batch)» или уберите вложение.</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ДВИЖОК</system:String>
+    <system:String x:Key="S.Models.Favorites" xml:space="preserve">Избранное</system:String>
+    <system:String x:Key="S.Models.FavoriteAdd" xml:space="preserve">Добавить в избранное</system:String>
+    <system:String x:Key="S.Models.FavoriteRemove" xml:space="preserve">Убрать из избранного</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Код</system:String>
-    <system:String x:Key="S.Models.FilterNitro" xml:space="preserve">Nitro</system:String>
     <system:String x:Key="S.Models.FilterNitroTip" xml:space="preserve">Варианты, которые OpenRouter отправляет самому быстрому провайдеру</system:String>
     <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Картинки</system:String>
+    <system:String x:Key="S.Models.Key" xml:space="preserve">Ключ</system:String>
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">КЛЮЧ</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">По умолчанию</system:String>
     <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">Ключ выберется сам: первый подходящий для этого провайдера</system:String>
@@ -1511,9 +1535,16 @@
     <system:String x:Key="S.Models.LoadServer" xml:space="preserve">У {0} сбой на сервере ({1}).</system:String>
     <system:String x:Key="S.Models.LoadTimeout" xml:space="preserve">{0} не ответил вовремя.</system:String>
     <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">Ключа {0} в программе нет. Добавьте его, чтобы выбирать модели этого провайдера.</system:String>
+    <system:String x:Key="S.Models.Provider" xml:space="preserve">Провайдер</system:String>
     <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">ПРОВАЙДЕР</system:String>
     <system:String x:Key="S.Models.Retry" xml:space="preserve">Повторить</system:String>
+    <system:String x:Key="S.Models.Route" xml:space="preserve">Маршрутизация</system:String>
+    <system:String x:Key="S.Models.RouteDefault" xml:space="preserve">Обычный маршрут</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Поиск…</system:String>
+    <system:String x:Key="S.Models.Variant" xml:space="preserve">Вариант</system:String>
+    <system:String x:Key="S.Models.VariantAll" xml:space="preserve">Все варианты</system:String>
+    <system:String x:Key="S.Models.VariantFloor" xml:space="preserve">Минимальная цена</system:String>
+    <system:String x:Key="S.Models.VariantExacto" xml:space="preserve">Приоритет качества</system:String>
 
 
     <system:String x:Key="S.Password.Chosen" xml:space="preserve">выбран</system:String>
@@ -1537,19 +1568,13 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">Новый профиль</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
 
-    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся из настроек лёгкой и тяжёлой модели на странице «Модели»</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Уровень размышления</system:String>
     <system:String x:Key="S.Speed.Caption" xml:space="preserve">Скорость</system:String>
     <system:String x:Key="S.Speed.Flex" xml:space="preserve">Экономная</system:String>
     <system:String x:Key="S.Speed.Standard" xml:space="preserve">Обычная</system:String>
     <system:String x:Key="S.Speed.Fast" xml:space="preserve">Быстрая</system:String>
     <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Сверхбыстрая</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Размышление</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
     <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Выполни рецепт «{0}»: вызови инструмент {1} с аргументами&#10;{2}&#10;Если вызов не удастся, выясни причину и предложи, что делать.</system:String>
     <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">{{имя}} в значении становится параметром, его спросят при запуске.</system:String>
@@ -1813,6 +1838,10 @@
     <system:String x:Key="S.Security.WindowsLogDesc" xml:space="preserve">Действия ИИ видны администратору в журнале «Приложение», без аргументов</system:String>
     <system:String x:Key="S.Security.AnySite" xml:space="preserve">Загрузка с любого сайта</system:String>
     <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">Белый список ниже не проверяется. Включайте, только если доверяете тому, что скачивает агент</system:String>
+    <system:String x:Key="S.Security.DownloadLimit" xml:space="preserve">Ограничивать размер файла</system:String>
+    <system:String x:Key="S.Security.DownloadLimitDesc" xml:space="preserve">Максимальный размер одного скачиваемого файла.</system:String>
+    <system:String x:Key="S.Security.DownloadMaxSize" xml:space="preserve">Максимальный размер файла</system:String>
+    <system:String x:Key="S.Security.DownloadSizeUnit" xml:space="preserve">МиБ</system:String>
     <system:String x:Key="S.Browser.Title" xml:space="preserve">Браузер агента</system:String>
     <system:String x:Key="S.Browser.Status" xml:space="preserve">Здесь работает агент. Входить на сайты вы можете сами</system:String>
     <system:String x:Key="S.Browser.Done" xml:space="preserve">Готово</system:String>
@@ -1836,6 +1865,26 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
+    <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Размер вложений в токенах неизвестен.</system:String>
+    <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Браузер</system:String>
+    <system:String x:Key="S.SessionRail.InheritAgent" xml:space="preserve">Наследование агентов</system:String>
+    <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Сжать первое сообщение</system:String>
+    <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Освободится ≈ {0}</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Свои инструкции</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">Что важно сохранить в сводке</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Оставить последние</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepHint" xml:space="preserve">Сводкой станут {0} из {1} сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepLess" xml:space="preserve">Оставить меньше сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepMore" xml:space="preserve">Оставить больше сообщений</system:String>
+    <system:String x:Key="S.SessionRail.CompactModel" xml:space="preserve">Модель для сжатия</system:String>
+    <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">Контроль ПК</system:String>
+    <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Диалог</system:String>
+    <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">Система</system:String>
+    <system:String x:Key="S.SessionRail.FileCreated" xml:space="preserve">создан</system:String>
+    <system:String x:Key="S.SessionRail.FileModified" xml:space="preserve">изменён</system:String>
+    <system:String x:Key="S.SessionRail.GlobalDisabled" xml:space="preserve">Функция запрещена в общих настройках или политикой организации.</system:String>
+    <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Файлы</system:String>
+    <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Настройки сеанса</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">О программе</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Автоматизация</system:String>
@@ -1942,6 +1991,8 @@
     <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии.</system:String>
     <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии. Чтобы изменение вступило в силу, нужна перезагрузка: скажи об этом пользователю, сам не перезагружай.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Не удалось запустить {0}.</system:String>
+    <system:String x:Key="S.Tool.Download.InvalidSize" xml:space="preserve">Параметр max_size_mb должен быть положительным целым числом. Укажи корректный предел или убери параметр, чтобы использовать настройку пользователя.</system:String>
+    <system:String x:Key="S.Tool.Download.SizeLimit" xml:space="preserve">Файл превышает ограничение размера ({0} байт). Лимит можно изменить или отключить: Настройки → Безопасность → Источники загрузки. Не повторяй загрузку с тем же ограничением.</system:String>
     <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Нужны права администратора: запустите программу от администратора и повторите. Не повторяй попытку, пока права те же.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Неизвестный профиль брандмауэра «{0}». Допустимы: domain, private, public, all. Не повторяй с тем же значением.</system:String>
     <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">Изменение вступит в силу только после перезагрузки. Не перезагружай сам, скажи пользователю.</system:String>

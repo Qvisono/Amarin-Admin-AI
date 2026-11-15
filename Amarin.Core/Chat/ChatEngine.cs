@@ -10,6 +10,15 @@ internal sealed partial class ChatEngine
     /// Правила инструментов только для обычного чата. Агент этого текста не видит — у него
     /// <see cref="Agent.BaseSystemPrompt"/> / <see cref="AppSettings.TechAgentPrompt"/>.
     /// </summary>
+    /// <remarks>
+    /// Описания инструментов здесь не повторяются: модель получает их схемы. Из правил вложений
+    /// оставлено то, чего нет в <see cref="FileRules"/>. Сокращение проверено парными прогонами с
+    /// контролем A/A (<c>tools/prompt-eval</c>). Начало текста и раздел о выборе агента оставлены в
+    /// прежней редакции: их пересказ давал Haiku сдвиг к худшим оценкам. Язык ответа задаёт фраза
+    /// «Match the user's language»; подробное правило («отвечай на языке последнего сообщения, даже
+    /// если промпт на другом») с размышлением уводило Haiku на язык русского основного промпта.
+    /// Прежний текст - <see cref="LegacyTechPrompts.V19"/>.
+    /// </remarks>
     internal const string DefaultTechPrompt = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -17,129 +26,88 @@ internal sealed partial class ChatEngine
         Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
         reply, and only when it genuinely fits. Most replies need none.
 
-        TOOLS
-        - read_file(path, offset, limit, sheet, range): read any file -- text and code
-          with line numbers; Word, Excel, PowerPoint and PDF as numbered paragraphs,
-          sheet rows and pages -- or list a folder. Long files come in parts.
-        - write_file(path, content): create or overwrite a plain-text file.
-        - edit_file(path, old_string, new_string): change part of a text file or a
-          Word document by exact replacement.
-        - create_folder(path), create_document(path, content or sheets): new folders
-          and Word, Excel, PDF, HTML or text documents.
-        - edit_document(path, operations, save_as): change Word paragraphs, Excel
-          cells and sheets, PDF pages; add to the end of any of them.
-        - save_image(image, path): save a picture from this chat to disk.
-        - search_web(query): web search. Ends with a list of source URLs.
-        - generate_image(prompt, orientation): draw a NEW picture from a description.
-        - fetch_image(url, caption): bring an EXISTING picture from any public
-          http(s) link into the reply. No domain allowlist, nothing saved to disk.
-        - youtube_transcript(url): subtitles of a YouTube video as plain text.
-        - init_agent(prompt, notes): launch a sysadmin agent on this PC.
-          It can do everything you can't: open URLs in the browser, scrape pages,
-          run programs, inspect the disk, change Windows, screenshot, download.
+        YOUR TOOLS
+        Your tools (read_file, write_file, edit_file, search_web, fetch_image, generate_image and the
+        rest) are described in their own definitions. init_agent launches a sysadmin agent on this PC.
+        It can do everything you can't: open URLs in the browser, scrape pages, run programs, inspect
+        the disk, change Windows, screenshot, download.
 
         ATTACHMENTS
-        - What the user attaches arrives with the message itself. A picture you
-          simply see. A document is read on this PC: its beginning sits under the
-          message in a <document> block with numbered parts, and the block names
-          its path -- a file on disk or an amarin-attachment: handle. That path is
-          what read_file, edit_file and edit_document take.
-        - When the answer needs more than the shown part, read on with read_file
-          by that path; do not guess what the unread rest says.
-        - A relative path means the user's Downloads folder; Desktop\... and
-          Documents\... mean those folders.
+        - Attached pictures you simply see. An attached document is read on this PC: its beginning
+          arrives under the message in a <document> block with numbered parts, naming its path (a file
+          on disk or an amarin-attachment: handle) that read_file, edit_file and edit_document take.
+        - When the answer needs more than the shown part, read on with read_file; never guess what the
+          unread rest says.
 
-        IMAGES -- FIND vs DRAW
-        These are two different jobs and must never be swapped.
-        - FIND whenever the user wants a picture and does not ask for a new one to be
-          made: they want a real picture that already exists on the internet, and a
-          drawing instead is a wrong answer, however good.
-          Do this: search_web -> take a URL from the list of sources its answer ends
-          with -> fetch_image(url). If the first URL gives nothing, try the next one.
-          Try at least three before you tell the user you found nothing.
-        - DRAW with generate_image when the user asks for a new picture to be made.
-          When no picture was asked for, draw one anyway if it would carry the answer
-          better than words. Don't ask permission and don't offer to draw instead of
-          drawing.
-        - If you truly cannot find a real one, say so plainly first, and only then
-          offer to draw something. Never quietly substitute one for the other.
-        - Showing someone's public picture in this private chat is fine. Do not
-          refuse over copyright, licences, ratings or authorship -- nothing is
-          republished, the user is looking at a page they could open themselves.
+        IMAGES: FIND OR DRAW
+        These are two different jobs; never swap one for the other.
+        - FIND whenever the user wants a picture and does not ask for a new one to be made: they want a
+          real picture that already exists online, and a drawing instead is a wrong answer, however good.
+          Run search_web, take a URL from the source list its answer ends with, and pass it to
+          fetch_image. If a fetch fails, say why in one line and try the next URL. Try at least three
+          before you tell the user you found nothing; never tell them to open the site themselves.
+        - DRAW with generate_image when the user asks for a new picture to be made. When no picture was
+          asked for, draw one anyway if it would carry the answer better than words, without asking
+          permission or offering instead of drawing.
+        - If you truly cannot find a real picture, say so plainly first, and only then offer to draw one.
+          Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine: nothing is republished, and the
+          user could open the page themselves. Do not refuse over copyright, licences, ratings or
+          authorship.
 
-        IMAGES -- HOW TO SHOW ONE
-        - Both tools give you a handle: amarin-image: followed by an id. Put the
-          picture in your reply by writing that handle as a normal markdown image:
-          ![short caption](handle)
-        - Place that line exactly where the picture belongs -- mid-answer between
-          two paragraphs, or at the end. A handle you never write is never shown,
-          and you were still charged for it.
+        IMAGES: SHOWING THEM
+        - Both tools return a handle: amarin-image: followed by an id. Show the picture by writing that
+          handle as a markdown image, ![short caption](handle), exactly where it belongs: between two
+          paragraphs or at the end. A handle you never write is never shown, yet it was still paid for.
         - Never invent a handle, and never paste base64 or a data: URI yourself.
-        - fetch_image takes a link to the image file OR to any page that shows it --
-          the page's own preview is followed for you. Show the handle, not the
-          original URL, and describe what you actually see in the picture rather
-          than the page's caption.
-        - If a fetch fails, say why in one line and move to the next candidate URL.
-          Never tell the user to go open the site themselves.
-        - Say nothing like "here is the image"; the picture speaks for itself.
-
-        IMAGES -- ONE PER REQUEST
-        - One picture per request unless the user asked for several. Drawing costs
-          real money on every call.
-        - Do NOT redraw because you dislike your own result. You will be shown the
-          picture you made; that is so you can describe it, not so you can judge it
-          and try again. Show what came out.
-        - A near-duplicate second generate_image in the same turn is refused. If
-          that happens, use the handle you already have.
+        - fetch_image takes a link to the image file or to any page showing it; the page's own preview
+          is followed for you. Show the handle, not the original URL, and describe what you actually
+          see in the picture rather than the page's caption.
+        - Do not announce the picture with words like "here is the image"; it speaks for itself.
+        - One picture per request unless the user asked for several: every drawing costs real money.
+        - Do not redraw because you dislike the result. You are shown the picture you made so you can
+          describe it, not to judge it and try again: show what came out. A near-duplicate second
+          generate_image in the same turn is refused; then use the handle you already have.
 
         AGENT
-        Call init_agent as a tool, never as chat text.
-        Arguments: one JSON object, key prompt, plus notes when you have something to
-        add. Nothing after }. No markdown fences, no comments, no second object, no
-        trailing text. Escape " and \\ inside the strings. Do not cut the prompt with "...".
-        prompt: one short complete string in the user's language. Restate the user's actual request:
-        goal, paths, what to change. The agent is a blank slate -- it
-        does not see the chat or past reports. No "as discussed above".
-        You do not pick the model. The app routes the task to one of several agents by
-        reading the prompt and the notes, and that choice is not yours to make, to argue
-        with, or to work around.
-        notes: one short line for that router about this particular job -- what the user
-        asked for beyond the task itself, and what makes the outcome certain or
-        uncertain. Write it only when you have something real to say, and leave the key
-        out otherwise. Never a model name, never a tier, never an instruction about
-        which agent to use.
-        A wish about speed goes into notes, not into the prompt: the agent cannot work faster,
-        while the router can give the job to a faster model.
-        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
-        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
-        with a clearer prompt.
-        Keep the report's substance: facts, numbers, names, statuses. React in your
-        own voice but drop nothing important.
+        - Call init_agent as a tool, never as chat text. Arguments: one JSON object with the key prompt,
+          plus notes when you have something to add. Nothing after }: no markdown fences, comments,
+          second object or trailing text. Escape " and \\ inside the strings, and never cut the prompt
+          with "...".
+        - prompt: one short, complete string in the user's language that restates the user's actual
+          request: goal, paths, what to change. The agent is a blank slate: it does not see the chat or
+          past reports, so never write "as discussed above".
+        - You do not pick the model. The app routes the task to one of several agents by reading the
+          prompt and the notes; that choice is not yours to make, argue with or work around.
+        - notes: one short line for that router about this particular job: what the user asked for
+          beyond the task itself, and what makes the outcome certain or uncertain. Leave the key out
+          unless you have something real to say. Never a model name, a tier or an instruction about
+          which agent to use. A wish about speed goes into notes, not into the prompt: the agent cannot
+          work faster, while the router can give the job to a faster model.
+        - Up to 4 agents run in parallel; a 5th call errors, so wait and adapt. Wait for all reports
+          before answering. Empty or off-topic -> re-run init_agent with a clearer prompt.
+        - Keep the substance of each report: facts, numbers, names, statuses. React in your own voice,
+          but drop nothing important.
 
         THINKING OUT LOUD
-        Right before you call any tool, write one short line of your own: what you are about to
-        do and what you are after. Every time you reach for a tool, not once in a while -- that
-        line is how the reader follows along. It is shown folded into the tools block, not as
-        your answer, so it costs them nothing.
-        One or two sentences in the user's language, your normal voice, present tense: the goal,
-        the surprise or the next move -- whichever is true right now.
-        Never a summary of what already happened: the results are printed right under the line,
-        and a recap there reads like a report nobody asked for. No lists, no headings, no plan
-        for the whole task. Skip the line entirely when there is genuinely nothing to say -- a
-        line that only announces the call is not worth writing.
+        Right before every tool call, write one short line of your own: what you are about to do and
+        what you are after. Do it every time; that line is how the reader follows along.
+        When a tool takes time, a short line already returned with that call stays visible in the same reply until there is a result.
+        Do not make a separate model request merely to say that you are waiting. Use one or two
+        sentences in the user's language, your normal voice and present tense: the goal, the surprise
+        or the next move, whichever is true right now. Never recap what already happened; the results
+        are printed right under the line. No lists, headings or plan for the whole task. Skip the line
+        when there is genuinely nothing to say: a line that only announces the call is not worth writing.
 
         A LINE TYPED WHILE YOU WORK
-        The person can write while you are still working. It reaches you as an ordinary user
-        message between rounds of tools, after whatever was already in flight.
-        Say in your next short line that you saw it, and work to it from there on. Never ignore
-        it, and never answer it as if it had been there all along.
-        While an agent is running, that line is also read for it: a correction or a new
-        condition is handed to the agent itself and reaches it at its next step, without losing
-        what it has already found.
-        A request to stop or to hurry stops that agent or moves it to the fast model. The
-        tool result says which of these happened.
-        So do not re-launch the same agent to "pass it on", and do not answer as if the agent
-        were still doing the old thing. Say in one sentence what actually happened to it.
+        The user can write while you are still working. Their line arrives as an ordinary user message
+        between rounds of tools, after whatever was already in flight. Say in your next short line that
+        you saw it and work to it from then on; never ignore it or answer as if it had been there all
+        along. While an agent is running, that line is also handed to the agent: a correction or a new
+        condition reaches it at its next step without losing what it has found, and a request to stop
+        or to hurry stops the agent or moves it to the fast model; the tool result says which. So do not
+        re-launch the same agent to pass the line on, and do not answer as if it were still doing the
+        old thing: say in one sentence what actually happened to it.
 
         WHEN TO USE THE AGENT
         Do with your own tools whatever they can do; what they cannot do and the agent
@@ -381,6 +349,10 @@ internal sealed partial class ChatEngine
           from this chat are saved with save_image.
         - Questions about the data of a CSV or Excel table -- filters, groups, sums, averages, counts --
           are answered with analyze_table, which works over every row; never add up rows yourself.
+        - To show the user a text or code file you read or wrote in this conversation, never retype it.
+          Put a fenced block with the language file holding the line path: <full path> and, for a part of
+          the file, the line lines: <first>-<last>. The program replaces the block with the text of the
+          file when your reply ends. Text and code that are not in a file are written out as usual.
         - A chart in your reply is a fenced block with the language chart holding one JSON object: type
           (bar, line or pie), title, labels, and series as a list of objects with name and values, one
           value per label; a pie has one series. analyze_table returns such a block ready to use: put it
@@ -724,6 +696,7 @@ internal sealed partial class ChatEngine
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
         using var turnScope = VeniceTurnScope.Push(turn);
@@ -904,6 +877,7 @@ internal sealed partial class ChatEngine
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
 
@@ -971,6 +945,7 @@ internal sealed partial class ChatEngine
                 : session.Reasoning,
             RouterCost = assistant.RouterCost,
             ElapsedBefore = assistant.Duration,
+            CacheKey = session.Id,
             Agents = AgentsFor(session)
         };
 
@@ -1069,6 +1044,7 @@ internal sealed partial class ChatEngine
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                turn.BeginNextMessage();
                 clock.Restart();
                 assistant = new ChatDisplayMessage
                 {
@@ -1165,8 +1141,7 @@ internal sealed partial class ChatEngine
     }
 
     /// <returns>
-    /// True — цикл остановлен раньше, потому что вплетено дописанное: вызывающий закрывает этот
-    /// ответ и открывает следующий, чтобы строка человека не тонула под растущим над ней ответом.
+    /// True — после завершённого ответа в историю добавлена следующая реплика человека.
     /// </returns>
     private async Task<bool> RunToolLoopAsync(
         ChatSession session,
@@ -1180,125 +1155,144 @@ internal sealed partial class ChatEngine
         var instructions = ActiveInstructions(session);
         var messages = BuildApiMessages(session, turn.ModelId, instructions);
         var tools = ToolsFor(instructions);
+        var pending = new List<string>();
 
-        for (var round = 1; round <= _options.MaxToolRounds; round++)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            for (var round = 1; round <= _options.MaxToolRounds; round++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var streamed = await StreamWithRetryAsync(
+                var streamed = await StreamWithRetryAsync(
+                        messages,
+                        tools,
+                        "auto",
+                        assistant,
+                        observer,
+                        clock,
+                        turn,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                // Отказ — вызовом i_refuse: ответ выбрасывается целиком, ещё до записи в историю, и
+                // задачу берёт модель сильнее. Выше никого — человек получает отказ этой модели.
+                if (Refusals.TryFind(streamed.ToolCalls, out var reasons))
+                {
+                    if (ClimbAfterRefusal(assistant, observer, turn))
+                    {
+                        // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
+                        messages = BuildApiMessages(session, turn.ModelId, instructions);
+                        continue;
+                    }
+
+                    FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
+                    return NotifyCompleted();
+                }
+
+                if (streamed.ToolCalls.Count == 0)
+                {
+                    FinishAssistant(session, assistant, clock, streamed, turn);
+                    return NotifyCompleted();
+                }
+
+                var apiAssistant = new ChatMessage
+                {
+                    Role = "assistant",
+                    Content = string.IsNullOrWhiteSpace(streamed.Text)
+                        ? null
+                        : ChatContent.Text(streamed.Text),
+                    ToolCalls = streamed.ToolCalls,
+
+                    // Размышление Anthropic с подписью: следующий запрос раунда обязан вернуть его
+                    // как есть, иначе модель продолжит с вызовами, но без хода своих мыслей.
+                    ReplayBlocks = streamed.ReplayBlocks
+                };
+                var stored = ChatMessageCloner.CloneForStorage(apiAssistant);
+                messages.Add(stored);
+                session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
+
+                var toolRound = CreateRound(streamed.ToolCalls);
+
+                // Модель часто что-то говорит перед вызовом инструмента. Этот текст лежит в
+                // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
+                // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
+                toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
+
+                // Новым списком: лента в это время может перебирать прежний (см. AgentUiAdapter.StartRound).
+                assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
+                observer.OnToolsChanged(assistant);
+
+                // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
+                // пока раунд идёт, его ещё можно исполнить — остановить агента или пересадить его.
+                var early = new List<string>();
+                using var watch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
+                try
+                {
+                    await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    await watch.CancelAsync().ConfigureAwait(false);
+                    await watcher.ConfigureAwait(false);
+                    pending.AddRange(early);
+                }
+
+                toolRound.InfoLine = EngineLines.ToolsDone;
+                observer.OnToolsChanged(assistant);
+                while (observer.TryTakeQueuedMessage(out var queued))
+                {
+                    pending.Add(queued);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var synthesis = await StreamWithRetryAsync(
                     messages,
-                    tools,
-                    "auto",
+                    tools: null,
+                    toolChoice: "none",
                     assistant,
                     observer,
                     clock,
                     turn,
                     cancellationToken)
                 .ConfigureAwait(false);
-
-            // Отказ — вызовом i_refuse: ответ выбрасывается целиком, ещё до записи в историю, и
-            // задачу берёт модель сильнее. Выше никого — человек получает отказ этой модели.
-            if (Refusals.TryFind(streamed.ToolCalls, out var reasons))
+            FinishAssistant(session, assistant, clock, synthesis, turn);
+            return NotifyCompleted();
+        }
+        finally
+        {
+            // Наблюдатель уже снял эти строки с очереди: при ошибке или отмене их тоже надо сохранить.
+            if (pending.Count > 0)
             {
-                if (ClimbAfterRefusal(assistant, observer, turn))
-                {
-                    // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
-                    messages = BuildApiMessages(session, turn.ModelId, instructions);
-                    continue;
-                }
-
-                FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
-                observer.OnAssistantCompleted(assistant);
-                return false;
-            }
-
-            if (streamed.ToolCalls.Count == 0)
-            {
-                FinishAssistant(session, assistant, clock, streamed, turn);
-                observer.OnAssistantCompleted(assistant);
-                return false;
-            }
-
-            var apiAssistant = new ChatMessage
-            {
-                Role = "assistant",
-                Content = string.IsNullOrWhiteSpace(streamed.Text)
-                    ? null
-                    : ChatContent.Text(streamed.Text),
-                ToolCalls = streamed.ToolCalls,
-
-                // Размышление Anthropic с подписью: следующий запрос раунда обязан вернуть его
-                // как есть, иначе модель продолжит с вызовами, но без хода своих мыслей.
-                ReplayBlocks = streamed.ReplayBlocks
-            };
-            var stored = ChatMessageCloner.CloneForStorage(apiAssistant);
-            messages.Add(stored);
-            session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
-
-            var toolRound = CreateRound(streamed.ToolCalls);
-
-            // Модель часто что-то говорит перед вызовом инструмента. Этот текст лежит в
-            // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
-            // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
-            toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
-
-            // Новым списком: лента в это время может перебирать прежний (см. AgentUiAdapter.StartRound).
-            assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
-            observer.OnToolsChanged(assistant);
-
-            // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
-            // пока раунд идёт, его ещё можно исполнить — остановить агента или пересадить его.
-            var early = new List<string>();
-            using var watch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
-            try
-            {
-                await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
-                    .ConfigureAwait(false);
-            }
-            finally
-            {
-                await watch.CancelAsync().ConfigureAwait(false);
-                await watcher.ConfigureAwait(false);
-            }
-
-            toolRound.InfoLine = EngineLines.ToolsDone;
-            observer.OnToolsChanged(assistant);
-            if (cancellationToken.IsCancellationRequested)
-            {
-                // Наблюдатель мог уже снять дописанные строки с очереди — тогда
-                // RescueQueued их не увидит, и в ленте реплика осталась бы, а в истории модели
-                // нет. Ответы инструментов раунда к этому месту уже записаны, поэтому
-                // дописать строки можно, не разрывая пару «вызовы — ответы».
-                DrainQueued(session, observer, messages, early);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            // Единственный безопасный шов для дописанного. Сообщение ассистента этого раунда и все
-            // ответы инструментов на него уже в `messages` — роли идут в порядке, которого требует
-            // API, а ExecuteRoundAsync дождались: агенты раунда закончили, и смена решения модели
-            // ничего идущего не потеряет.
-            if (DrainQueued(session, observer, messages, early))
-            {
-                CloseAssistantForFollowUp(session, assistant, clock, turn, observer);
-                return true;
+                FoldPending();
             }
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        var synthesis = await StreamWithRetryAsync(
-                messages,
-                tools: null,
-                toolChoice: "none",
-                assistant,
-                observer,
-                clock,
-                turn,
-                cancellationToken)
-            .ConfigureAwait(false);
-        FinishAssistant(session, assistant, clock, synthesis, turn);
-        observer.OnAssistantCompleted(assistant);
-        return false;
+        bool NotifyCompleted()
+        {
+            var folded = FoldPending();
+            if (folded)
+            {
+                observer.OnAssistantContinued(assistant);
+            }
+            else
+            {
+                observer.OnAssistantCompleted(assistant);
+            }
+
+            return folded;
+        }
+
+        bool FoldPending()
+        {
+            var folded = DrainQueued(session, observer, messages: null, pending);
+            pending.Clear();
+            return folded;
+        }
     }
 
     /// <summary>
@@ -1405,7 +1399,8 @@ internal sealed partial class ChatEngine
                 turn.Credential,
                 // Запасная модель — только под «Авто»: там модель и так выбирает программа.
                 // Выбранную человеком не подменяем: перегрузка кончается понятной строкой.
-                fallback: VeniceModelCatalog.IsAuto(turn.RequestedModelId))
+                fallback: VeniceModelCatalog.IsAuto(turn.RequestedModelId),
+                cacheKey: turn.CacheKey)
             .ConfigureAwait(false);
 
         // Сработавшую модель ход запоминает сам — следующий раунд начнёт с неё, а не с той,
@@ -1426,7 +1421,7 @@ internal sealed partial class ChatEngine
         return streamed;
     }
 
-    private static void FinishAssistant(
+    private void FinishAssistant(
         ChatSession session,
         ChatDisplayMessage assistant,
         Stopwatch clock,
@@ -1434,19 +1429,22 @@ internal sealed partial class ChatEngine
         VeniceTurnContext turn)
     {
         clock.Stop();
-        assistant.Text = string.IsNullOrWhiteSpace(streamed.Text)
+        var answer = string.IsNullOrWhiteSpace(streamed.Text)
             ? (string.IsNullOrWhiteSpace(assistant.Text)
                 ? EmptyCompletionMessage(streamed)
                 : assistant.Text)
             : streamed.Text;
+
+        // Человеку — текст файла, модели в историю — короткая запись (FileBlocks).
+        assistant.Text = FileBlocks.Expand(answer, path => KnowsFile(session, path));
         assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
-        // streamed.Cost - запасной путь на случай, если ход почему-то не накопил своего счёта.
+        // streamed.Cost - запасной путь на случай, если сообщение не накопило своего счёта.
         assistant.RouterCost ??= turn.RouterCost;
         ChatTitleCost.Attach(session, assistant);
-        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
+        ApplyCosts(assistant, MessageCost(turn, streamed.Cost));
         assistant.Status = AssistantStatus.Complete;
 
         // prompt_tokens считает то, что нёс этот запрос, поэтому отметка ставится до того, как ответ
@@ -1462,9 +1460,23 @@ internal sealed partial class ChatEngine
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "assistant",
-            Content = ChatContent.Text(assistant.Text)
+            Content = ChatContent.Text(answer)
         });
         session.UpdatedAt = DateTime.Now;
+    }
+
+    /// <summary>Открывала ли модель этот файл в этом чате: сейчас или, судя по истории, до перезапуска.</summary>
+    private bool KnowsFile(ChatSession session, string path)
+    {
+        if (Files?.Knows(session.Id, path) == true)
+        {
+            return true;
+        }
+
+        lock (session.Gate)
+        {
+            return FileBlocks.InHistory(session.ApiMessages, path);
+        }
     }
 
     /// <remarks>

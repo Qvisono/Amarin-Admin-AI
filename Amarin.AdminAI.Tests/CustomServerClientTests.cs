@@ -131,7 +131,7 @@ public sealed class CustomServerClientTests
         Assert.Equal(Secret, request.Headers.Authorization!.Parameter);
         Assert.Equal(Secret, request.Headers.GetValues("x-api-key").Single());
 
-        // Посреднику — ни бета-полей, ни кэша: он мог бы их не пропустить.
+        // Посреднику — без верхнего поля кэша: метки на блоках он пропустит скорее.
         using var body = JsonDocument.Parse(recorder.Bodies[0]);
         Assert.Equal("claude-sonnet-5-5", body.RootElement.GetProperty("model").GetString());
         Assert.False(body.RootElement.TryGetProperty("cache_control", out _));

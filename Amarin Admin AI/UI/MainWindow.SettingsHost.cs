@@ -47,6 +47,9 @@ namespace Amarin.UI
         /// <summary>Страницу создаёт прогрев: заполнение уходит в следующую порцию, а не в эту же.</summary>
         private bool _prewarmCreating;
 
+        /// <summary>Прогрев ждёт, пока закроют лист «Что нового».</summary>
+        private bool _prewarmHeld;
+
         /// <summary>
         /// Тяжёлое содержимое подстраниц (карточки тем, строки сочетаний): своими порциями прогрева или
         /// при первом заходе на подстраницу — что раньше. Со страницей одной порцией оно держало
@@ -163,6 +166,14 @@ namespace Amarin.UI
                 return;
             }
 
+            // Порция прогрева бывает дольше кадра, а сцена «Что нового» идёт по часам: на запуске
+            // её появление шло рывками. Прогрев продолжает закрытие листа (ResumeSettingsPrewarm).
+            if (WhatsNewHost.Visibility == Visibility.Visible)
+            {
+                _prewarmHeld = true;
+                return;
+            }
+
             using var timer = PerfLog.Measure("settings_prewarm_step");
             if (_settingsView is null)
             {
@@ -201,6 +212,16 @@ namespace Amarin.UI
 
             if (more || _staleSettingsPages.Count > 0 || _settingsDeferred.Count > 0)
             {
+                ScheduleSettingsPrewarm();
+            }
+        }
+
+        /// <summary>Лист «Что нового» закрыт: прогрев, который он придержал, идёт дальше.</summary>
+        private void ResumeSettingsPrewarm()
+        {
+            if (_prewarmHeld)
+            {
+                _prewarmHeld = false;
                 ScheduleSettingsPrewarm();
             }
         }
@@ -285,20 +306,6 @@ namespace Amarin.UI
                 case SettingsModelsPage models:
                     Wire(models);
                     EnablePageScroll(models.ModelsPageScroll);
-                    models.FastReasoningPicker.SetUsesTools(true);
-                    models.LiteReasoningPicker.SetUsesTools(true);
-                    models.HeavyReasoningPicker.SetUsesTools(true);
-                    models.RouterReasoningPicker.SetUsesTools(false);
-                    models.TitleReasoningPicker.SetUsesTools(false);
-                    models.AgentFastReasoningPicker.SetUsesTools(true);
-                    models.AgentLiteReasoningPicker.SetUsesTools(true);
-                    models.AgentHeavyReasoningPicker.SetUsesTools(true);
-
-                    // У Розы два своих инструмента — побег и поиск.
-                    models.FoxReasoningPicker.SetUsesTools(true);
-
-                    // Обход отвечает и в чате, и за агента — с инструментами.
-                    models.BypassReasoningPicker.SetUsesTools(true);
                     models.FoxSettings.Changed += RefreshFoxLink;
                     break;
                 case SettingsPromptsPage prompts:
@@ -324,9 +331,6 @@ namespace Amarin.UI
                     break;
                 case SettingsSecurityPage security:
                     Wire(security);
-
-                    // Защитник отвечает одним словом и инструментов не получает.
-                    security.SynGuardReasoningPicker.SetUsesTools(false);
 
                     // Подпись — и без служб: пустая строка со стрелкой рядом не объясняет, что за ней прячется.
                     ShowSynGuardModelName();
@@ -483,15 +487,15 @@ namespace Amarin.UI
                         LoadAccountUi();
                         break;
                     case SettingsModelsPage models:
-                        // Ключи до выбора моделей: без них правый столбец плашки пуст, а в подписи
+                        // Ключи до выбора моделей: без них список ключей пуст, а в подписи
                         // поля вместо имени ключа осталась бы пустота.
                         PushKeysToPickers();
                         ApplyCachedCatalogs();
                         ShowSettingsModelSelections();
-                        BindSettingsReasoningPickers();
                         models.FoxSettings.Load(this, _services);
                         RefreshFoxLink();
                         models.AgentMemoryCombo.SelectedIndex = (int)settings.AgentMemory;
+                        models.InheritAgentModelToggle.IsChecked = settings.InheritAgentModel;
                         break;
                     case SettingsPromptsPage prompts:
                         prompts.MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -519,7 +523,6 @@ namespace Amarin.UI
                         PushKeysToPickers();
                         ApplyCachedCatalogs();
                         ShowSettingsModelSelections();
-                        BindSettingsReasoningPickers();
                         RefreshAllowedDomainsUi();
                         break;
                     case SettingsDataPage data:
@@ -553,7 +556,7 @@ namespace Amarin.UI
                 {
                     foreach (var (slot, field, _) in SettingsSlots())
                     {
-                        field.SetCatalog(spec.Provider, VeniceModelCatalog.ForSlot(models, slot));
+                        field.SetCatalog(spec.Provider, VeniceModelCatalog.ForSlot(models, slot, includeRoutingSources: true));
                     }
                 }
                 else if (_services.Models.ErrorFor(spec.Provider) is { } error)
@@ -566,12 +569,6 @@ namespace Amarin.UI
                         field.SetCatalogError(spec.Provider, error);
                     }
                 }
-            }
-
-            var known = LoadedModels();
-            foreach (var picker in SettingsReasoningPickers())
-            {
-                picker.SetCatalog(known);
             }
         }
 
@@ -646,27 +643,16 @@ namespace Amarin.UI
 
         private void Wire(SettingsModelsPage p)
         {
-            foreach (var (picker, reasoning) in new (ModelPickerField, ReasoningPicker)[]
-                     {
-                         (p.FastModelPicker, p.FastReasoningPicker),
-                         (p.LiteModelPicker, p.LiteReasoningPicker),
-                         (p.HeavyModelPicker, p.HeavyReasoningPicker),
-                         (p.RouterModelPicker, p.RouterReasoningPicker),
-                         (p.AgentFastModelPicker, p.AgentFastReasoningPicker),
-                         (p.AgentLiteModelPicker, p.AgentLiteReasoningPicker),
-                         (p.AgentHeavyModelPicker, p.AgentHeavyReasoningPicker),
-                         (p.TitleModelPicker, p.TitleReasoningPicker),
-                         (p.SummaryModelPicker, p.SummaryReasoningPicker),
-                         (p.FoxModelPicker, p.FoxReasoningPicker),
-                         (p.BypassModelPicker, p.BypassReasoningPicker)
-                     })
+            foreach (var (_, picker, _) in SettingsModelSlots(p))
             {
-                WireSlot(picker, reasoning);
+                WireSlot(picker);
             }
 
             p.WebSearchField.Changed += WebSearchTargetChanged;
             p.WebSearchField.AddKeyRequested += SettingsPickerAddKeyRequested;
             p.AgentMemoryCombo.SelectionChanged += AgentMemoryCombo_SelectionChanged;
+            p.InheritAgentModelToggle.Checked += InheritAgentModelToggle_Changed;
+            p.InheritAgentModelToggle.Unchecked += InheritAgentModelToggle_Changed;
         }
 
         /// <summary>
@@ -686,9 +672,26 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
         }
 
-        private void WireSlot(ModelPickerField picker, ReasoningPicker reasoning)
+        /// <summary>
+        /// Наследование агентами модели чата (1.38.0). Действует со следующего запуска агента;
+        /// панель сеанса перечитывает эффективное значение, если у чата нет своего переключателя.
+        /// </summary>
+        private void InheritAgentModelToggle_Changed(object sender, RoutedEventArgs e)
         {
-            reasoning.ChoiceChanged += SettingsReasoningChanged;
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.InheritAgentModel = ModelsPage.InheritAgentModelToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+            RefreshSessionRail();
+        }
+
+        private void WireSlot(ModelPickerField picker)
+        {
+            picker.ReasoningChanged += SettingsReasoningChanged;
+            picker.FavoriteToggled += Picker_FavoriteToggled;
             picker.ModelPicked += SettingsModelPicked;
             picker.AddKeyRequested += SettingsPickerAddKeyRequested;
             picker.ProviderShown += SettingsPickerProviderShown;
@@ -702,7 +705,7 @@ namespace Amarin.UI
         {
             p.SynGuardToggle.Checked += SynGuardToggle_Changed;
             p.SynGuardToggle.Unchecked += SynGuardToggle_Changed;
-            WireSlot(p.SynGuardModelPicker, p.SynGuardReasoningPicker);
+            WireSlot(p.SynGuardModelPicker);
             p.AddDomainRequested += (_, _) => OpenDomainDialog("");
             p.TemporaryModeChanged += (_, _) => OnTemporaryModeChanged();
             p.RemoveDomainRequested += (_, domain) =>

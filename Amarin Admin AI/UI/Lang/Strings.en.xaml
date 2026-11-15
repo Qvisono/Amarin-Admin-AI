@@ -496,6 +496,14 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
     <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Run this script on this PC unchanged and report the result:</system:String>
+    <system:String x:Key="S.Code.CommandBusy" xml:space="preserve">A command is running. Wait for it to finish or stop it. Your message remains in the input field.</system:String>
+    <system:String x:Key="S.Code.RunBusy" xml:space="preserve">This chat is busy. Wait for it to finish or stop it.</system:String>
+    <system:String x:Key="S.Code.RunCancelled" xml:space="preserve">Command stopped</system:String>
+    <system:String x:Key="S.Code.RunDone" xml:space="preserve">Command completed</system:String>
+    <system:String x:Key="S.Code.RunFailed" xml:space="preserve">Command failed</system:String>
+    <system:String x:Key="S.Code.RunLocal" xml:space="preserve">Run on this computer</system:String>
+    <system:String x:Key="S.Code.RunOrigin" xml:space="preserve">PowerShell code block</system:String>
+    <system:String x:Key="S.Code.StopLocal" xml:space="preserve">Stop command</system:String>
     <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Do not wrap lines</system:String>
     <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Run via the agent: the task appears in the input field</system:String>
     <system:String x:Key="S.Code.Save" xml:space="preserve">Save to a file</system:String>
@@ -560,8 +568,9 @@
     <system:String x:Key="S.Compact.Hint" xml:space="preserve">Compact</system:String>
     <system:String x:Key="S.Compact.HintTip" xml:space="preserve">The model's context is almost full. Compress the older part of the conversation into a summary?</system:String>
     <system:String x:Key="S.Compact.Mark" xml:space="preserve">Above this line the model sees only a summary</system:String>
-    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">The messages stay on screen, but the model gets their summary. To undo, use the context ring menu.</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">The messages stay on screen, but the model gets their summary. To restore the originals, use the icon on a compacted message.</system:String>
     <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Compact the context</system:String>
+    <system:String x:Key="S.Compact.MessageTip" xml:space="preserve">The model sees a summary of this message. Click to restore the original.</system:String>
     <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Nothing to compact: the conversation is short or already compacted.</system:String>
     <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">The provider refused: the context is too long. Compress the older part into a summary and try again?</system:String>
     <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">The conversation does not fit the model</system:String>
@@ -1077,6 +1086,8 @@
     <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">Until the answer ends</system:String>
     <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">While the app is open</system:String>
     <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Saved in the chat</system:String>
+    <system:String x:Key="S.Models.InheritAgent" xml:space="preserve">Agent model inheritance</system:String>
+    <system:String x:Key="S.Models.InheritAgentDesc" xml:space="preserve">Every agent uses the chat model; the router does not pick their model</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Fast tasks</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Agent</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Chat answers</system:String>
@@ -1115,6 +1126,12 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">The working rules the app gives the chat and the agent</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">{0} is overloaded or has hit its rate limit right now. Try again a little later or pick another model.</system:String>
+    <system:String x:Key="S.FileBlock.Missing" xml:space="preserve">File not shown: {0} was not found.</system:String>
+    <system:String x:Key="S.FileBlock.Forbidden" xml:space="preserve">File not shown: {0} may contain secrets, so the program does not open it.</system:String>
+    <system:String x:Key="S.FileBlock.Unknown" xml:space="preserve">File not shown: the model has not opened {0} in this chat.</system:String>
+    <system:String x:Key="S.FileBlock.NotText" xml:space="preserve">File not shown: {0} is not a text file.</system:String>
+    <system:String x:Key="S.FileBlock.Failed" xml:space="preserve">File not shown: {0} could not be read.</system:String>
+    <system:String x:Key="S.FileBlock.Cut" xml:space="preserve">Showing the first {0} characters: the file is longer.</system:String>
     <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">None of this model's providers on OpenRouter keep no data, and “Only providers that keep no data” is on in Security. Choose another model or turn that setting off.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">The model declined this request: the provider's safeguards stopped it. Rephrase the request or pick another model.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">I, {0}, refuse to carry out this task for these reasons: {1}</system:String>
@@ -1417,6 +1434,10 @@
     <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Rename key</system:String>
     <system:String x:Key="S.Key.Restore" xml:space="preserve">Bring back</system:String>
     <system:String x:Key="S.Key.Section" xml:space="preserve">Keys</system:String>
+    <system:String x:Key="S.Key.PolzaRate" xml:space="preserve">Polza.ai: rubles per $1</system:String>
+    <system:String x:Key="S.Key.PolzaRateHint" xml:space="preserve">For estimated dollar prices and balance. Leave empty for tokens only. Past spending is not recalculated.</system:String>
+    <system:String x:Key="S.Key.PolzaRateError" xml:space="preserve">Enter a number greater than zero or leave the field empty.</system:String>
+    <system:String x:Key="S.Key.PolzaBalanceError" xml:space="preserve">Could not read the Polza.ai balance. Please try again later.</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Show</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">{0} left</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Adding up…</system:String>
@@ -1497,10 +1518,13 @@
     <system:String x:Key="S.Batch.Unsupported" xml:space="preserve">The OpenRouter batch queue rejects {0}: attachments go out as a data: string, and the queue only takes them by URL. Pick the same model without the «(batch)» mark, or drop the attachment.</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ENGINE</system:String>
+    <system:String x:Key="S.Models.Favorites" xml:space="preserve">Favorites</system:String>
+    <system:String x:Key="S.Models.FavoriteAdd" xml:space="preserve">Add to favorites</system:String>
+    <system:String x:Key="S.Models.FavoriteRemove" xml:space="preserve">Remove from favorites</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Code</system:String>
-    <system:String x:Key="S.Models.FilterNitro" xml:space="preserve">Nitro</system:String>
     <system:String x:Key="S.Models.FilterNitroTip" xml:space="preserve">Variants that OpenRouter sends to the fastest provider</system:String>
     <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Vision</system:String>
+    <system:String x:Key="S.Models.Key" xml:space="preserve">Key</system:String>
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">Default</system:String>
     <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">The key is picked automatically: the first usable one for this provider</system:String>
@@ -1511,9 +1535,16 @@
     <system:String x:Key="S.Models.LoadServer" xml:space="preserve">{0} has a server problem ({1}).</system:String>
     <system:String x:Key="S.Models.LoadTimeout" xml:space="preserve">{0} didn't answer in time.</system:String>
     <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">There is no {0} key yet. Add one to pick models from this provider.</system:String>
+    <system:String x:Key="S.Models.Provider" xml:space="preserve">Provider</system:String>
     <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">PROVIDER</system:String>
     <system:String x:Key="S.Models.Retry" xml:space="preserve">Retry</system:String>
+    <system:String x:Key="S.Models.Route" xml:space="preserve">Routing</system:String>
+    <system:String x:Key="S.Models.RouteDefault" xml:space="preserve">Default route</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Search…</system:String>
+    <system:String x:Key="S.Models.Variant" xml:space="preserve">Variant</system:String>
+    <system:String x:Key="S.Models.VariantAll" xml:space="preserve">All variants</system:String>
+    <system:String x:Key="S.Models.VariantFloor" xml:space="preserve">Lowest price</system:String>
+    <system:String x:Key="S.Models.VariantExacto" xml:space="preserve">Quality first</system:String>
 
 
     <system:String x:Key="S.Password.Chosen" xml:space="preserve">selected</system:String>
@@ -1537,19 +1568,13 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">New profile</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>
 
-    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In Auto, reasoning follows the light and heavy model settings on the Models page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning level</system:String>
     <system:String x:Key="S.Speed.Caption" xml:space="preserve">Speed</system:String>
     <system:String x:Key="S.Speed.Flex" xml:space="preserve">Economy</system:String>
     <system:String x:Key="S.Speed.Standard" xml:space="preserve">Standard</system:String>
     <system:String x:Key="S.Speed.Fast" xml:space="preserve">Fast</system:String>
     <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Ultrafast</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Reasoning</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
     <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Run the recipe "{0}": call the tool {1} with the arguments&#10;{2}&#10;If the call fails, find out why and suggest what to do.</system:String>
     <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">{{name}} in a value becomes a parameter asked at launch.</system:String>
@@ -1813,6 +1838,10 @@
     <system:String x:Key="S.Security.WindowsLogDesc" xml:space="preserve">Admins see AI actions in the Application log, without arguments</system:String>
     <system:String x:Key="S.Security.AnySite" xml:space="preserve">Download from any site</system:String>
     <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">The allowlist below is not checked. Turn this on only if you trust what the agent downloads</system:String>
+    <system:String x:Key="S.Security.DownloadLimit" xml:space="preserve">Limit file size</system:String>
+    <system:String x:Key="S.Security.DownloadLimitDesc" xml:space="preserve">Maximum size of a downloaded file.</system:String>
+    <system:String x:Key="S.Security.DownloadMaxSize" xml:space="preserve">Maximum file size</system:String>
+    <system:String x:Key="S.Security.DownloadSizeUnit" xml:space="preserve">MiB</system:String>
     <system:String x:Key="S.Browser.Title" xml:space="preserve">Agent browser</system:String>
     <system:String x:Key="S.Browser.Status" xml:space="preserve">The agent works here. You can sign in to sites yourself</system:String>
     <system:String x:Key="S.Browser.Done" xml:space="preserve">Done</system:String>
@@ -1836,6 +1865,26 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">The model can't see a tool that is off.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
+    <system:String x:Key="S.SessionRail.AttachmentsUnknown" xml:space="preserve">Attachment token usage is unknown.</system:String>
+    <system:String x:Key="S.SessionRail.Browser" xml:space="preserve">Browser</system:String>
+    <system:String x:Key="S.SessionRail.InheritAgent" xml:space="preserve">Agent inheritance</system:String>
+    <system:String x:Key="S.SessionRail.CompactFirst" xml:space="preserve">Compact the first message</system:String>
+    <system:String x:Key="S.SessionRail.CompactFrees" xml:space="preserve">Frees ≈ {0}</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructions" xml:space="preserve">Custom instructions</system:String>
+    <system:String x:Key="S.SessionRail.CompactInstructionsHint" xml:space="preserve">What to keep in the summary</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeep" xml:space="preserve">Keep the latest</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepHint" xml:space="preserve">{0} of {1} messages become a summary</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepLess" xml:space="preserve">Keep fewer messages</system:String>
+    <system:String x:Key="S.SessionRail.CompactKeepMore" xml:space="preserve">Keep more messages</system:String>
+    <system:String x:Key="S.SessionRail.CompactModel" xml:space="preserve">Compaction model</system:String>
+    <system:String x:Key="S.SessionRail.Computer" xml:space="preserve">PC control</system:String>
+    <system:String x:Key="S.SessionRail.ContextConversation" xml:space="preserve">Conversation</system:String>
+    <system:String x:Key="S.SessionRail.ContextSystem" xml:space="preserve">System</system:String>
+    <system:String x:Key="S.SessionRail.FileCreated" xml:space="preserve">created</system:String>
+    <system:String x:Key="S.SessionRail.FileModified" xml:space="preserve">modified</system:String>
+    <system:String x:Key="S.SessionRail.GlobalDisabled" xml:space="preserve">This feature is disabled in global settings or by organization policy.</system:String>
+    <system:String x:Key="S.SessionRail.Files" xml:space="preserve">Files</system:String>
+    <system:String x:Key="S.SessionRail.Title" xml:space="preserve">Session settings</system:String>
     <system:String x:Key="S.Settings.About.Title" xml:space="preserve">About</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
@@ -1942,6 +1991,8 @@
     <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">The driver of {0} was rolled back to the previous version.</system:String>
     <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">The driver of {0} was rolled back to the previous version. A reboot is needed for it to take effect: tell the user, do not reboot yourself.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Could not start {0}.</system:String>
+    <system:String x:Key="S.Tool.Download.InvalidSize" xml:space="preserve">max_size_mb must be a positive integer. Provide a valid limit or omit the parameter to use the user's setting.</system:String>
+    <system:String x:Key="S.Tool.Download.SizeLimit" xml:space="preserve">The file exceeds the size limit ({0} bytes). The limit can be changed or disabled in Settings → Security → Download sources. Do not repeat the download with the same limit.</system:String>
     <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Administrator rights are needed: restart the program as administrator and try again. Do not retry with the same rights.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Unknown firewall profile "{0}". Allowed: domain, private, public, all. Do not retry with the same value.</system:String>
     <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">The change takes effect only after a reboot. Do not reboot yourself; tell the user.</system:String>

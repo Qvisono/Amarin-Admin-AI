@@ -11,11 +11,13 @@ public sealed class WebDownloadTool : ITool
 
     private readonly HttpClient _http;
     private readonly DownloadOptions _options;
+    private readonly Func<AppSettings>? _readSettings;
 
-    public WebDownloadTool(HttpClient http, DownloadOptions options)
+    public WebDownloadTool(HttpClient http, DownloadOptions options, Func<AppSettings>? readSettings = null)
     {
         _http = http;
         _options = options;
+        _readSettings = readSettings;
     }
 
     public string Name => "download_file";
@@ -50,7 +52,8 @@ public sealed class WebDownloadTool : ITool
             },
             "max_size_mb": {
               "type": "integer",
-              "description": "Optional per-download size limit in MB"
+              "minimum": 1,
+              "description": "Optional positive per-download size limit in MiB. Can only reduce the user's limit."
             }
           },
           "required": ["url"]
@@ -111,9 +114,29 @@ public sealed class WebDownloadTool : ITool
             return ToolResult.Fail(pathError!);
         }
 
-        var maxBytes = _options.MaxSizeBytes;
-        if (arguments.TryGetProperty("max_size_mb", out var maxProp) && maxProp.TryGetInt32(out var maxMb))
+        return await DownloadAsync(uri, destination, arguments, cancellationToken);
+    }
+
+    /// <summary>
+    /// Скачивает в уже проверенный путь. Разделение с проверкой путей позволяет проверять
+    /// потоковую запись во временной папке, не затрагивая настоящие «Загрузки» пользователя.
+    /// </summary>
+    internal async Task<ToolResult> DownloadAsync(
+        Uri uri, string destination, JsonElement arguments, CancellationToken cancellationToken = default)
+    {
+        var settings = _readSettings?.Invoke();
+        var maxBytes = settings?.DownloadSizeLimitEnabled == false
+            ? long.MaxValue
+            : settings?.DownloadMaxSizeMb is > 0 and var configuredMb
+                ? configuredMb * 1024L * 1024L
+                : _options.MaxSizeBytes;
+        if (arguments.TryGetProperty("max_size_mb", out var maxProp))
         {
+            if (maxProp.ValueKind != JsonValueKind.Number || !maxProp.TryGetInt32(out var maxMb) || maxMb <= 0)
+            {
+                return ToolResult.Fail(Loc.Get("S.Tool.Download.InvalidSize"));
+            }
+
             maxBytes = Math.Min(maxBytes, maxMb * 1024L * 1024L);
         }
 
@@ -142,7 +165,7 @@ public sealed class WebDownloadTool : ITool
 
             if (response.Content.Headers.ContentLength is > 0 and var contentLength && contentLength > maxBytes)
             {
-                return ToolResult.Fail($"File too large: {contentLength} bytes (limit {maxBytes}).");
+                return ToolResult.Fail(Loc.Format("S.Tool.Download.SizeLimit", maxBytes));
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -162,7 +185,7 @@ public sealed class WebDownloadTool : ITool
                     {
                         await file.DisposeAsync();
                         File.Delete(destination);
-                        return ToolResult.Fail($"Download exceeded size limit ({maxBytes} bytes).");
+                        return ToolResult.Fail(Loc.Format("S.Tool.Download.SizeLimit", maxBytes));
                     }
 
                     hasher?.TransformBlock(buffer, 0, read, null, 0);

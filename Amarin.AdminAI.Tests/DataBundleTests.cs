@@ -243,12 +243,19 @@ public sealed class DataBundleTests
             // в новый профиль. Замена проверяется на текущем профиле.
             var profileId = mode == DataImportMode.Merge ? "route001" : ProfileStore.DefaultProfileId;
             SeedProfiles(source, Profile(ProfileStore.DefaultProfileId, "Default"), Profile("route001", "Router"));
-            var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model };
+            var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model, InheritAgentModel = true };
             var sourceRoot = new ProfileStore(source).DataRootFor(profileId);
             new AppSettingsStore(sourceRoot).Save(settings);
             var chat = SeedChat(sourceRoot, "routing-chat", "Routing");
             chat.Summary = "Conversation summary";
             chat.CompactSummary = "Compacted context";
+            chat.CompactedFrom = 2;
+            chat.CompactedFromMessageId = "first-compacted";
+            chat.SpentUsd = 0.5m;
+            chat.SpentCountedUsd = 0.005m;
+            chat.ComputerControlOverride = false;
+            chat.AgentBrowserOverride = false;
+            chat.InheritAgentModelOverride = true;
             chat.Messages.Add(new ChatDisplayMessage
             {
                 Role = "assistant", Text = "Answer",
@@ -266,11 +273,19 @@ public sealed class DataBundleTests
                 var restored = new AppSettingsStore(targetRoot).Load();
                 Assert.Equal(model, restored.RouterModelId);
                 Assert.Equal(model, restored.SynGuardModelId);
+                Assert.True(restored.InheritAgentModel);
                 Assert.Equal(AppSettings.CurrentFactoryModels, restored.FactoryModelsRevision);
                 var restoredChat = new ChatStore(targetRoot).TryLoad(chat.Id);
                 Assert.NotNull(restoredChat);
                 Assert.Equal(chat.Summary, restoredChat.Summary);
                 Assert.Equal(chat.CompactSummary, restoredChat.CompactSummary);
+                Assert.Equal(2, restoredChat.CompactedFrom);
+                Assert.Equal("first-compacted", restoredChat.CompactedFromMessageId);
+                Assert.Equal(0.5m, restoredChat.SpentUsd);
+                Assert.Equal(0.5m, ChatCost.Total(restoredChat));
+                Assert.False(restoredChat.ComputerControlOverride);
+                Assert.False(restoredChat.AgentBrowserOverride);
+                Assert.True(restoredChat.InheritAgentModelOverride);
                 Assert.Equal(0.003m, Assert.Single(restoredChat.Messages).RouterCost?.Usd);
                 Assert.Equal(0.002m, Assert.Single(restoredChat.Messages).GuardCost?.Usd);
                 ModelSlotHealing.Heal(restored, LlmProvider.OpenRouter,
@@ -720,8 +735,18 @@ public sealed class DataBundleTests
         var target = NewTempRoot();
         try
         {
-            new AppSettingsStore(source).Save(new AppSettings { MainPrompt = "из архива" });
-            new AppSettingsStore(target).Save(new AppSettings { MainPrompt = "моё" });
+            var fromArchive = AppSettings.CreateDefault();
+            fromArchive.MainPrompt = "из архива";
+            fromArchive.FavoriteModelIds = ["openrouter:vendor/model:free", "venice-uncensored"];
+            fromArchive.ChatReasoning = new ReasoningSettings { DisableThinking = false, ReasoningEffort = "high" };
+            new AppSettingsStore(source).SaveDeferred(fromArchive);
+
+            var mine = AppSettings.CreateDefault();
+            mine.MainPrompt = "моё";
+            mine.FavoriteModelIds = ["openrouter:vendor/other"];
+            mine.ChatReasoning = new ReasoningSettings { DisableThinking = false, ReasoningEffort = "low" };
+            var targetStore = new AppSettingsStore(target);
+            targetStore.Save(mine);
 
             var archive = Export(source, DataCategory.Settings);
             try
@@ -730,10 +755,16 @@ public sealed class DataBundleTests
 
                 // Слить настройки по полям значило бы тихо поменять полсотни переключателей
                 // одним кликом. «Взять чужой файл целиком» — это уже замена.
-                Assert.Equal("моё", new AppSettingsStore(target).Load().MainPrompt);
+                var merged = targetStore.Load();
+                Assert.Equal(mine.MainPrompt, merged.MainPrompt);
+                Assert.Equal(mine.FavoriteModelIds, merged.FavoriteModelIds);
+                Assert.Equal(mine.ChatReasoning.ToChoice(), merged.ChatReasoning.ToChoice());
 
                 new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Replace);
-                Assert.Equal("из архива", new AppSettingsStore(target).Load().MainPrompt);
+                var replaced = targetStore.Load();
+                Assert.Equal(fromArchive.MainPrompt, replaced.MainPrompt);
+                Assert.Equal(fromArchive.FavoriteModelIds, replaced.FavoriteModelIds);
+                Assert.Equal(fromArchive.ChatReasoning.ToChoice(), replaced.ChatReasoning.ToChoice());
             }
             finally
             {

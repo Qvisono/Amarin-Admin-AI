@@ -42,6 +42,20 @@ internal sealed class FileToolState
     /// <summary>Модель прочла файл в этом чате: запомнить, каким он был.</summary>
     public void NoteRead(string? session, string path) => Remember(session, path);
 
+    /// <summary>Читала или писала ли модель этот файл в этом чате, каким бы он ни стал с тех пор.</summary>
+    public bool Knows(string? session, string path)
+    {
+        if (string.IsNullOrEmpty(session))
+        {
+            return false;
+        }
+
+        lock (_gate)
+        {
+            return _reads.ContainsKey((session, path));
+        }
+    }
+
     /// <summary>
     /// Документ ли это ИИ — спрашивать <b>до</b> записи: подмена файла готовой копией может дать
     /// ему новое время создания, и после записи книга его уже не узнала бы.

@@ -44,7 +44,7 @@ public sealed class SideRequestCostTests
             () => new AppSettings { SummaryModelId = OpenRouterModel });
 
         var summary = await generator.UpdateAsync(null, "User: сколько будет 3+4\nAssistant: 7");
-        var compact = await generator.CompactAsync("User: сколько будет 3+4\nAssistant: 7");
+        var compact = await generator.CompactAsync(["User: сколько будет 3+4\nAssistant: 7"], null, null, null);
         var search = await generator.SearchAsync("математика", [("c1", "Сводка про арифметику")]);
 
         AssertPrice(summary.Cost);

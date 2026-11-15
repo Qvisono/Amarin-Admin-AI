@@ -126,6 +126,15 @@ internal sealed class AgentHost : IAgentHost
 
         try
         {
+            // При наследовании (1.38.0) агенты идут на модели чата, и поднимать их некуда:
+            // следующий уровень запустил бы другую модель и забрал бы у наследования смысл.
+            if (AgentRunScope.Current?.InheritedModel is not null)
+            {
+                return ToolResult.Fail(
+                    $"Другой модели для агента {conversation.Id} сейчас нет: наследование агентами включено. " +
+                    "Переубеди его через message_agent; не выйдет — передай человеку его причины.");
+            }
+
             if (NextTier(conversation.Tier, _settings()) is not { } tier)
             {
                 return ToolResult.Fail(
@@ -163,8 +172,7 @@ internal sealed class AgentHost : IAgentHost
                 AgentMemory.Answer =>
                     $"Агента {id} в этом ответе нет: агент доступен только до конца ответа, в котором его запустили. ",
                 AgentMemory.Chat =>
-                    $"Агента {id} в этом чате нет: его запустили в другом чате, или он старше " +
-                    $"{AgentMemoryBook.Limit} последних разговоров с агентами, которые хранит чат. ",
+                    $"Агента {id} в этом чате нет: его запустили в другом чате или разговор с ним недоступен. ",
                 _ =>
                     $"Агента {id} в этом чате нет: его запустили в другом чате, или разговор с ним уже недоступен " +
                     "(программу перезапускали, а разговоры с агентами не сохраняются). "
@@ -226,6 +234,13 @@ internal sealed class AgentHost : IAgentHost
         var record = new AgentRunRecord { Status = AgentRunStatus.Running };
 
         var scope = AgentRunScope.Current;
+        // Снимок области привязан к ходу: два параллельных чата могут по-разному разрешать
+        // компьютер и браузер, но локальное включение не поднимает общий запрет.
+        var globalAccess = ChatSessionAccess.For(null, settings);
+        var access = scope?.Access is { } selected
+            ? new ChatSessionAccess(globalAccess.CanControlComputer && selected.CanControlComputer,
+                globalAccess.CanUseAgentBrowser && selected.CanUseAgentBrowser)
+            : globalAccess;
         Action notify = () => { };
         if (scope is not null)
         {
@@ -248,6 +263,13 @@ internal sealed class AgentHost : IAgentHost
         // закрыт, и без этого его деньги не попали бы в счёт вообще.
         var spent = VeniceCost.Zero;
         var switched = false;
+        var resuming = false;
+        IReadOnlyList<string> humanNotes = [];
+
+        // Наследование (1.38.0): модель, ключ и размышление чата. Ручная команда /agent-* сильнее
+        // и снимает его до конца прогона — вместе с пересадкой, которую она делает на ходу.
+        var inherited = scope?.InheritedModel;
+        var useChatModel = inherited is not null;
 
         string currentComplexity;
         if (!string.IsNullOrWhiteSpace(tier))
@@ -260,13 +282,20 @@ internal sealed class AgentHost : IAgentHost
             // Уровень назвал человек командой. Спрашивать о нём модель — тратить его деньги на
             // уже принятое решение.
             currentComplexity = scope.ForcedTier.Trim().ToLowerInvariant();
+            useChatModel = false;
         }
-        else
+        else if (inherited is null)
         {
             var decision = await (Route ?? RouteAsync)(currentPrompt, notes, cancellationToken)
                 .ConfigureAwait(false);
             currentComplexity = decision.Tier;
             spent = decision.Cost ?? VeniceCost.Zero;
+        }
+        else
+        {
+            // Модель придёт из чата, и маршрутизатор не нужен. Уровень остаётся служебным: по нему
+            // решаются план и отчёт, а в разговоре он не называется.
+            currentComplexity = "lite";
         }
 
         // Уточнения, не дошедшие до прошлой попытки, потому что её оборвали пересадкой.
@@ -288,7 +317,7 @@ internal sealed class AgentHost : IAgentHost
         // у удалённой цели окна чужие. Решается раз на прогон: выключенная посреди работы галочка
         // закрывает следующий прогон, а не рвёт этот. Сеанс один на весь прогон — пересадка на
         // другую модель не возвращает окно программы и не повторяет отсчёт.
-        var computer = ComputerHub.Allowed(settings) && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
+        var computer = access.CanControlComputer && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
         using var session = computer is null
             ? null
             : new ComputerSession(
@@ -299,7 +328,7 @@ internal sealed class AgentHost : IAgentHost
 
         // Браузер агента (1.37.0) — по тому же правилу, что мышь: по галочке человека и только на этом
         // ПК. Окно открывается первым действием и закрывается с концом прогона.
-        using var browser = settings.AgentBrowser && ExecutionTarget.Current is null
+        using var browser = access.CanUseAgentBrowser && ExecutionTarget.Current is null
             ? _browser?.Open(SpendScope.Current?.Unattended == true)
             : null;
 
@@ -307,14 +336,18 @@ internal sealed class AgentHost : IAgentHost
         // записываются все попытки, чтобы «стоп» человека и сообщение чата говорили об одном агенте.
         var agentId = conversation?.Id;
 
+        // Прогон по расписанию идёт без чата: ключу кэша нужно своё начало.
+        var cacheOwner = scope?.SessionId ?? Guid.NewGuid().ToString("N");
+
         while (true)
         {
-            var modelId = ResolveModel(currentComplexity, settings);
+            var modelId = useChatModel ? inherited!.ModelId : ResolveModel(currentComplexity, settings);
             var options = CloneOptions(
                 _parentOptions,
                 modelId,
-                ReasoningFor(currentComplexity, settings),
-                ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
+                useChatModel ? ReasoningOf(inherited!.Reasoning) : ReasoningFor(currentComplexity, settings),
+                ModelSlots.ReadKey(settings, SlotFor(currentComplexity)),
+                useChatModel ? inherited!.Credential : null);
             // Работа в окнах и на сайтах идёт мелкими шагами: раундов нужно больше обычного.
             if (session is not null || browser is not null)
             {
@@ -328,9 +361,10 @@ internal sealed class AgentHost : IAgentHost
 
             // Свой клиент на прогон: VeniceClient копит потраченное в своём RequestCost, и
             // агент читает оттуда цену именно своей работы. На общем с чатом клиенте он забрал
-            // бы себе и деньги чужого хода.
+            // бы себе и деньги чужого хода. Каталог нужен ему так же, как клиенту чата: прямые
+            // провайдеры цену не называют, и без него работа агента не стоила бы ничего.
             using var http = CreateHttp(TimeSpan.FromMinutes(5));
-            var venice = new VeniceClient(http, options);
+            var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
 
@@ -344,7 +378,8 @@ internal sealed class AgentHost : IAgentHost
                 () => ModelSlots.WebSearch(_settings()),
                 () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
                 _instructions,
-                agentInstructions);
+                agentInstructions,
+                readSettings: _settings);
             if (session is not null)
             {
                 // Инструмент — на попытку: видит ли модель снимки, зависит от модели попытки.
@@ -387,7 +422,7 @@ internal sealed class AgentHost : IAgentHost
                 {
                     session is null ? null : ComputerPrompt.AgentRule,
                     browser is not null ? BrowserPrompt.AgentRule
-                        : BrowserOff(settings) ? BrowserPrompt.AgentOffRule
+                        : BrowserOff(access) ? BrowserPrompt.AgentOffRule
                         : null
                 }.OfType<string>()),
                 GuardScreen = session is null ? null : session.DescribeForGuard,
@@ -408,6 +443,9 @@ internal sealed class AgentHost : IAgentHost
             entry = _agents?.Register(
                 scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt, agentId);
             agentId ??= entry?.Id;
+            record.AgentId = agentId ?? "";
+            notify();
+            agent.CacheKey = cacheOwner + ":" + agentId;
             if (entry is not null)
             {
                 foreach (var note in carried)
@@ -424,7 +462,9 @@ internal sealed class AgentHost : IAgentHost
             {
                 var attempt = Attempt ?? ((_, _, token) => history is null
                     ? agent.RunAsync(currentPrompt, token)
-                    : agent.ContinueAsync(currentPrompt, history, message, token));
+                    : resuming
+                        ? agent.ResumeAsync(currentPrompt, history, message, humanNotes, token)
+                        : agent.ContinueAsync(currentPrompt, history, message, token));
                 var result = await attempt(history is null ? currentPrompt : message ?? "", modelId, interrupt.Token)
                     .ConfigureAwait(false);
                 record.ReportText = result.Refusal is { } refused
@@ -446,7 +486,7 @@ internal sealed class AgentHost : IAgentHost
                 Keep(scope, conversation, agentId, currentPrompt, currentComplexity, agent.SessionHistory);
                 return ToolResult.Ok(
                     (switched ? "Агент был пересажен на другую модель по просьбе пользователя. " : "") +
-                    ReportFor(agentId, result, modelId, currentComplexity, settings));
+                    ReportFor(agentId, result, modelId, currentComplexity, settings, inherited is not null));
             }
             catch (OperationCanceledException) when (
                 entry is not null && !cancellationToken.IsCancellationRequested)
@@ -457,7 +497,17 @@ internal sealed class AgentHost : IAgentHost
                 if (pending.Kind == AgentInterruptKind.Switch)
                 {
                     carried = entry.TakeNotes();
+                    if (agent.SessionHistory is { Count: > 0 } interrupted)
+                    {
+                        // Подпись размышления принадлежит прежней модели; текст и результаты нужны новой.
+                        history = ChatMessageCloner.CloneAll(interrupted, preserveReplayBlocks:
+                            string.Equals(modelId, ResolveModel(pending.Complexity, settings), StringComparison.OrdinalIgnoreCase));
+                        humanNotes = agent.HumanNotes;
+                        resuming = true;
+                    }
+
                     currentComplexity = pending.Complexity;
+                    useChatModel = false;
                     if (!string.IsNullOrWhiteSpace(pending.Prompt))
                     {
                         currentPrompt = pending.Prompt.Trim();
@@ -520,7 +570,8 @@ internal sealed class AgentHost : IAgentHost
     /// <summary>
     /// Что чат получает в ответ: отчёт агента с его id — или отказ с тем, что можно сделать дальше.
     /// </summary>
-    private static string ReportFor(string? agentId, AgentRunResult result, string modelId, string tier, AppSettings settings)
+    private static string ReportFor(
+        string? agentId, AgentRunResult result, string modelId, string tier, AppSettings settings, bool inherited)
     {
         var who = agentId is null ? "Агент" : "Агент " + agentId;
         if (result.Refusal is { } reasons)
@@ -529,6 +580,13 @@ internal sealed class AgentHost : IAgentHost
                 ? reasons.Trim()
                 : string.IsNullOrWhiteSpace(result.AssistantText) ? "не названы" : result.AssistantText.Trim();
             var model = VeniceModelCatalog.GetDisplayName(modelId);
+            if (inherited)
+            {
+                return $"{who} ({model}) отказался. Причины: {why}. " +
+                       "Модели сильнее нет: наследование агентами включено, и другой модели для него сейчас нет. " +
+                       "Переубедить его можно через message_agent; не выйдет — передай человеку его причины.";
+            }
+
             return NextTier(tier, settings) is null
                 ? $"{who} ({model}) отказался, и модели сильнее нет. Причины: {why}. " +
                   "Переубедить его можно через message_agent; не выйдет — передай человеку его причины."
@@ -547,8 +605,8 @@ internal sealed class AgentHost : IAgentHost
     /// окном есть) и цель — этот ПК. Тогда агенту говорится, что браузер выключен и где его
     /// включить (1.37.0-beta.8); в тестах без хаба и на удалённой машине промпт не меняется.
     /// </summary>
-    private bool BrowserOff(AppSettings settings) =>
-        !settings.AgentBrowser && _browser?.Factory is not null && ExecutionTarget.Current is null;
+    private bool BrowserOff(ChatSessionAccess access) =>
+        !access.CanUseAgentBrowser && _browser?.Factory is not null && ExecutionTarget.Current is null;
 
     /// <summary>
     /// Видит ли модель картинки — снимок экрана отдаётся только такой. Модель, о которой каталог
@@ -601,7 +659,8 @@ internal sealed class AgentHost : IAgentHost
         // Мышь дана — работа в окнах не должна достаться модели, которая не видит экран: правило
         // в блок моделей, а уровням без зрения — запрет прямо в критерий Decisions.
         HashSet<string>? blind = null;
-        if (ComputerHub.Allowed(settings) && _computer is not null)
+        var access = AgentRunScope.Current?.Access ?? ChatSessionAccess.For(null, settings);
+        if (access.CanControlComputer && _computer is not null)
         {
             models += "\n" + AgentTierRouter.WindowsRule;
             blind = [.. Tiers.Where(tier => !CanSee(ResolveModel(tier, settings)))];
@@ -655,20 +714,33 @@ internal sealed class AgentHost : IAgentHost
         return slot ?? new ReasoningSettings();
     }
 
+    /// <summary>Размышление хода чата в виде, который ждёт <see cref="CloneOptions"/>.</summary>
+    private static ReasoningSettings ReasoningOf(ReasoningChoice choice) => new()
+    {
+        DisableThinking = choice.DisableThinking,
+        ReasoningEffort = choice.Effort,
+        Speed = choice.Speed
+    };
+
     /// <param name="keyId">
     /// Ключ слота, чью модель этот прогон и берёт. Ставится здесь, в миг сборки копии: клиент
     /// у прогона свой, и внутренние вызовы агента про ключи ничего не знают.
+    /// </param>
+    /// <param name="credential">
+    /// Ключ хода при наследовании модели чата: у слота агента может быть ключ другого провайдера,
+    /// и искать его по id здесь было бы нечем. Null — ключ слота, как раньше.
     /// </param>
     internal static AgentOptions CloneOptions(
         AgentOptions source,
         string model,
         ReasoningSettings reasoning,
-        string? keyId = null) =>
+        string? keyId = null,
+        ApiCredential? credential = null) =>
         source with
         {
             // Ключ, каким он виден сейчас, а не поле за ним: так копии делались и до записи.
             ApiKey = source.ApiKey,
-            Binding = source.Keys?.CredentialFor(model, keyId),
+            Binding = credential ?? source.Keys?.CredentialFor(model, keyId),
             Model = model,
             EnableXSearch = false,
             DisableThinking = reasoning.DisableThinking,

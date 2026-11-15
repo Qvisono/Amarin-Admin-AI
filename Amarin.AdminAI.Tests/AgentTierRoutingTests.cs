@@ -35,7 +35,8 @@ public sealed class AgentTierRoutingTests
     private static async Task<ToolCallRecord> RunAsync(
         AgentHost host,
         string? notes = null,
-        string? forcedTier = null)
+        string? forcedTier = null,
+        InheritedAgentModel? inherited = null)
     {
         var call = new ToolCallRecord { Id = "c1", Name = "init_agent" };
         using (AgentRunScope.Push(new AgentRunContext
@@ -44,7 +45,8 @@ public sealed class AgentTierRoutingTests
             Assistant = new ChatDisplayMessage { Role = "assistant" },
             Observer = new SilentObserver(),
             SessionId = "s",
-            ForcedTier = forcedTier
+            ForcedTier = forcedTier,
+            InheritedModel = inherited
         }))
         {
             await host.RunAsync("посмотри, что с принтером", notes, CancellationToken.None);
@@ -226,6 +228,116 @@ public sealed class AgentTierRoutingTests
     }
 
     [Fact]
+    public async Task Inherited_agents_skip_the_router_and_take_the_chat_model()
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.AgentLiteModelId = "lite-model";
+
+        var host = Host(settings);
+        var models = new List<string>();
+        host.Route = (_, _, _) => throw new InvalidOperationException(
+            "При наследовании модель выбирает чат, и маршрутизатор не должен тратить деньги.");
+        host.Attempt = (_, modelId, _) =>
+        {
+            models.Add(modelId);
+            return Task.FromResult(new AgentRunResult { AssistantText = "Готово." });
+        };
+
+        await RunAsync(host, inherited: Inherited("chat-model"));
+
+        Assert.Equal(["chat-model"], models);
+    }
+
+    [Fact]
+    public async Task A_tier_named_by_the_person_overrides_inheritance()
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.AgentHeavyModelId = "heavy-model";
+
+        var host = Host(settings);
+        var models = new List<string>();
+        host.Route = (_, _, _) => throw new InvalidOperationException("Уровень назвал человек.");
+        host.Attempt = (_, modelId, _) =>
+        {
+            models.Add(modelId);
+            return Task.FromResult(new AgentRunResult { AssistantText = "Готово." });
+        };
+
+        await RunAsync(host, forcedTier: "heavy", inherited: Inherited("chat-model"));
+
+        Assert.Equal(["heavy-model"], models);
+    }
+
+    [Fact]
+    public async Task A_continuation_returns_an_inherited_agent_to_the_chat_model()
+    {
+        // Запуск командой — исключение на один прогон. message_agent продолжает разговор уже
+        // по общему правилу наследования, иначе агент остался бы на уровне до конца жизни.
+        var settings = AppSettings.CreateDefault();
+        settings.AgentHeavyModelId = "heavy-model";
+
+        var host = Host(settings);
+        var models = new List<string>();
+        host.Attempt = (_, modelId, _) =>
+        {
+            models.Add(modelId);
+            return Task.FromResult(new AgentRunResult { AssistantText = "Готово." });
+        };
+
+        using (AgentRunScope.Push(new AgentRunContext
+        {
+            Call = new ToolCallRecord { Id = "c1", Name = InitAgentTool.ToolName },
+            Assistant = new ChatDisplayMessage { Role = "assistant" },
+            Observer = new SilentObserver(),
+            SessionId = "s",
+            ForcedTier = "heavy",
+            Conversations = new AgentConversations(),
+            InheritedModel = Inherited("chat-model")
+        }))
+        {
+            await host.RunAsync("задание", null, CancellationToken.None);
+            await host.ContinueAsync("a1", "продолжай", CancellationToken.None);
+        }
+
+        Assert.Equal(["heavy-model", "chat-model"], models);
+    }
+
+    [Fact]
+    public async Task A_refused_inherited_agent_is_not_escalated_to_another_model()
+    {
+        var settings = AppSettings.CreateDefault();
+        var host = Host(settings);
+        var models = new List<string>();
+        host.Attempt = (_, modelId, _) =>
+        {
+            models.Add(modelId);
+            return Task.FromResult(new AgentRunResult { AssistantText = "Готово." });
+        };
+
+        ToolResult escalation;
+        using (AgentRunScope.Push(new AgentRunContext
+        {
+            Call = new ToolCallRecord { Id = "c1", Name = InitAgentTool.ToolName },
+            Assistant = new ChatDisplayMessage { Role = "assistant" },
+            Observer = new SilentObserver(),
+            SessionId = "s",
+            Conversations = new AgentConversations(),
+            InheritedModel = Inherited("chat-model")
+        }))
+        {
+            await host.RunAsync("задание", null, CancellationToken.None);
+            escalation = await host.EscalateAsync("a1", CancellationToken.None);
+        }
+
+        Assert.False(escalation.Success);
+        Assert.Contains("наследование агентами включено", escalation.Output, StringComparison.Ordinal);
+        Assert.Equal(["chat-model"], models);
+    }
+
+    private static InheritedAgentModel Inherited(string modelId) => new(
+        modelId, new ApiCredential(LlmProvider.Venice, "chat-key"), new ReasoningChoice(false, "high"));
+
+    [Fact]
     public async Task A_tier_named_by_the_person_never_pays_for_a_router_call()
     {
         var settings = AppSettings.CreateDefault();
@@ -316,10 +428,70 @@ public sealed class AgentTierRoutingTests
         Assert.Equal("fast", probe.SeenTier);
     }
 
+    [Fact]
+    public async Task The_chat_model_key_and_reasoning_travel_to_the_agent()
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.InheritAgentModel = true;
+        settings.AgentFastModelId = "fast-agent-model";
+        var handler = new ScriptedHandler(_ => Sse("Готово."));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var options = Options("https://api.venice.ai/api/v1");
+        var probe = new TierProbeTool();
+        var engine = new ChatEngine(
+            new VeniceClient(http, options), options, () => settings, new ToolRegistry([probe]));
+
+        await engine.RunAgentCommandAsync(
+            new ChatSession
+            {
+                Id = "s",
+                SelectedModelId = "chat-model",
+                DisableThinking = false,
+                ReasoningEffort = "high"
+            },
+            "/agent-fast посмотри диск",
+            "посмотри диск",
+            "fast",
+            new SilentObserver(),
+            CancellationToken.None);
+
+        var inherited = Assert.IsType<InheritedAgentModel>(probe.SeenInherited);
+        Assert.Equal("chat-model", inherited.ModelId);
+        Assert.Equal("test", inherited.Credential.Secret);
+        Assert.Equal(LlmProvider.Venice, inherited.Credential.Provider);
+        Assert.False(inherited.Reasoning.DisableThinking);
+        Assert.Equal("high", inherited.Reasoning.Effort);
+    }
+
+    [Fact]
+    public async Task Inheritance_is_off_when_the_chat_says_so()
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.InheritAgentModel = true;
+        var handler = new ScriptedHandler(_ => Sse("Готово."));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var options = Options("https://api.venice.ai/api/v1");
+        var probe = new TierProbeTool();
+        var engine = new ChatEngine(
+            new VeniceClient(http, options), options, () => settings, new ToolRegistry([probe]));
+
+        await engine.RunAgentCommandAsync(
+            new ChatSession { Id = "s", SelectedModelId = "chat-model", InheritAgentModelOverride = false },
+            "/agent-fast посмотри диск",
+            "посмотри диск",
+            "fast",
+            new SilentObserver(),
+            CancellationToken.None);
+
+        Assert.Null(probe.SeenInherited);
+    }
+
     /// <summary>Встаёт на место <c>init_agent</c> и запоминает, какой уровень до него доехал.</summary>
     private sealed class TierProbeTool : ITool
     {
         public string? SeenTier { get; private set; }
+
+        public InheritedAgentModel? SeenInherited { get; private set; }
 
         public string Name => InitAgentTool.ToolName;
 
@@ -333,6 +505,7 @@ public sealed class AgentTierRoutingTests
             CancellationToken cancellationToken = default)
         {
             SeenTier = AgentRunScope.Current?.ForcedTier;
+            SeenInherited = AgentRunScope.Current?.InheritedModel;
             return Task.FromResult(ToolResult.Ok("Отчёт агента: готово."));
         }
     }

@@ -76,7 +76,7 @@ public sealed partial class VeniceClient
         if (info is null && ResolveModelInfo is not null)
         {
             var models = await ListTextModelsAsync(key, cancellationToken).ConfigureAwait(false);
-            info = ReasoningPolicy.Find(models, model);
+            info = VeniceModelCatalog.Find(models, model);
         }
 
         return VeniceModelCatalog.IsDecisionModel(info);

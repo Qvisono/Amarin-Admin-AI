@@ -1,0 +1,912 @@
+[
+  {
+    "Case": "text-120messages",
+    "Metadata": true,
+    "Messages": 120,
+    "InlineJsonChars": 959853,
+    "ExternalJsonChars": 959853,
+    "BlobCount": 0,
+    "ReferenceReads": 0,
+    "UniqueBytes": 0
+  },
+  {
+    "Case": "text-120messages",
+    "Operation": "ReadMainJson",
+    "MedianMs": 1.8166,
+    "MinMs": 1.2636,
+    "MaxMs": 2.0482,
+    "MedianAllocatedMiB": 3.67950439453125,
+    "Samples": [
+      {
+        "Ms": 2.0219,
+        "Alloc": 3858240
+      },
+      {
+        "Ms": 1.2636,
+        "Alloc": 3858240
+      },
+      {
+        "Ms": 1.8166,
+        "Alloc": 3858240
+      },
+      {
+        "Ms": 1.4482,
+        "Alloc": 3858240
+      },
+      {
+        "Ms": 2.0482,
+        "Alloc": 3858240
+      }
+    ]
+  },
+  {
+    "Case": "text-120messages",
+    "Operation": "InlineFromMemory",
+    "MedianMs": 0.2047,
+    "MinMs": 0.1754,
+    "MaxMs": 0.2455,
+    "MedianAllocatedMiB": 0.0010223388671875,
+    "Samples": [
+      {
+        "Ms": 0.2047,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 0.2455,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 0.2066,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 0.1754,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 0.1812,
+        "Alloc": 1072
+      }
+    ]
+  },
+  {
+    "Case": "text-120messages",
+    "Operation": "InlineWithBlobCache",
+    "MedianMs": 0.2021,
+    "MinMs": 0.1441,
+    "MaxMs": 0.2551,
+    "MedianAllocatedMiB": 0.001190185546875,
+    "Samples": [
+      {
+        "Ms": 0.2265,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 0.2551,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 0.1607,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 0.1441,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 0.2021,
+        "Alloc": 1248
+      }
+    ]
+  },
+  {
+    "Case": "text-120messages",
+    "Operation": "DeserializeExpandedJson",
+    "MedianMs": 5.3978,
+    "MinMs": 5.2608,
+    "MaxMs": 5.5681,
+    "MedianAllocatedMiB": 1.1521682739257812,
+    "Samples": [
+      {
+        "Ms": 5.4284,
+        "Alloc": 1208136
+      },
+      {
+        "Ms": 5.5681,
+        "Alloc": 1208136
+      },
+      {
+        "Ms": 5.3978,
+        "Alloc": 1208136
+      },
+      {
+        "Ms": 5.2608,
+        "Alloc": 1208136
+      },
+      {
+        "Ms": 5.3739,
+        "Alloc": 1208136
+      }
+    ]
+  },
+  {
+    "Case": "text-120messages",
+    "Operation": "TryLoad",
+    "MedianMs": 7.7053,
+    "MinMs": 6.4441,
+    "MaxMs": 7.8271,
+    "MedianAllocatedMiB": 3.899017333984375,
+    "Samples": [
+      {
+        "Ms": 7.7564,
+        "Alloc": 4088416
+      },
+      {
+        "Ms": 7.7053,
+        "Alloc": 4088416
+      },
+      {
+        "Ms": 6.8218,
+        "Alloc": 4088416
+      },
+      {
+        "Ms": 6.4441,
+        "Alloc": 4088416
+      },
+      {
+        "Ms": 7.8271,
+        "Alloc": 4088416
+      }
+    ]
+  },
+  {
+    "Case": "text-1200messages",
+    "Metadata": true,
+    "Messages": 1200,
+    "InlineJsonChars": 9597533,
+    "ExternalJsonChars": 9597533,
+    "BlobCount": 0,
+    "ReferenceReads": 0,
+    "UniqueBytes": 0
+  },
+  {
+    "Case": "text-1200messages",
+    "Operation": "ReadMainJson",
+    "MedianMs": 24.1878,
+    "MinMs": 21.8294,
+    "MaxMs": 29.1596,
+    "MedianAllocatedMiB": 36.708221435546875,
+    "Samples": [
+      {
+        "Ms": 22.2556,
+        "Alloc": 38491360
+      },
+      {
+        "Ms": 29.1596,
+        "Alloc": 38491360
+      },
+      {
+        "Ms": 24.1878,
+        "Alloc": 38491360
+      },
+      {
+        "Ms": 21.8294,
+        "Alloc": 38491360
+      },
+      {
+        "Ms": 24.4501,
+        "Alloc": 38491360
+      }
+    ]
+  },
+  {
+    "Case": "text-1200messages",
+    "Operation": "InlineFromMemory",
+    "MedianMs": 1.8224,
+    "MinMs": 1.5489,
+    "MaxMs": 1.9094,
+    "MedianAllocatedMiB": 0.0010223388671875,
+    "Samples": [
+      {
+        "Ms": 1.7421,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 1.8612,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 1.8224,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 1.9094,
+        "Alloc": 1072
+      },
+      {
+        "Ms": 1.5489,
+        "Alloc": 1072
+      }
+    ]
+  },
+  {
+    "Case": "text-1200messages",
+    "Operation": "InlineWithBlobCache",
+    "MedianMs": 1.8602,
+    "MinMs": 1.708,
+    "MaxMs": 2.0731,
+    "MedianAllocatedMiB": 0.001190185546875,
+    "Samples": [
+      {
+        "Ms": 2.0731,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 1.8602,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 1.708,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 2.0431,
+        "Alloc": 1248
+      },
+      {
+        "Ms": 1.7918,
+        "Alloc": 1248
+      }
+    ]
+  },
+  {
+    "Case": "text-1200messages",
+    "Operation": "DeserializeExpandedJson",
+    "MedianMs": 65.8617,
+    "MinMs": 61.2119,
+    "MaxMs": 67.7983,
+    "MedianAllocatedMiB": 11.530921936035156,
+    "Samples": [
+      {
+        "Ms": 65.7355,
+        "Alloc": 12091048
+      },
+      {
+        "Ms": 67.7983,
+        "Alloc": 12091048
+      },
+      {
+        "Ms": 61.2119,
+        "Alloc": 12091048
+      },
+      {
+        "Ms": 65.8617,
+        "Alloc": 12091048
+      },
+      {
+        "Ms": 67.1154,
+        "Alloc": 12091048
+      }
+    ]
+  },
+  {
+    "Case": "text-1200messages",
+    "Operation": "TryLoad",
+    "MedianMs": 80.5249,
+    "MinMs": 68.5017,
+    "MaxMs": 89.595,
+    "MedianAllocatedMiB": 38.99037170410156,
+    "Samples": [
+      {
+        "Ms": 80.5249,
+        "Alloc": 40884368
+      },
+      {
+        "Ms": 77.2334,
+        "Alloc": 40884368
+      },
+      {
+        "Ms": 89.595,
+        "Alloc": 40884368
+      },
+      {
+        "Ms": 84.6836,
+        "Alloc": 40884368
+      },
+      {
+        "Ms": 68.5017,
+        "Alloc": 40884368
+      }
+    ]
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Metadata": true,
+    "Messages": 120,
+    "InlineJsonChars": 6989999,
+    "ExternalJsonChars": 961769,
+    "BlobCount": 4,
+    "ReferenceReads": 8,
+    "UniqueBytes": 2097152
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Operation": "ReadMainJson",
+    "MedianMs": 1.3902,
+    "MinMs": 1.2628,
+    "MaxMs": 1.8983,
+    "MedianAllocatedMiB": 3.698486328125,
+    "Samples": [
+      {
+        "Ms": 1.3902,
+        "Alloc": 3878144
+      },
+      {
+        "Ms": 1.8983,
+        "Alloc": 3878144
+      },
+      {
+        "Ms": 1.2714,
+        "Alloc": 3878144
+      },
+      {
+        "Ms": 1.2628,
+        "Alloc": 3878144
+      },
+      {
+        "Ms": 1.4812,
+        "Alloc": 3878144
+      }
+    ]
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Operation": "InlineFromMemory",
+    "MedianMs": 17.1212,
+    "MinMs": 14.2591,
+    "MaxMs": 22.2218,
+    "MedianAllocatedMiB": 64.5149917602539,
+    "Samples": [
+      {
+        "Ms": 18.1572,
+        "Alloc": 67648872
+      },
+      {
+        "Ms": 22.2218,
+        "Alloc": 67648872
+      },
+      {
+        "Ms": 17.1212,
+        "Alloc": 67648872
+      },
+      {
+        "Ms": 15.436,
+        "Alloc": 67648872
+      },
+      {
+        "Ms": 14.2591,
+        "Alloc": 67648872
+      }
+    ]
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Operation": "InlineWithBlobCache",
+    "MedianMs": 17.0723,
+    "MinMs": 16.1391,
+    "MaxMs": 18.1079,
+    "MedianAllocatedMiB": 66.51842498779297,
+    "Samples": [
+      {
+        "Ms": 18.0033,
+        "Alloc": 69749624
+      },
+      {
+        "Ms": 18.1079,
+        "Alloc": 69749624
+      },
+      {
+        "Ms": 17.0723,
+        "Alloc": 69749624
+      },
+      {
+        "Ms": 16.8832,
+        "Alloc": 69749624
+      },
+      {
+        "Ms": 16.1391,
+        "Alloc": 69749624
+      }
+    ]
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Operation": "DeserializeExpandedJson",
+    "MedianMs": 8.9452,
+    "MinMs": 8.2112,
+    "MaxMs": 9.6303,
+    "MedianAllocatedMiB": 9.154792785644531,
+    "Samples": [
+      {
+        "Ms": 8.6761,
+        "Alloc": 9599496
+      },
+      {
+        "Ms": 9.6303,
+        "Alloc": 9599496
+      },
+      {
+        "Ms": 9.033,
+        "Alloc": 9599496
+      },
+      {
+        "Ms": 8.9452,
+        "Alloc": 9599496
+      },
+      {
+        "Ms": 8.2112,
+        "Alloc": 9599496
+      }
+    ]
+  },
+  {
+    "Case": "images-4x512KiB",
+    "Operation": "TryLoad",
+    "MedianMs": 29.1025,
+    "MinMs": 26.2339,
+    "MaxMs": 29.707,
+    "MedianAllocatedMiB": 80.4289779663086,
+    "Samples": [
+      {
+        "Ms": 26.2339,
+        "Alloc": 84335896
+      },
+      {
+        "Ms": 29.3866,
+        "Alloc": 84335896
+      },
+      {
+        "Ms": 27.526,
+        "Alloc": 84335896
+      },
+      {
+        "Ms": 29.1025,
+        "Alloc": 84335896
+      },
+      {
+        "Ms": 29.707,
+        "Alloc": 84335896
+      }
+    ]
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Metadata": true,
+    "Messages": 120,
+    "InlineJsonChars": 25074205,
+    "ExternalJsonChars": 961769,
+    "BlobCount": 4,
+    "ReferenceReads": 8,
+    "UniqueBytes": 8388608
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Operation": "ReadMainJson",
+    "MedianMs": 1.6335,
+    "MinMs": 1.169,
+    "MaxMs": 1.7418,
+    "MedianAllocatedMiB": 3.6984786987304688,
+    "Samples": [
+      {
+        "Ms": 1.169,
+        "Alloc": 3878136
+      },
+      {
+        "Ms": 1.7398,
+        "Alloc": 3878136
+      },
+      {
+        "Ms": 1.4598,
+        "Alloc": 3878136
+      },
+      {
+        "Ms": 1.7418,
+        "Alloc": 3878136
+      },
+      {
+        "Ms": 1.6335,
+        "Alloc": 3878136
+      }
+    ]
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Operation": "InlineFromMemory",
+    "MedianMs": 63.4744,
+    "MinMs": 61.8028,
+    "MaxMs": 67.9497,
+    "MedianAllocatedMiB": 252.54132843017578,
+    "Samples": [
+      {
+        "Ms": 67.7052,
+        "Alloc": 264808776
+      },
+      {
+        "Ms": 61.8028,
+        "Alloc": 264808776
+      },
+      {
+        "Ms": 67.9497,
+        "Alloc": 264808776
+      },
+      {
+        "Ms": 63.4744,
+        "Alloc": 264808776
+      },
+      {
+        "Ms": 62.5123,
+        "Alloc": 264808776
+      }
+    ]
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Operation": "InlineWithBlobCache",
+    "MedianMs": 67.0914,
+    "MinMs": 61.2652,
+    "MaxMs": 73.6976,
+    "MedianAllocatedMiB": 260.5447311401367,
+    "Samples": [
+      {
+        "Ms": 62.5354,
+        "Alloc": 273200952
+      },
+      {
+        "Ms": 67.0914,
+        "Alloc": 273200952
+      },
+      {
+        "Ms": 61.2652,
+        "Alloc": 273200952
+      },
+      {
+        "Ms": 69.2959,
+        "Alloc": 273200952
+      },
+      {
+        "Ms": 73.6976,
+        "Alloc": 273200952
+      }
+    ]
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Operation": "DeserializeExpandedJson",
+    "MedianMs": 20.9981,
+    "MinMs": 20.0188,
+    "MaxMs": 24.0268,
+    "MedianAllocatedMiB": 33.15479278564453,
+    "Samples": [
+      {
+        "Ms": 20.2563,
+        "Alloc": 34765320
+      },
+      {
+        "Ms": 24.0268,
+        "Alloc": 34765320
+      },
+      {
+        "Ms": 20.0188,
+        "Alloc": 34765320
+      },
+      {
+        "Ms": 23.1089,
+        "Alloc": 34765320
+      },
+      {
+        "Ms": 20.9981,
+        "Alloc": 34765320
+      }
+    ]
+  },
+  {
+    "Case": "images-4x2MiB",
+    "Operation": "TryLoad",
+    "MedianMs": 90.8347,
+    "MinMs": 88.6671,
+    "MaxMs": 96.1602,
+    "MedianAllocatedMiB": 304.4552459716797,
+    "Samples": [
+      {
+        "Ms": 92.6131,
+        "Alloc": 319244464
+      },
+      {
+        "Ms": 90.0408,
+        "Alloc": 319244464
+      },
+      {
+        "Ms": 88.6671,
+        "Alloc": 319244464
+      },
+      {
+        "Ms": 90.8347,
+        "Alloc": 319244464
+      },
+      {
+        "Ms": 96.1602,
+        "Alloc": 319244464
+      }
+    ]
+  },
+  {
+    "Case": "table-10000",
+    "Operation": "NumericSort",
+    "MedianMs": 57.6564,
+    "MinMs": 54.8632,
+    "MaxMs": 61.7482,
+    "MedianAllocatedMiB": 48.1903076171875,
+    "Samples": [
+      {
+        "Ms": 57.6564,
+        "Alloc": 50531200
+      },
+      {
+        "Ms": 58.373,
+        "Alloc": 50531200
+      },
+      {
+        "Ms": 55.9112,
+        "Alloc": 50531200
+      },
+      {
+        "Ms": 54.8632,
+        "Alloc": 50531200
+      },
+      {
+        "Ms": 61.7482,
+        "Alloc": 50531200
+      }
+    ]
+  },
+  {
+    "Case": "table-10000",
+    "Operation": "TypedSortReference",
+    "MedianMs": 1.9763,
+    "MinMs": 1.7881,
+    "MaxMs": 2.5733,
+    "MedianAllocatedMiB": 1.7953872680664062,
+    "Samples": [
+      {
+        "Ms": 2.047,
+        "Alloc": 1882600
+      },
+      {
+        "Ms": 1.9763,
+        "Alloc": 1882600
+      },
+      {
+        "Ms": 2.5733,
+        "Alloc": 1882600
+      },
+      {
+        "Ms": 1.7881,
+        "Alloc": 1882600
+      },
+      {
+        "Ms": 1.8403,
+        "Alloc": 1882600
+      }
+    ]
+  },
+  {
+    "Case": "table-10000",
+    "Operation": "Group3Aggregates",
+    "MedianMs": 14.2709,
+    "MinMs": 14.0788,
+    "MaxMs": 17.6552,
+    "MedianAllocatedMiB": 14.041412353515625,
+    "Samples": [
+      {
+        "Ms": 14.2709,
+        "Alloc": 14723488
+      },
+      {
+        "Ms": 14.0788,
+        "Alloc": 14723488
+      },
+      {
+        "Ms": 17.6552,
+        "Alloc": 14723488
+      },
+      {
+        "Ms": 15.5231,
+        "Alloc": 14723488
+      },
+      {
+        "Ms": 14.2005,
+        "Alloc": 14723488
+      }
+    ]
+  },
+  {
+    "Case": "table-100000",
+    "Operation": "NumericSort",
+    "MedianMs": 769.2666,
+    "MinMs": 748.8608,
+    "MaxMs": 776.495,
+    "MedianAllocatedMiB": 601.5021362304688,
+    "Samples": [
+      {
+        "Ms": 776.495,
+        "Alloc": 630720704
+      },
+      {
+        "Ms": 769.2666,
+        "Alloc": 630720704
+      },
+      {
+        "Ms": 768.6232,
+        "Alloc": 630720704
+      },
+      {
+        "Ms": 771.0392,
+        "Alloc": 630720704
+      },
+      {
+        "Ms": 748.8608,
+        "Alloc": 630720704
+      }
+    ]
+  },
+  {
+    "Case": "table-100000",
+    "Operation": "TypedSortReference",
+    "MedianMs": 17.5422,
+    "MinMs": 16.169,
+    "MaxMs": 18.2541,
+    "MedianAllocatedMiB": 17.931259155273438,
+    "Samples": [
+      {
+        "Ms": 16.169,
+        "Alloc": 18802288
+      },
+      {
+        "Ms": 17.7831,
+        "Alloc": 18802288
+      },
+      {
+        "Ms": 17.5422,
+        "Alloc": 18802288
+      },
+      {
+        "Ms": 17.1387,
+        "Alloc": 18802288
+      },
+      {
+        "Ms": 18.2541,
+        "Alloc": 18802288
+      }
+    ]
+  },
+  {
+    "Case": "table-100000",
+    "Operation": "Group3Aggregates",
+    "MedianMs": 144.8223,
+    "MinMs": 136.0768,
+    "MaxMs": 146.4533,
+    "MedianAllocatedMiB": 138.32164001464844,
+    "Samples": [
+      {
+        "Ms": 145.963,
+        "Alloc": 145040752
+      },
+      {
+        "Ms": 146.4533,
+        "Alloc": 145040752
+      },
+      {
+        "Ms": 144.8223,
+        "Alloc": 145040752
+      },
+      {
+        "Ms": 136.0768,
+        "Alloc": 145040752
+      },
+      {
+        "Ms": 137.3418,
+        "Alloc": 145040752
+      }
+    ]
+  },
+  {
+    "Case": "text-file-1048576",
+    "Operation": "Read100Lines",
+    "MedianMs": 2.2273,
+    "MinMs": 1.9531,
+    "MaxMs": 3.117,
+    "MedianAllocatedMiB": 6.303123474121094,
+    "Samples": [
+      {
+        "Ms": 3.117,
+        "Alloc": 6609304
+      },
+      {
+        "Ms": 1.9736,
+        "Alloc": 6609304
+      },
+      {
+        "Ms": 1.9531,
+        "Alloc": 6609304
+      },
+      {
+        "Ms": 2.2273,
+        "Alloc": 6609304
+      },
+      {
+        "Ms": 2.2604,
+        "Alloc": 6609304
+      }
+    ]
+  },
+  {
+    "Case": "text-file-25165824",
+    "Operation": "Read100Lines",
+    "MedianMs": 131.4729,
+    "MinMs": 115.6845,
+    "MaxMs": 139.1133,
+    "MedianAllocatedMiB": 151.07177734375,
+    "Samples": [
+      {
+        "Ms": 128.169,
+        "Alloc": 158408096
+      },
+      {
+        "Ms": 115.6845,
+        "Alloc": 158410232
+      },
+      {
+        "Ms": 131.4729,
+        "Alloc": 158410240
+      },
+      {
+        "Ms": 132.8509,
+        "Alloc": 158410232
+      },
+      {
+        "Ms": 139.1133,
+        "Alloc": 158410232
+      }
+    ]
+  },
+  {
+    "Case": "process",
+    "Operation": "PowerShellConstant",
+    "MedianMs": 485.3958,
+    "MinMs": 459.6356,
+    "MaxMs": 599.245,
+    "MedianAllocatedMiB": 0.03572845458984375,
+    "Samples": [
+      {
+        "Ms": 469.4554,
+        "Alloc": 37464
+      },
+      {
+        "Ms": 599.245,
+        "Alloc": 37464
+      },
+      {
+        "Ms": 507.1078,
+        "Alloc": 37464
+      },
+      {
+        "Ms": 459.6356,
+        "Alloc": 37464
+      },
+      {
+        "Ms": 485.3958,
+        "Alloc": 37464
+      }
+    ]
+  }
+]

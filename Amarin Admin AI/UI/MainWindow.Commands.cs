@@ -74,13 +74,34 @@ namespace Amarin.UI
                 return;
             }
 
+            var routing = ModelRef.OpenRouterRouting(ModelRef.Qualify(LlmProvider.OpenRouter, name));
+            if (routing.Length == 0)
+            {
+                routing = ModelRef.OpenRouterRoutingVariants.FirstOrDefault(route =>
+                    name.EndsWith(route, StringComparison.OrdinalIgnoreCase) ||
+                    name.Equals(route[1..], StringComparison.OrdinalIgnoreCase)) ?? "";
+            }
+
             var candidates = new List<(string Id, string Name)> { ("auto", VeniceModelCatalog.GetDisplayName("auto")) };
             foreach (var provider in _services.Keys.Providers.Select(spec => spec.Provider))
             {
-                foreach (var model in VeniceModelCatalog.ForSlot(_services.Models.CachedFor(provider) ?? [], ModelSlot.Chat))
+                foreach (var model in VeniceModelCatalog.ForSlot(
+                    _services.Models.CachedFor(provider) ?? [], ModelSlot.Chat, includeRoutingSources: routing.Length > 0))
                 {
                     var id = ModelRef.Qualify(provider, model.Id);
-                    candidates.Add((id, VeniceModelCatalog.GetDisplayName(id)));
+                    if (OrganizationPolicy.Current.AllowsModel(id))
+                    {
+                        candidates.Add((id, VeniceModelCatalog.GetDisplayName(id)));
+                    }
+
+                    if (routing.Length > 0 && VeniceModelCatalog.CanUseOpenRouterRouting(model))
+                    {
+                        var routedId = ModelRef.WithOpenRouterRouting(id, routing);
+                        if (OrganizationPolicy.Current.AllowsModel(routedId))
+                        {
+                            candidates.Add((routedId, VeniceModelCatalog.GetDisplayName(routedId)));
+                        }
+                    }
                 }
             }
 
@@ -91,6 +112,7 @@ namespace Amarin.UI
                 return;
             }
 
+            ModelButton.IsChecked = false;
             ChatModelPicker_ModelPicked(this, new ModelBinding(found, _session.SelectedKeyId));
             ShowTransientNotice(_session.Id, Loc.Format("S.Command.ModelSet", VeniceModelCatalog.GetDisplayName(found)));
         }

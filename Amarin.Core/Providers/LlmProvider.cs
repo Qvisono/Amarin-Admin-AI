@@ -44,7 +44,8 @@ public readonly struct LlmProvider : IEquatable<LlmProvider>
         ("mistral", "Mistral"),
         ("zAi", "ZAi"),
         ("qwen", "Qwen"),
-        ("groq", "Groq")
+        ("groq", "Groq"),
+        ("polza", "Polza")
     ];
 
     private readonly string? _id;
@@ -81,6 +82,9 @@ public readonly struct LlmProvider : IEquatable<LlmProvider>
     public static LlmProvider Qwen { get; } = new("qwen");
 
     public static LlmProvider Groq { get; } = new("groq");
+
+    /// <summary>Polza.ai: единый API моделей разных производителей.</summary>
+    public static LlmProvider Polza { get; } = new("polza");
 
     /// <summary>Строка, которой провайдер записан в файлах.</summary>
     public string Id => _id ?? VeniceId;

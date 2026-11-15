@@ -12,20 +12,29 @@ internal sealed partial class ChatEngine
         IReadOnlyList<Instruction> instructions)
     {
         var messages = new List<ChatMessage>();
-        var system = BuildSystemPrompt(currentModelId, instructions, session.Profile);
+        var turn = VeniceTurnScope.Current;
+        var access = turn?.Access ?? session.Access(_settings());
+        if (turn is not null)
+        {
+            turn.Access = access;
+        }
+
+        var system = BuildSystemPrompt(currentModelId, instructions, session.Profile, access);
 
         // Сжатый чат (D10): старая часть уходит сводкой в системном промпте, а не отдельным
         // сообщением — два сообщения user подряд или выдуманный ответ ассистента принимают
         // не все провайдеры.
         IReadOnlyList<ChatMessage> history;
+        int reach;
         lock (session.Gate)
         {
             if (ContextCompaction.IsActive(session) && session.CompactSummary is { } summary)
             {
-                system = (system + "\n\n" + ContextCompaction.PromptBlock(summary)).Trim();
+                system = (system + "\n\n" + ContextCompaction.PromptBlock(summary, session.CompactedFrom > 0)).Trim();
             }
 
             history = ContextCompaction.Tail(session);
+            reach = HygieneReach(session, history);
         }
 
         if (!string.IsNullOrWhiteSpace(system))
@@ -37,21 +46,62 @@ internal sealed partial class ChatEngine
             });
         }
 
+        var lead = messages.Count;
         messages.AddRange(ChatMessageCloner.CloneAll(history));
 
         // Устаревшие версии файлов и прочитанные давно документы — заглушками: только в копии для
         // запроса, хранимая история и отпечаток сжатия не меняются.
-        ContextHygiene.Apply(messages);
+        ContextHygiene.Apply(messages, lead + reach);
         return messages;
     }
+
+    /// <summary>
+    /// Сколько сообщений истории чистить: до границы или, если её пора сдвинуть, всё.
+    /// </summary>
+    /// <remarks>
+    /// Граница отсчитывается от начала <see cref="ChatSession.ApiMessages"/>, а история может быть
+    /// хвостом после сжатия. Сжатие и удаление сообщений и так меняют начало запроса, поэтому граница
+    /// вне хвоста просто ставится заново.
+    /// </remarks>
+    private int HygieneReach(ChatSession session, IReadOnlyList<ChatMessage> history)
+    {
+        var reach = (session.HygieneUpTo ?? -1) - (session.ApiMessages.Count - history.Count);
+        if (session.HygieneUpTo is not null && reach >= 0 && reach <= history.Count)
+        {
+            var held = ContextCompaction.HumanTurns(history.Skip(reach).ToList()).Count;
+            if (!ContextHygiene.MayMoveBoundary(SinceLastAnswer(session), held))
+            {
+                return reach;
+            }
+        }
+
+        session.HygieneUpTo = session.ApiMessages.Count;
+        return history.Count;
+    }
+
+    /// <summary>
+    /// Сколько прошло с конца последнего законченного ответа. Кэш отсчитывается от начала последнего
+    /// запроса, то есть истекает раньше: граница сдвинется на ход позже, но живой кэш не собьёт.
+    /// </summary>
+    private TimeSpan? SinceLastAnswer(ChatSession session) =>
+        session.Messages.LastOrDefault(message => message.Role == "assistant" && message.Status == AssistantStatus.Complete) is { } answer
+            ? Time.GetLocalNow().DateTime - (answer.CreatedAt + answer.Duration)
+            : null;
 
     /// <summary>
     /// Системный промпт следующего запроса. Открыт для кольца контекста: это настоящая часть окна,
     /// а собирать его заново в интерфейсе значило бы раздвоить логику.
     /// </summary>
     /// <param name="session">Чат, чей промпт мерить: у него может быть свой профиль (D11).</param>
-    internal string CurrentSystemPrompt(ChatSession? session = null) =>
-        BuildSystemPrompt(currentModelId: null, ActiveInstructions(session), session?.Profile);
+    internal string CurrentSystemPrompt(ChatSession? session = null)
+    {
+        var settings = _settings();
+        return BuildSystemPrompt(
+            currentModelId: null,
+            ActiveInstructions(session),
+            session?.Profile,
+            session?.Access(settings) ?? ChatSessionAccess.For(null, settings));
+    }
 
     /// <param name="currentModelId">
     /// Модель, на которой идёт ход, — она попадает в блок MODELS. Явным аргументом, а не через
@@ -64,10 +114,15 @@ internal sealed partial class ChatEngine
     /// Профиль чата (D11): его промпт встаёт на место общего «основного». Технический промпт,
     /// правила формул и блоки ниже остаются — без них чат перестал бы уметь то, что умеет.
     /// </param>
-    private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions, ChatProfile? profile = null)
+    private string BuildSystemPrompt(
+        string? currentModelId,
+        IReadOnlyList<Instruction> instructions,
+        ChatProfile? profile = null,
+        ChatSessionAccess? access = null)
     {
         // Только чат: основной промпт + TechAiPrompt. У агента — TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
+        var effectiveAccess = access ?? ChatSessionAccess.For(null, settings);
         var main = profile?.Prompt is { } own && !string.IsNullOrWhiteSpace(own) ? own.Trim() : settings.MainPrompt?.Trim() ?? "";
         var tech = settings.TechAiPrompt?.Trim() ?? "";
         if (tech.Length == 0)
@@ -93,7 +148,7 @@ internal sealed partial class ChatEngine
         parts.Add(FormulaRules);
         parts.Add(FileRules);
         parts.Add(DeferredRules);
-        parts.Add(ComputerHub.Allowed(settings) ? ComputerRules
+        parts.Add(effectiveAccess.CanControlComputer ? ComputerRules
             : OrganizationPolicy.Current.DisableComputerControl ? ComputerPolicyRules
             : ComputerOffRules);
 
@@ -102,7 +157,9 @@ internal sealed partial class ChatEngine
         // машине браузера у агента нет вовсе, и говорить о нём нечего.
         if (ExecutionTarget.Current is null)
         {
-            parts.Add(settings.AgentBrowser ? BrowserPrompt.ChatRules : BrowserPrompt.ChatOffRules(ComputerHub.Allowed(settings)));
+            parts.Add(effectiveAccess.CanUseAgentBrowser
+                ? BrowserPrompt.ChatRules
+                : BrowserPrompt.ChatOffRules(effectiveAccess.CanControlComputer));
         }
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать

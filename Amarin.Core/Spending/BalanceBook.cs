@@ -5,7 +5,8 @@ public sealed record KeyBalance(
     string Fingerprint,
     decimal? Usd,
     decimal? Diem,
-    DateTime SeenUtc);
+    DateTime SeenUtc,
+    decimal? RublesPerUsd = null);
 
 /// <summary>Строка разбивки: чей остаток и сколько.</summary>
 /// <param name="Fingerprint">Отпечаток ключа — по нему ищется порог остатка этого ключа (E4).</param>
@@ -36,6 +37,15 @@ public readonly record struct BalanceTotal(decimal? Usd, decimal? Diem, int Unkn
 /// </remarks>
 internal sealed class BalanceBook
 {
+    private readonly Func<decimal?> _rublesPerUsd;
+    private readonly Func<LlmProvider, ApiCredential>? _defaultCredential;
+
+    public BalanceBook(Func<decimal?>? rublesPerUsd = null, Func<LlmProvider, ApiCredential>? defaultCredential = null)
+    {
+        _rublesPerUsd = rublesPerUsd ?? (() => null);
+        _defaultCredential = defaultCredential;
+    }
+
     /// <summary>Чаще этого один и тот же ключ не дозапрашиваем: остаток не новости.</summary>
     private static readonly TimeSpan Fresh = TimeSpan.FromMinutes(5);
 
@@ -57,14 +67,16 @@ internal sealed class BalanceBook
         }
 
         var fingerprint = ApiKeyStore.Fingerprint(credential.Secret);
-        var entry = new KeyBalance(fingerprint, balance.Usd, balance.Diem, DateTime.UtcNow);
+        var entry = new KeyBalance(fingerprint, balance.Usd, balance.Diem, DateTime.UtcNow,
+            credential.Provider == LlmProvider.Polza ? balance.RublesPerUsd ?? _rublesPerUsd() : null);
 
         bool changed;
         lock (_gate)
         {
             changed = !_byFingerprint.TryGetValue(fingerprint, out var known) ||
                       known.Usd != entry.Usd ||
-                      known.Diem != entry.Diem;
+                      known.Diem != entry.Diem ||
+                      known.RublesPerUsd != entry.RublesPerUsd;
             _byFingerprint[fingerprint] = entry;
         }
 
@@ -83,7 +95,8 @@ internal sealed class BalanceBook
             foreach (var key in keys)
             {
                 if (!key.IsBroken &&
-                    _byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known))
+                    _byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known) &&
+                    HasCurrentRate(key, known))
                 {
                     rows.Add(new BalanceRow(key.Label, key.Provider, known.Usd, known.Diem, known.Fingerprint));
                 }
@@ -102,17 +115,23 @@ internal sealed class BalanceBook
         decimal? usd = null;
         decimal? diem = null;
         var unknown = 0;
+        var polzaSecret = _defaultCredential?.Invoke(LlmProvider.Polza).Secret;
+        if (string.IsNullOrEmpty(polzaSecret) || !keys.Any(key => !key.IsBroken && key.Provider == LlmProvider.Polza && key.Secret == polzaSecret))
+        {
+            polzaSecret = keys.FirstOrDefault(key => !key.IsBroken && key.Provider == LlmProvider.Polza)?.Secret;
+        }
 
         lock (_gate)
         {
             foreach (var key in keys)
             {
-                if (key.IsBroken || !ReportsDollars(key))
+                if (key.IsBroken || !ReportsDollars(key) ||
+                    (key.Provider == LlmProvider.Polza && key.Secret != polzaSecret))
                 {
                     continue;
                 }
 
-                if (!_byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known))
+                if (!_byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known) || !HasCurrentRate(key, known))
                 {
                     unknown++;
                     continue;
@@ -156,7 +175,7 @@ internal sealed class BalanceBook
                 }
 
                 if (!_byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known) ||
-                    now - known.SeenUtc > Fresh)
+                    !HasCurrentRate(key, known) || now - known.SeenUtc > Fresh)
                 {
                     due.Add(key);
                 }
@@ -204,8 +223,29 @@ internal sealed class BalanceBook
     /// </remarks>
     private bool ReportsDollars(ApiKeyEntry key) =>
         key.TokenLimit is null &&
+        (key.Provider != LlmProvider.Polza || _rublesPerUsd() is > 0m) &&
         ProviderSpec.Of(key.Credential).Balance != BalanceSource.None &&
         !_silent.Contains(ApiKeyStore.Fingerprint(key.Secret));
+
+    private bool HasCurrentRate(ApiKeyEntry key, KeyBalance known) =>
+        key.Provider != LlmProvider.Polza ||
+        (_rublesPerUsd() is > 0m and var rate && known.RublesPerUsd == rate);
+
+    /// <summary>После изменения курса прежняя оценка остатка больше не годится.</summary>
+    public void Invalidate(IReadOnlyList<ApiKeyEntry> keys, LlmProvider provider)
+    {
+        lock (_gate)
+        {
+            foreach (var key in keys.Where(key => key.Provider == provider))
+            {
+                var fingerprint = ApiKeyStore.Fingerprint(key.Secret);
+                _byFingerprint.Remove(fingerprint);
+                _silent.Remove(fingerprint);
+            }
+        }
+
+        Changed?.Invoke();
+    }
 
     /// <summary>Книга целиком — для сохранения между запусками.</summary>
     public IReadOnlyList<KeyBalance> Snapshot()

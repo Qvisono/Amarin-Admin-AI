@@ -397,7 +397,7 @@ internal sealed class SpendChart : FrameworkElement
         const double Gap = 12;
 
         var date = Text(ChatFormat.Date(point.Date, _dateFormat), 10, _label);
-        var amount = Text(SpendReport.FormatUsd(point.Usd), 12.5, _amountBrush);
+        var amount = Text(SpendReport.FormatUsd(point.Usd, point.Estimated), 12.5, _amountBrush);
         amount.SetFontWeight(FontWeights.SemiBold);
 
         var card = PlaceCallout(

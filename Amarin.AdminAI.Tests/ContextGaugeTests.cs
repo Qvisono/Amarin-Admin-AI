@@ -22,6 +22,39 @@ public sealed class ContextGaugeTests
         };
 
     [Fact]
+    public void Categories_use_the_reported_total_without_claiming_exact_per_category_counts()
+    {
+        var session = new ChatSession { LastPromptTokens = 400, LastPromptTokensApiIndex = 2 };
+        session.ApiMessages.Add(User(new string('a', 400)));
+        session.ApiMessages.Add(new ChatMessage { Role = "tool", Content = ChatContent.Text(new string('t', 400)) });
+
+        var usage = ContextGauge.MeasureCategories(session, new string('s', 400), [Model(available: 2000)]);
+
+        Assert.Equal(400, usage.Total.Used);
+        Assert.True(usage.Conversation > 0);
+        Assert.True(usage.Tools > 0);
+        Assert.True(usage.System > 0);
+        Assert.Equal(usage.Total.Used, usage.Conversation + usage.Tools + usage.Files + usage.System);
+    }
+
+    [Fact]
+    public void Categories_mark_attachments_as_unmeasured_and_ignore_base64_length()
+    {
+        var session = new ChatSession();
+        session.ApiMessages.Add(new ChatMessage
+        {
+            Role = "user",
+            Content = ChatContent.Vision("picture", new string('x', 10000))
+        });
+
+        var usage = ContextGauge.MeasureCategories(session, "system", [Model(available: 2000)]);
+
+        Assert.True(usage.HasUnmeasuredAttachments);
+        Assert.True(usage.Files > 0);
+        Assert.True(usage.Total.Used < 1000);
+    }
+
+    [Fact]
     public void Without_a_measurement_the_whole_conversation_is_estimated()
     {
         var session = new ChatSession();

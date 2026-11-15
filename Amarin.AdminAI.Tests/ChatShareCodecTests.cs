@@ -15,7 +15,10 @@ public sealed class ChatShareCodecTests
             UpdatedAt = new DateTime(2026, 1, 2, 4, 0, 0, DateTimeKind.Local),
             SelectedModelId = "grok-4-6",
             DisableThinking = false,
-            ReasoningEffort = "low"
+            ReasoningEffort = "low",
+            ComputerControlOverride = false,
+            AgentBrowserOverride = true,
+            InheritAgentModelOverride = true
         };
 
         for (var i = 1; i <= 3; i++)
@@ -58,6 +61,9 @@ public sealed class ChatShareCodecTests
         Assert.Equal("grok-4-6", decoded.SelectedModelId);
         Assert.False(decoded.DisableThinking);
         Assert.Equal("low", decoded.ReasoningEffort);
+        Assert.False(decoded.ComputerControlOverride);
+        Assert.True(decoded.AgentBrowserOverride);
+        Assert.True(decoded.InheritAgentModelOverride);
         Assert.Equal("ответ 3", decoded.Messages[^1].Text);
         Assert.Equal("grok-4-6", decoded.Messages[^1].ResolvedModelId);
         Assert.Equal(AssistantStatus.Complete, decoded.Messages[^1].Status);
@@ -207,6 +213,34 @@ public sealed class ChatShareCodecTests
         Assert.NotNull(imported);
         Assert.Equal(4, imported!.Messages.Count);
         Assert.Equal("grok-4-6", imported.SelectedModelId);
+        Assert.False(imported.ComputerControlOverride);
+        Assert.True(imported.AgentBrowserOverride);
+        Assert.True(imported.InheritAgentModelOverride);
+    }
+
+    [Fact]
+    public void A_chat_export_without_new_settings_keeps_the_old_global_behavior()
+    {
+        var old = ChatShareCodec.TryImportJson("""
+            { "id": "old", "title": "old", "messages": [{ "role": "user", "id": "u", "text": "q" }] }
+            """)!;
+        var settings = new AppSettings { ComputerControl = true, AgentBrowser = true };
+
+        Assert.Null(old.ComputerControlOverride);
+        Assert.Null(old.AgentBrowserOverride);
+        Assert.Null(old.InheritAgentModelOverride);
+        Assert.True(old.Access(settings).CanControlComputer);
+        Assert.True(old.Access(settings).CanUseAgentBrowser);
+
+        // Наследование — не доступ, поэтому у старого чата оно следует настройке профиля.
+        Assert.True(old.InheritsAgentModel(new AppSettings { InheritAgentModel = true }));
+        Assert.False(old.InheritsAgentModel(new AppSettings()));
+
+        // Локальный выбор сильнее профиля в обе стороны.
+        Assert.False(new ChatSession { InheritAgentModelOverride = false }
+            .InheritsAgentModel(new AppSettings { InheritAgentModel = true }));
+        Assert.True(new ChatSession { InheritAgentModelOverride = true }
+            .InheritsAgentModel(new AppSettings()));
     }
 
     [Fact]

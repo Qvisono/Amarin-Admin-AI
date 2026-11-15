@@ -48,9 +48,12 @@ public sealed class QueuedFollowUpTests
             }
         };
 
-        var handler = new ScriptedHandler(_ => Interlocked.Increment(ref round) == 1
-            ? SseWithToolCall("Смотрю.", "read_file")
-            : Sse("Готово."));
+        var handler = new ScriptedHandler(_ => Interlocked.Increment(ref round) switch
+        {
+            1 => SseWithToolCall("Смотрю.", "read_file"),
+            2 => Sse("Итог первого запроса."),
+            _ => Sse("Итог второго запроса.")
+        });
 
         var engine = Engine(handler, out var http);
         using (http)
@@ -60,13 +63,15 @@ public sealed class QueuedFollowUpTests
 
             var roles = session.ApiMessages.Select(m => m.Role).ToList();
 
-            // user → assistant(tool_calls) → tool → user(follow-up) → assistant
-            Assert.Equal(["user", "assistant", "tool", "user", "assistant"], roles);
+            // Исходный запрос получает итог до добавления следующей реплики.
+            Assert.Equal(["user", "assistant", "tool", "assistant", "user", "assistant"], roles);
 
             var texts = session.ApiMessages
                 .Select(m => ChatContent.ReadText(m.Content) ?? "")
                 .ToList();
-            Assert.Equal("стой, посмотри лучше диск D", texts[3]);
+            Assert.Equal("Итог первого запроса.", texts[3]);
+            Assert.Equal("стой, посмотри лучше диск D", texts[4]);
+            Assert.Equal("Итог второго запроса.", texts[5]);
             Assert.Single(texts, t => t == "стой, посмотри лучше диск D");
         }
     }

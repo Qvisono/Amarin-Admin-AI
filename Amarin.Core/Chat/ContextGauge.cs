@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Amarin.Core;
 
 /// <summary>
@@ -19,6 +21,15 @@ public readonly record struct ContextUsage(int Used, int Max, bool IsEstimate, b
     /// <summary>Рисовать нечего, пока обе части отношения не настоящие.</summary>
     public bool HasScale => Max > 0 && Used > 0;
 }
+
+/// <summary>Приблизительное распределение общего счёта между частями запроса.</summary>
+internal readonly record struct ContextCategoryUsage(
+    ContextUsage Total, int Conversation, int Tools, int Files, int System, bool HasUnmeasuredAttachments);
+
+/// <summary>Прикидка результата сжатия.</summary>
+/// <param name="UsedAfter">Заполненность после сжатия, в токенах.</param>
+/// <param name="CompactedMessages">Сколько сообщений ленты уйдёт под сводку; ноль — сопоставить с лентой не вышло.</param>
+internal readonly record struct CompactionPreview(int UsedAfter, int CompactedMessages, int TotalMessages);
 
 /// <summary>
 /// Сравнивает окно контекста с тем, что чат собирается отправить.
@@ -93,10 +104,114 @@ internal static class ContextGauge
         return new ContextUsage(anchor + tail, Math.Max(max, 0), tail > 0, floor);
     }
 
-    private static int EstimateTokens(IReadOnlyList<ChatMessage> messages, int fromIndex)
+    /// <summary>
+    /// Распределяет общий счёт пропорционально оценке частей. Провайдер не сообщает токены
+    /// категорий, поэтому эти числа всегда приблизительны, даже если общий счёт известен.
+    /// </summary>
+    public static ContextCategoryUsage MeasureCategories(
+        ChatSession? session, string? systemPrompt, IReadOnlyList<VeniceModelInfo?> candidates)
+    {
+        var total = Measure(session, systemPrompt, candidates);
+        if (session is null)
+        {
+            return new ContextCategoryUsage(total, 0, 0, 0, 0, false);
+        }
+
+        List<ChatMessage> history;
+        string? summary;
+        lock (session.Gate)
+        {
+            history = ApiContextLimiter.Prepare(ContextCompaction.Tail(session));
+            summary = ContextCompaction.IsActive(session) ? session.CompactSummary : null;
+        }
+
+        long conversation = 0, tools = 0, files = 0;
+        var attachments = false;
+        foreach (var message in history)
+        {
+            var chars = ChatContent.ReadText(message.Content)?.Length ?? 0;
+            var hasAttachment = message.Content is { ValueKind: JsonValueKind.Array } parts &&
+                parts.EnumerateArray().Any(part => part.ValueKind == JsonValueKind.Object &&
+                    part.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String &&
+                    type.GetString() is "file" or "image_url");
+            if (hasAttachment)
+            {
+                attachments = true;
+                files += chars;
+            }
+            else if (message.Role.Equals("tool", StringComparison.OrdinalIgnoreCase))
+            {
+                tools += chars;
+            }
+            else
+            {
+                conversation += chars;
+            }
+
+            foreach (var call in message.ToolCalls ?? [])
+            {
+                tools += call.Function.Name.Length + call.Function.Arguments.Length;
+            }
+        }
+
+        var system = (long)(systemPrompt?.Length ?? 0) +
+                     (summary is null ? 0 : ContextCompaction.PromptBlock(summary, session.CompactedFrom > 0).Length);
+        var weights = new[] { conversation, tools, files, system };
+        var weightTotal = weights.Sum();
+        var result = new int[weights.Length];
+        if (weightTotal > 0 && total.Used > 0)
+        {
+            var assigned = 0;
+            for (var i = 0; i < weights.Length; i++)
+            {
+                result[i] = (int)(total.Used * (double)weights[i] / weightTotal);
+                assigned += result[i];
+            }
+
+            result[Array.IndexOf(weights, weights.Max())] += total.Used - assigned;
+        }
+
+        return new ContextCategoryUsage(total, result[0], result[1], result[2], result[3], attachments);
+    }
+
+    /// <summary>
+    /// Что даст сжатие с такими настройками: прикидка для экрана сжатия, пока человек их меняет.
+    /// Null — сжимать с ними нечего.
+    /// </summary>
+    /// <param name="used">Текущая заполненность (<see cref="ContextUsage.Used"/>).</param>
+    public static CompactionPreview? PreviewCompaction(ChatSession session, CompactionOptions options, int used)
+    {
+        lock (session.Gate)
+        {
+            if (ContextCompaction.Plan(session, options) is not { } plan)
+            {
+                return null;
+            }
+
+            // Освобождается то, что сейчас уходит модели дословно и попадает под новую сводку.
+            var api = session.ApiMessages;
+            var freed = ContextCompaction.IsActive(session)
+                ? EstimateTokens(api, plan.From, Math.Min(session.CompactedFrom, plan.Cut)) +
+                  EstimateTokens(api, Math.Max(session.CompactedThrough, plan.From), plan.Cut)
+                : EstimateTokens(api, plan.From, plan.Cut);
+            var summary = ContextCompaction.IsActive(session) ? 0 : Math.Min(freed, TypicalSummaryTokens);
+
+            var last = session.Messages.FindIndex(message => message.Id == plan.AnchorMessageId);
+            var first = plan.FirstMessageId is null ? 0 : session.Messages.FindIndex(message => message.Id == plan.FirstMessageId);
+            return new CompactionPreview(
+                Math.Max(0, used - freed + summary),
+                last < 0 || first < 0 ? 0 : last - first + 1,
+                session.Messages.Count);
+        }
+    }
+
+    /// <summary>Сколько обычно занимает сводка: её настоящий размер до сжатия неизвестен.</summary>
+    private const int TypicalSummaryTokens = 1000;
+
+    private static int EstimateTokens(IReadOnlyList<ChatMessage> messages, int fromIndex, int toIndex = int.MaxValue)
     {
         var chars = 0L;
-        for (var i = Math.Max(fromIndex, 0); i < messages.Count; i++)
+        for (var i = Math.Max(fromIndex, 0); i < messages.Count && i < toIndex; i++)
         {
             var message = messages[i];
             chars += ChatContent.ReadText(message.Content)?.Length ?? 0;

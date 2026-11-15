@@ -104,6 +104,8 @@ public sealed partial class VeniceClient
 
         switch (spec.Dialect)
         {
+            case PayloadDialect.Polza:
+                return await ListPolzaModelsAsync(credential, cancellationToken).ConfigureAwait(false);
             case PayloadDialect.OpenRouter:
                 return await ListOpenRouterModelsAsync(credential, cancellationToken).ConfigureAwait(false);
             case PayloadDialect.Generic:
@@ -164,9 +166,7 @@ public sealed partial class VeniceClient
         {
             var result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterModelsResponse)
                 ?? throw new VeniceApiException("Empty models response from OpenRouter.");
-            // С близнецами :nitro: их нет в ответе, а без них в каталоге выбранный вариант
-            // лечение слотов сочло бы пропавшей моделью.
-            return OpenRouterMapper.ToModels(result, nitro: true);
+            return OpenRouterMapper.ToModels(result);
         }
         catch (JsonException ex)
         {
@@ -309,6 +309,9 @@ public sealed partial class VeniceClient
         {
             switch (spec.Balance)
             {
+                case BalanceSource.PolzaBalance:
+                    return await GetPolzaBalanceAsync(credential, cancellationToken).ConfigureAwait(false);
+
                 case BalanceSource.DeepSeekBalance:
                     return ProviderBalances.FromDeepSeek(
                         await GetJsonAsync("user/balance", credential, trackBalance: false, cancellationToken)

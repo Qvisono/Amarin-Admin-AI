@@ -81,20 +81,29 @@ public static class ModelSlotDefaults
         ModelSlot slot,
         IReadOnlyList<VeniceModelInfo>? catalog)
     {
-        catalog = catalog is null ? null : VeniceModelCatalog.ForSlot(catalog, slot);
         var shipped = Shipped(slot);
-        if (shipped.Length > 0 && ModelRef.Of(shipped) == provider && VeniceModelCatalog.IsSelectable(catalog, shipped))
+        var available = catalog is null ? null : VeniceModelCatalog.ForSlot(catalog, slot);
+        var policy = OrganizationPolicy.Current;
+        var hasRouteRestriction = provider == LlmProvider.OpenRouter &&
+                                  catalog is { Count: > 0 } && policy.AllowedModels.Count > 0;
+        // Маршрут заводской модели может быть разрешён сам по себе, даже когда политика
+        // скрывает её обычную запись. Сверяем точный ID и используем каталог для метаданных.
+        var shippedIsSelectable = ModelRef.OpenRouterRouting(shipped).Length == 0
+            ? (!hasRouteRestriction || policy.AllowsModel(shipped)) && VeniceModelCatalog.IsSelectable(available, shipped)
+            : policy.AllowsModel(shipped) && VeniceModelCatalog.IsSelectable(catalog, shipped);
+        if (shipped.Length > 0 && ModelRef.Of(shipped) == provider && shippedIsSelectable)
         {
             return shipped;
         }
 
-        if (ShippedElsewhere.GetValueOrDefault((slot, provider)) is { } own && VeniceModelCatalog.IsSelectable(catalog, own))
+        if (ShippedElsewhere.GetValueOrDefault((slot, provider)) is { } own && VeniceModelCatalog.IsSelectable(available, own))
         {
             return own;
         }
 
-        if (ModelFamily.Find(ModelFamily.KeyOf(shipped), provider, catalog) is { } same &&
-            VeniceModelCatalog.IsSelectable(catalog, same))
+        if (ModelFamily.Find(ModelFamily.KeyOf(shipped), provider, available) is { } same &&
+            (!hasRouteRestriction || policy.AllowsModel(same)) &&
+            VeniceModelCatalog.IsSelectable(available, same))
         {
             return same;
         }
@@ -102,27 +111,45 @@ public static class ModelSlotDefaults
         // Чужой провайдер слагов OpenRouter не знает: ему — только подбор по его же каталогу.
         if (provider != LlmProvider.OpenRouter)
         {
-            return Pick(slot, catalog);
+            return Pick(slot, available);
         }
 
         var preferred = IsCheap(slot) ? OpenRouterCheap : OpenRouterStrong;
 
+        // При точном списке разрешений обычная запись может быть скрыта, а её маршрут доступен.
+        if (hasRouteRestriction && available is { Count: 0 } && catalog is not null)
+        {
+            foreach (var model in VeniceModelCatalog.ForSlot(catalog, slot, includeRoutingSources: true))
+            {
+                foreach (var route in ModelRef.OpenRouterRoutingVariants)
+                {
+                    var id = ModelRef.WithOpenRouterRouting(model.Id, route);
+                    if (policy.AllowsModel(id))
+                    {
+                        return id;
+                    }
+                }
+            }
+
+            return "";
+        }
+
         // Каталога нет — судить не о чем, и первое предпочтение лучше пустоты: пустая строка
         // означала бы «модель не выбрана», а у этого провайдера её не из чего вывести.
-        if (catalog is null || catalog.Count == 0)
+        if (available is null || available.Count == 0)
         {
             return preferred[0];
         }
 
         foreach (var candidate in preferred)
         {
-            if (Contains(catalog, candidate))
+            if (Contains(available, candidate))
             {
                 return candidate;
             }
         }
 
-        return Pick(slot, catalog);
+        return Pick(slot, available);
     }
 
     /// <summary>

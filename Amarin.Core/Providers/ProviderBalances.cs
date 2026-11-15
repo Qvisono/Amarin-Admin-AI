@@ -13,6 +13,21 @@ namespace Amarin.Core;
 /// </remarks>
 internal static class ProviderBalances
 {
+    /// <summary>Polza.ai: доступный остаток организации в рублях, а не сумма с резервом.</summary>
+    public static VeniceRateLimitsData FromPolza(string json, decimal? rublesPerUsd)
+    {
+        using var document = JsonDocument.Parse(json);
+        var available = Number(document.RootElement, "available");
+        var usd = available is { } rubles ? ProviderMoney.ToUsd(rubles, rublesPerUsd) : null;
+        return new VeniceRateLimitsData
+        {
+            AccessPermitted = true,
+            Balances = usd is { } money ? new VeniceKeyBalances { Usd = money } : null,
+            ApiTier = new VeniceApiTier { Id = "paid", IsCharged = true },
+            RublesPerUsd = rublesPerUsd
+        };
+    }
+
     /// <summary>
     /// DeepSeek: <c>GET /user/balance</c> → <c>balance_infos[]</c> по валютам, суммы строками.
     /// </summary>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>BenchmarkRun-joined-2026-11-07-18-37-03</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9711/25H2/2025Update/HudsonValley2)
+Unknown processor
+.NET SDK 10.0.401
+  [Host] : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>Toolchain=InProcessEmitToolchain  IterationCount=12  IterationTime=250ms  
+WarmupCount=8  
+</code></pre>
+
+<table>
+<thead><tr><th>Type         </th><th>Method    </th><th>Turns</th><th>Chunks</th><th>Mean   </th><th>Error   </th><th>StdDev  </th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>ChatListBenchmarks</td><td>LoadIndex</td><td>?</td><td>?</td><td>3,058.57 &mu;s</td><td>218.944 &mu;s</td><td>170.937 &mu;s</td><td>54.0541</td><td>-</td><td>-</td><td>2154.84 KB</td>
+</tr><tr><td>SettingsBenchmarks</td><td>Load</td><td>?</td><td>?</td><td>221.81 &mu;s</td><td>7.794 &mu;s</td><td>6.085 &mu;s</td><td>0.9718</td><td>-</td><td>-</td><td>8.82 KB</td>
+</tr><tr><td>ChatListBenchmarks</td><td>SearchCommonWord</td><td>?</td><td>?</td><td>1,217.44 &mu;s</td><td>61.338 &mu;s</td><td>47.889 &mu;s</td><td>28.8462</td><td>4.8077</td><td>-</td><td>188.06 KB</td>
+</tr><tr><td>SettingsBenchmarks</td><td>Save</td><td>?</td><td>?</td><td>3,486.28 &mu;s</td><td>157.460 &mu;s</td><td>113.854 &mu;s</td><td>-</td><td>-</td><td>-</td><td>29.86 KB</td>
+</tr><tr><td>ChatListBenchmarks</td><td>SearchRareWord</td><td>?</td><td>?</td><td>398,284.00 &mu;s</td><td>9,977.514 &mu;s</td><td>7,789.786 &mu;s</td><td>-</td><td>-</td><td>-</td><td>246.02 KB</td>
+</tr><tr><td>SettingsBenchmarks</td><td>SaveDeferred</td><td>?</td><td>?</td><td>14.43 &mu;s</td><td>0.920 &mu;s</td><td>0.665 &mu;s</td><td>2.9789</td><td>0.1146</td><td>-</td><td>18.6 KB</td>
+</tr><tr><td>ChatListBenchmarks</td><td>SaveTextIndex</td><td>?</td><td>?</td><td>335,555.88 &mu;s</td><td>137,506.821 &mu;s</td><td>107,356.281 &mu;s</td><td>-</td><td>-</td><td>-</td><td>39814.41 KB</td>
+</tr><tr><td>ChatStoreBenchmarks</td><td>SaveOnUiThread</td><td>60</td><td>?</td><td>428.90 &mu;s</td><td>36.135 &mu;s</td><td>28.211 &mu;s</td><td>10.7143</td><td>8.9286</td><td>8.9286</td><td>363.8 KB</td>
+</tr><tr><td>ChatStoreBenchmarks</td><td>SaveAndWrite</td><td>60</td><td>?</td><td>24,970.72 &mu;s</td><td>1,012.454 &mu;s</td><td>790.458 &mu;s</td><td>500.0000</td><td>500.0000</td><td>500.0000</td><td>21449.05 KB</td>
+</tr><tr><td>ChatStoreBenchmarks</td><td>Load</td><td>60</td><td>?</td><td>11,577.53 &mu;s</td><td>819.631 &mu;s</td><td>639.914 &mu;s</td><td>411.7647</td><td>352.9412</td><td>235.2941</td><td>16249.95 KB</td>
+</tr><tr><td>StreamingBenchmarks</td><td>StreamAnswer</td><td>?</td><td>600</td><td>1,454.05 &mu;s</td><td>32.373 &mu;s</td><td>23.408 &mu;s</td><td>620.6897</td><td>68.9655</td><td>-</td><td>3814.31 KB</td>
+</tr><tr><td>StreamingBenchmarks</td><td>StreamAnswer</td><td>?</td><td>4000</td><td>18,174.82 &mu;s</td><td>780.795 &mu;s</td><td>564.566 &mu;s</td><td>20461.5385</td><td>2923.0769</td><td>-</td><td>126207.6 KB</td>
+</tr></tbody></table>
+</body>
+</html>

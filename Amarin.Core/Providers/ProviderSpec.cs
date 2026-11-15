@@ -20,7 +20,10 @@ public enum PayloadDialect
     OpenRouter,
 
     /// <summary>Только то, что знает любой OpenAI-совместимый сервер.</summary>
-    Generic
+    Generic,
+
+    /// <summary>Общий API Polza.ai со своим каталогом и вложенным управлением размышлением.</summary>
+    Polza
 }
 
 /// <summary>
@@ -36,6 +39,22 @@ public enum ReasoningDialect
 
     /// <summary>Флаг <c>enable_thinking</c> без уровней.</summary>
     EnableThinking
+}
+
+/// <summary>Как провайдер кэширует начало запроса и что ему для этого сказать.</summary>
+public enum PromptCaching
+{
+    /// <summary>Сам, и сказать нечего. Так же и у своего сервера: незнакомое поле он мог бы отвергнуть.</summary>
+    Automatic,
+
+    /// <summary>Сам, а разговор называет поле <c>prompt_cache_key</c>: без него запросы попадают на разные машины.</summary>
+    KeyField,
+
+    /// <summary>Сам, а разговор называет заголовок <c>x-grok-conv-id</c>.</summary>
+    KeyHeader,
+
+    /// <summary>Только по меткам <c>cache_control</c> на блоках сообщений.</summary>
+    Markers
 }
 
 /// <summary>Откуда берётся остаток на ключе.</summary>
@@ -60,7 +79,17 @@ public enum BalanceSource
     /// <c>dashboard/billing/subscription</c> и <c>/usage</c>: так остаток отдают шлюзы семейства
     /// one-api, на которых работает большинство перепродавцов.
     /// </summary>
-    ResellerBilling
+    ResellerBilling,
+
+    /// <summary><c>GET /balance</c> Polza.ai, суммы в рублях.</summary>
+    PolzaBalance
+}
+
+/// <summary>Валюта, в которой провайдер называет стоимость ответа и цены каталога.</summary>
+public enum ProviderCurrency
+{
+    Usd,
+    Rub
 }
 
 /// <summary>
@@ -118,11 +147,17 @@ public sealed record ProviderSpec
 
     public BalanceSource Balance { get; init; } = BalanceSource.None;
 
+    /// <summary>Как включается кэш. У протокола Anthropic метки ставит <see cref="AnthropicMessages"/>.</summary>
+    public PromptCaching Caching { get; init; } = PromptCaching.Automatic;
+
     /// <summary>
     /// Называет ли провайдер цену ответа сам. Нет — её считает программа: токены × цена модели
     /// из каталога. Да — нулевая цена значит бесплатную модель, и досчитывать её нельзя.
     /// </summary>
     public bool ReportsCost { get; init; }
+
+    /// <summary>В какой валюте сервер сообщает стоимость до перевода во внутренние доллары.</summary>
+    public ProviderCurrency CostCurrency { get; init; } = ProviderCurrency.Usd;
 
     /// <summary>Есть ли эндпоинт рисования картинок.</summary>
     public bool HasImages { get; init; }
@@ -169,6 +204,19 @@ public sealed record ProviderSpec
     /// </summary>
     public bool IsLegacy => Provider == LlmProvider.Venice || Provider == LlmProvider.OpenRouter;
 
+    /// <summary>Производители за этим провайдером, которым нужны явные метки кэша.</summary>
+    public IReadOnlyList<string> CacheMarkedVendors { get; init; } = [];
+
+    /// <summary>Нужны ли этой модели метки <c>cache_control</c> в OpenAI-совместимом запросе.</summary>
+    /// <remarks>
+    /// Gemini за OpenRouter меток нет намеренно: неявный кэш у него работает сам, а метка на
+    /// растущем конце истории записывала бы кэш заново на каждом запросе.
+    /// </remarks>
+    public bool NeedsCacheMarkers(string model) =>
+        Caching == PromptCaching.Markers ||
+        CacheMarkedVendors.Any(
+            vendor => ModelRef.Bare(model).TrimStart('~').StartsWith(vendor, StringComparison.OrdinalIgnoreCase));
+
     private static readonly ProviderSpec VeniceSpec = new()
     {
         Provider = LlmProvider.Venice,
@@ -177,6 +225,7 @@ public sealed record ProviderSpec
         EnvironmentVariable = "VENICE_API_KEY",
         KeysUrl = "https://venice.ai/settings/api",
         Dialect = PayloadDialect.Venice,
+        Caching = PromptCaching.KeyField,
         SendsTemperature = true,
         ReportsCost = true,
         Balance = BalanceSource.VeniceRateLimits,
@@ -196,6 +245,8 @@ public sealed record ProviderSpec
         EnvironmentVariable = "OPENROUTER_API_KEY",
         KeysUrl = "https://openrouter.ai/settings/keys",
         Dialect = PayloadDialect.OpenRouter,
+        Caching = PromptCaching.KeyField,
+        CacheMarkedVendors = ["anthropic/", "qwen/"],
         SendsTemperature = true,
         ReportsCost = true,
         Balance = BalanceSource.OpenRouterCredits,
@@ -222,6 +273,7 @@ public sealed record ProviderSpec
         BaseUrl = "https://api.openai.com/v1",
         Prefix = "openai:",
         KeysUrl = "https://platform.openai.com/api-keys",
+        Caching = PromptCaching.KeyField,
         BlocksEffortWithTools = true,
         KeyPrefixes = ["sk-proj-", "sk-svcacct-"]
     };
@@ -254,6 +306,7 @@ public sealed record ProviderSpec
         BaseUrl = "https://api.x.ai/v1",
         Prefix = "xai:",
         KeysUrl = "https://console.x.ai",
+        Caching = PromptCaching.KeyHeader,
         KeyPrefixes = ["xai-"]
     };
 
@@ -275,6 +328,7 @@ public sealed record ProviderSpec
         BaseUrl = "https://api.moonshot.ai/v1",
         Prefix = "moonshot:",
         KeysUrl = "https://platform.moonshot.ai/console/api-keys",
+        Caching = PromptCaching.KeyField,
         Balance = BalanceSource.MoonshotBalance
     };
 
@@ -284,7 +338,8 @@ public sealed record ProviderSpec
         Name = "Mistral",
         BaseUrl = "https://api.mistral.ai/v1",
         Prefix = "mistral:",
-        KeysUrl = "https://console.mistral.ai/api-keys"
+        KeysUrl = "https://console.mistral.ai/api-keys",
+        Caching = PromptCaching.KeyField
     };
 
     private static readonly ProviderSpec ZAiSpec = new()
@@ -304,7 +359,10 @@ public sealed record ProviderSpec
         BaseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         Prefix = "qwen:",
         KeysUrl = "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key",
-        Reasoning = ReasoningDialect.EnableThinking
+        Reasoning = ReasoningDialect.EnableThinking,
+
+        // Неявный кэш у Qwen работает и сам, но без гарантии и по 20 % цены; метка даёт 10 %.
+        Caching = PromptCaching.Markers
     };
 
     private static readonly ProviderSpec GroqSpec = new()
@@ -317,11 +375,25 @@ public sealed record ProviderSpec
         KeyPrefixes = ["gsk_"]
     };
 
+    private static readonly ProviderSpec PolzaSpec = new()
+    {
+        Provider = LlmProvider.Polza,
+        Name = "Polza.ai",
+        BaseUrl = "https://polza.ai/api/v1",
+        Prefix = "polza:",
+        KeysUrl = "https://polza.ai/dashboard/api-keys",
+        Dialect = PayloadDialect.Polza,
+        CacheMarkedVendors = ["anthropic/"],
+        ReportsCost = true,
+        CostCurrency = ProviderCurrency.Rub,
+        Balance = BalanceSource.PolzaBalance
+    };
+
     /// <summary>Встроенные провайдеры в порядке, в каком их видит человек.</summary>
     public static IReadOnlyList<ProviderSpec> All { get; } =
     [
         VeniceSpec, OpenRouterSpec, OpenAISpec, AnthropicSpec, GoogleSpec, XAiSpec, DeepSeekSpec,
-        MoonshotSpec, MistralSpec, ZAiSpec, QwenSpec, GroqSpec
+        MoonshotSpec, MistralSpec, ZAiSpec, QwenSpec, GroqSpec, PolzaSpec
     ];
 
     /// <summary>

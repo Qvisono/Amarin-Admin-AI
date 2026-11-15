@@ -1,0 +1,144 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "width": 318,
+      "overflow": false,
+      "composerHeight": 107,
+      "targets": [
+        {
+          "x": 362,
+          "right": 406,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "x": 409,
+          "right": 530,
+          "w": 121,
+          "h": 44
+        },
+        {
+          "x": 533,
+          "right": 591,
+          "w": 58,
+          "h": 44
+        },
+        {
+          "x": 594,
+          "right": 638,
+          "w": 44,
+          "h": 44
+        }
+      ],
+      "noOverlap": true
+    },
+    {
+      "width": 358,
+      "overflow": false,
+      "composerHeight": 107,
+      "targets": [
+        {
+          "x": 342,
+          "right": 386,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "x": 389,
+          "right": 550,
+          "w": 161,
+          "h": 44
+        },
+        {
+          "x": 553,
+          "right": 611,
+          "w": 58,
+          "h": 44
+        },
+        {
+          "x": 614,
+          "right": 658,
+          "w": 44,
+          "h": 44
+        }
+      ],
+      "noOverlap": true
+    },
+    {
+      "width": 388,
+      "overflow": false,
+      "composerHeight": 107,
+      "targets": [
+        {
+          "x": 327,
+          "right": 371,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "x": 374,
+          "right": 565,
+          "w": 191,
+          "h": 44
+        },
+        {
+          "x": 568,
+          "right": 626,
+          "w": 58,
+          "h": 44
+        },
+        {
+          "x": 629,
+          "right": 673,
+          "w": 44,
+          "h": 44
+        }
+      ],
+      "noOverlap": true
+    },
+    {
+      "width": 428,
+      "overflow": false,
+      "composerHeight": 107,
+      "targets": [
+        {
+          "x": 307,
+          "right": 351,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "x": 354,
+          "right": 585,
+          "w": 231,
+          "h": 44
+        },
+        {
+          "x": 588,
+          "right": 646,
+          "w": 58,
+          "h": 44
+        },
+        {
+          "x": 649,
+          "right": 693,
+          "w": 44,
+          "h": 44
+        }
+      ],
+      "noOverlap": true
+    }
+  ],
+  "tested": [
+    "320/360/390/430 widths",
+    "sidebar search",
+    "square new chat",
+    "new chat",
+    "send local message",
+    "reasoning selection",
+    "context/balance sheet",
+    "settings navigation"
+  ],
+  "scope": "HTML concept only; not Android/iOS verification"
+}

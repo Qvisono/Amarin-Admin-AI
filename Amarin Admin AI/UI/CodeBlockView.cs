@@ -93,8 +93,10 @@ internal static class CodeBlockView
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         if (!copyOnly && CodeLanguages.IsRunnableScript(language))
         {
-            var run = GlyphButton(host, "M3,1.5 L12,7 L3,12.5 Z", Loc.Get("S.Code.RunViaAgent"));
-            run.Click += (_, _) => run.RaiseEvent(new RunScriptEventArgs(RunScriptEvent, run, code, CodeLanguages.Normalize(language)));
+            var canonical = CodeLanguages.Normalize(language);
+            var tooltip = Loc.Get(canonical == "powershell" ? "S.Code.RunLocal" : "S.Code.RunViaAgent");
+            var run = GlyphButton(host, "M3,1.5 L12,7 L3,12.5 Z", tooltip);
+            AttachRun(run, code, canonical, tooltip);
             buttons.Children.Add(run);
         }
 
@@ -383,8 +385,8 @@ internal static class CodeBlockView
     internal static Func<bool>? ShowLineNumbers { get; set; }
 
     /// <summary>
-    /// «Выполнить через агента» у скриптов PowerShell, cmd и bat (D13): всплывает до окна, а оно
-    /// кладёт задачу агенту в поле ввода. Сам скрипт проходит обычное подтверждение шлюза.
+    /// Выполнение скрипта всплывает до окна: PowerShell запускается через шлюз, cmd и bat
+    /// остаются задачей агенту в поле ввода.
     /// </summary>
     internal static readonly RoutedEvent RunScriptEvent = EventManager.RegisterRoutedEvent(
         "RunScript", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(CodeBlockView));
@@ -395,6 +397,59 @@ internal static class CodeBlockView
         public string Code { get; } = code;
 
         public string Language { get; } = language;
+
+        public Task? Completion { get; set; }
+
+        public Action? Cancel { get; set; }
+    }
+
+    private static void AttachRun(Button button, string code, string language, string tooltip)
+    {
+        Action? cancel = null;
+        button.Click += (_, _) =>
+        {
+            if (cancel is not null)
+            {
+                cancel();
+                return;
+            }
+
+            Detached.Run(RunAsync(), "code_block");
+        };
+
+        async Task RunAsync()
+        {
+            var request = new RunScriptEventArgs(RunScriptEvent, button, code, language);
+            button.RaiseEvent(request);
+            if (request.Completion is not { } completion)
+            {
+                return;
+            }
+
+            cancel = request.Cancel;
+            SetState(running: true);
+            try
+            {
+                await completion;
+            }
+            finally
+            {
+                cancel = null;
+                SetState(running: false);
+            }
+        }
+
+        void SetState(bool running)
+        {
+            if (button.Content is System.Windows.Shapes.Path glyph)
+            {
+                glyph.Data = Glyphs.Get(running ? "M3,3 L11,3 L11,11 L3,11 Z" : "M3,1.5 L12,7 L3,12.5 Z");
+            }
+
+            var name = running ? Loc.Get("S.Code.StopLocal") : tooltip;
+            button.ToolTip = name;
+            System.Windows.Automation.AutomationProperties.SetName(button, name);
+        }
     }
 
     private static void Accessible(Button button, string name)

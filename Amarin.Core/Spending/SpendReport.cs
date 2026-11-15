@@ -1,10 +1,10 @@
 namespace Amarin.Core;
 
 /// <summary>Одна точка графика: сутки и сколько за них ушло.</summary>
-public sealed record SpendPoint(DateTime Date, decimal Usd, decimal Diem, int Requests);
+public sealed record SpendPoint(DateTime Date, decimal Usd, decimal Diem, int Requests, bool Estimated = false);
 
 /// <summary>Строка разбивки: модель или служебная статья и её доля.</summary>
-public sealed record SpendModelRow(string Title, string Detail, decimal Usd, decimal Diem, int Requests);
+public sealed record SpendModelRow(string Title, string Detail, decimal Usd, decimal Diem, int Requests, bool Estimated = false);
 
 /// <summary>Чем кончилась попытка собрать отчёт.</summary>
 public enum SpendStatus
@@ -42,6 +42,9 @@ public sealed class SpendReport
 
     public decimal TotalDiem { get; init; }
 
+    /// <summary>В выбранном периоде есть суммы, рассчитанные программой.</summary>
+    public bool Estimated { get; init; }
+
     /// <summary>Понятная строка, когда сеть отказала. Текста исключения человек не увидит.</summary>
     public string? Error { get; init; }
 
@@ -56,12 +59,12 @@ public sealed class SpendReport
     /// строках не сказало бы ничего. Один метод на всю страницу и на график: разойдись они,
     /// подпись у точки не сошлась бы с итогом над ней.
     /// </remarks>
-    public static string FormatUsd(decimal value) =>
-        value >= 1m
+    public static string FormatUsd(decimal value, bool estimated = false) =>
+        (estimated ? "≈" : "") + (value >= 1m
             ? "$" + value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
             : value > 0
                 ? "$" + value.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)
-                : "$0";
+                : "$0");
 }
 
 /// <summary>Границы периодов и их разбор на точки.</summary>
@@ -165,7 +168,8 @@ internal static class SpendPeriods
         for (var date = from; date <= today.Date; date = date.AddDays(1))
         {
             points.Add(days.TryGetValue(date, out var day)
-                ? new SpendPoint(date, day.Usd, day.Diem, day.Skus.Sum(sku => sku.Requests))
+                ? new SpendPoint(date, day.Usd, day.Diem, day.Skus.Sum(sku => sku.Requests),
+                    day.Estimated || day.Skus.Any(sku => sku.Estimated))
                 : new SpendPoint(date, 0m, 0m, 0));
         }
 
@@ -177,6 +181,7 @@ internal static class SpendPeriods
             Models = BuildRows(days.Values, models),
             TotalUsd = points.Sum(point => point.Usd),
             TotalDiem = points.Sum(point => point.Diem),
+            Estimated = points.Any(point => point.Estimated),
             Error = error
         };
     }
@@ -189,7 +194,7 @@ internal static class SpendPeriods
         IEnumerable<SpendDay> days,
         IReadOnlyList<VeniceModelInfo>? models)
     {
-        var rows = new Dictionary<string, (string Title, SortedSet<string> Skus, decimal Usd, decimal Diem, int Requests)>(
+        var rows = new Dictionary<string, (string Title, SortedSet<string> Skus, decimal Usd, decimal Diem, int Requests, bool Estimated)>(
             StringComparer.Ordinal);
 
         foreach (var bucket in days.SelectMany(day => day.Skus))
@@ -211,6 +216,7 @@ internal static class SpendPeriods
             row.Usd += bucket.Usd;
             row.Diem += bucket.Diem;
             row.Requests += bucket.Requests;
+            row.Estimated |= bucket.Estimated;
             rows[key] = row;
         }
 
@@ -223,7 +229,8 @@ internal static class SpendPeriods
                 string.Join("\n", row.Skus),
                 row.Usd,
                 row.Diem,
-                row.Requests))
+                row.Requests,
+                row.Estimated))
             .OrderByDescending(row => row.Usd)
             .ThenByDescending(row => row.Diem)];
     }

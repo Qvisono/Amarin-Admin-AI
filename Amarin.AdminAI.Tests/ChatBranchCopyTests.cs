@@ -85,6 +85,21 @@ public sealed class ChatBranchCopyTests
     }
 
     [Fact]
+    public void A_branch_keeps_its_own_agent_access_settings()
+    {
+        var source = TwoTurns();
+        source.ComputerControlOverride = false;
+        source.AgentBrowserOverride = true;
+        source.InheritAgentModelOverride = true;
+
+        var branch = ChatBranchCopy.FromAnswer(source, "a1", "Branch", Now)!;
+
+        Assert.False(branch.ComputerControlOverride);
+        Assert.True(branch.AgentBrowserOverride);
+        Assert.True(branch.InheritAgentModelOverride);
+    }
+
+    [Fact]
     public void Only_an_answer_starts_a_branch_and_temporariness_carries_over()
     {
         var source = TwoTurns();

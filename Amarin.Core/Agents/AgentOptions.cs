@@ -39,6 +39,9 @@ public sealed record AgentOptions
     /// </remarks>
     public Action<ApiCredential, VeniceBalance>? BalanceSink { get; init; }
 
+    /// <summary>Курс Polza.ai из открытого профиля, читаемый для каждого запроса.</summary>
+    public Func<decimal?>? RublesPerUsd { get; init; }
+
     /// <summary>
     /// Лимиты трат (E1): зовётся перед каждым платным запросом и бросает
     /// <see cref="SpendLimitException"/>, если платить больше нельзя.

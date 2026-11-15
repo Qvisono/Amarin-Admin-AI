@@ -233,7 +233,6 @@ namespace Amarin.UI
             BuiltPage<SettingsGeneralPage>()?.LanguagePicker.SetSelected(LanguageManager.Current);
             UpdateTranslationEditButton();
             UpdateModelButton();
-            UpdateReasoningPicker();
 
             // Панель аккаунта и подпись под именем в боковой колонке пишутся из кода —
             // без этого «Локальный режим» и «Задан» остаются на прежнем языке до перезапуска.

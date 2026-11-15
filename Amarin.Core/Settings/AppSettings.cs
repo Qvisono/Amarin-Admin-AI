@@ -236,6 +236,9 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public bool SpendScopeAllKeys { get; set; } = true;
 
+    /// <summary>Рублей за доллар для оценки цен Polza.ai. Пусто - учитывать только токены.</summary>
+    public decimal? RublesPerUsd { get; set; }
+
     /// <summary>Лимиты трат (E1). Заводское — всё выключено.</summary>
     public SpendLimits SpendLimits { get; set; } = new();
 
@@ -262,6 +265,9 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// слот, а лишь возвращает его к выбору по умолчанию.
     /// </remarks>
     public Dictionary<string, string>? ModelKeys { get; set; }
+
+    /// <summary>Избранные модели профиля с указанием провайдера и варианта каталога.</summary>
+    public List<string> FavoriteModelIds { get; set; } = [];
 
     /// <summary>
     /// Выбранные модели других провайдеров: имя провайдера — имя слота — идентификатор модели.
@@ -563,6 +569,15 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public bool DownloadAnySite { get; set; }
 
+    /// <summary>Ограничивать размер скачиваемого файла. Выключение сохраняет выбранный размер.</summary>
+    public bool DownloadSizeLimitEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Максимальный размер скачиваемого файла в МиБ. <c>null</c> сохраняет предел из
+    /// <c>appsettings.json</c>, действовавший до появления настройки профиля.
+    /// </summary>
+    public int? DownloadMaxSizeMb { get; set; }
+
     /// <summary>
     /// Временный чат живёт до закрытия программы (1.37.0). Выключено — исчезает, как только
     /// человек уходит из него в другой чат.
@@ -576,6 +591,18 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// пишет агентам прошлых ответов и после перезапуска (до 1.37.1 — пока открыта программа).
     /// </remarks>
     public AgentMemory AgentMemory { get; set; } = AgentMemory.Chat;
+
+    /// <summary>
+    /// Все агенты работают на модели чата (1.38.0). Включено — маршрутизатор уровней не
+    /// спрашивается, а слоты моделей агентов не используются.
+    /// </summary>
+    /// <remarks>
+    /// Настройка профиля, как и модели агентов: чат может переопределить её у себя
+    /// (<see cref="ChatSession.InheritAgentModelOverride"/>), а ручная команда <c>/agent-*</c>
+    /// остаётся сильнее и запускает агента на модели своего уровня. Прогон по расписанию
+    /// наследование не применяет: выбранной модели чата у него нет.
+    /// </remarks>
+    public bool InheritAgentModel { get; set; }
 
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();

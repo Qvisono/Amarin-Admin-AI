@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Amarin.Core;
 using Amarin.UI;
@@ -81,6 +82,43 @@ public sealed class WhatsNewSheetTests : IDisposable
         Assert.Equal(Visibility.Visible, sheet.Lead.Visibility);
         Assert.Equal(0, sheet.HighlightedSection);
     });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void The_current_embedded_notes_show_the_sidebar_in_both_palettes(bool dark)
+    {
+        var notes = Assert.IsType<string>(WhatsNew.Embedded());
+        var outline = ReleaseNotesOutline.Parse(notes);
+        Assert.NotEmpty(outline.Sections);
+        With(null, sheet =>
+        {
+            Assert.Equal(Visibility.Visible, sheet.TocBorder.Visibility);
+            Assert.True(sheet.TocColumn.ActualWidth > 0);
+            Assert.Equal(outline.Sections.Select(section => section.Title),
+                sheet.TocPanel.Children.OfType<RadioButton>().Select(item => (string)item.Content));
+
+            var directory = Environment.GetEnvironmentVariable("AMARIN_UI_SHOTS");
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+                var card = sheet.Card;
+                var bitmap = new RenderTargetBitmap((int)Math.Ceiling(card.ActualWidth),
+                    (int)Math.Ceiling(card.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+                var visual = new DrawingVisual();
+                using (var drawing = visual.RenderOpen())
+                {
+                    drawing.DrawRectangle(new VisualBrush(card), null, new Rect(card.RenderSize));
+                }
+
+                bitmap.Render(visual);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using var file = File.Create(Path.Combine(directory, $"current-whatsnew-{(dark ? "dark" : "light")}.png"));
+                encoder.Save(file);
+            }
+        }, dark: dark, notes: notes);
+    }
 
     [Fact]
     public void The_section_under_the_mouse_is_highlighted_in_the_column() => With(null, sheet =>
@@ -333,7 +371,8 @@ public sealed class WhatsNewSheetTests : IDisposable
     private static string FirstItem(WhatsNewSheet sheet) =>
         (string)sheet.TocPanel.Children.OfType<RadioButton>().First().Content;
 
-    private void With(WhatsNewTranslation? translation, Action<WhatsNewSheet> body, bool animations = false, bool dark = false) =>
+    private void With(WhatsNewTranslation? translation, Action<WhatsNewSheet> body, bool animations = false, bool dark = false,
+        string? notes = null) =>
         _wpf.Ui.Invoke(() =>
         {
             var motion = UiMotion.Enabled;
@@ -354,7 +393,8 @@ public sealed class WhatsNewSheetTests : IDisposable
             try
             {
                 host.Show();
-                sheet.Show(ReleaseVersion.Parse("1.37.0")!.Value, Notes, translation, dark);
+                sheet.Show(ReleaseVersion.Parse(notes is null ? "1.37.0" : RuntimeContext.AppVersion)!.Value,
+                    notes ?? Notes, translation, dark);
                 host.UpdateLayout();
                 body(sheet);
             }

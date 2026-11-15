@@ -1,0 +1,243 @@
+[
+  {
+    "id": "english-smalltalk",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I had a tiring day. Say something kind in one sentence, without advice or pictures."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "One warm English sentence, no advice, no exaggerated reassurance or needless tools.",
+    "judge": true
+  },
+  {
+    "id": "lang-english-explain",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Why is the sky blue? Answer in two sentences, no pictures."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "Two accurate English sentences about Rayleigh scattering; no tools.",
+    "judge": true
+  },
+  {
+    "id": "lang-german",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Kannst du mir kurz erklären, was ein Schaltjahr ist? Ohne Bilder bitte."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "\\b(ist|und|der|die|das|ein|Jahr)\\b"
+      ],
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "A short correct explanation in German: an extra day on February 29, the rule of 4/100/400.",
+    "judge": true
+  },
+  {
+    "id": "lang-switch-to-english",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Привет! Как по-французски «спасибо»?"
+      },
+      {
+        "role": "assistant",
+        "content": "«Merci» :) А если хочется теплее, «Merci beaucoup»."
+      },
+      {
+        "role": "user",
+        "content": "And how do I politely say good night in Japanese? Keep it short."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "(?i)oyasumi"
+      ],
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]{3}"
+      ]
+    },
+    "rubric": "Answer in English, the language of the latest message: oyasumi nasai as the polite form.",
+    "judge": true
+  },
+  {
+    "id": "lang-switch-to-russian",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the capital of Australia? One word."
+      },
+      {
+        "role": "assistant",
+        "content": "Canberra."
+      },
+      {
+        "role": "user",
+        "content": "А почему не Сидней? Объясни в двух предложениях."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "[А-Яа-яЁё]{4}"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Answer in Russian: Canberra was chosen as a compromise between Sydney and Melbourne; accurate and brief.",
+    "judge": true
+  },
+  {
+    "id": "lang-requested-other",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Напиши по-английски короткое поздравление коллеге с днём рождения, одно предложение."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "(?i)birthday"
+      ],
+      "content_none": [
+        "\\uFFFD"
+      ]
+    },
+    "rubric": "Provide a one-sentence English birthday greeting for a colleague, as requested.",
+    "judge": true
+  },
+  {
+    "id": "en-fun-fact",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Tell me one fun fact about octopuses. One sentence, no pictures."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "One accurate English sentence.",
+    "judge": false
+  },
+  {
+    "id": "en-cheer-up",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Good morning! I'm a bit nervous about a job interview today. Cheer me up in a sentence or two."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "A short warm English reply.",
+    "judge": false
+  },
+  {
+    "id": "en-after-russian-report",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Check how much free space is left on drive C, please."
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "agent_1",
+            "type": "function",
+            "function": {
+              "name": "init_agent",
+              "arguments": "{\"prompt\":\"Check how much free space is left on drive C. Change nothing.\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "agent_1",
+        "content": "Отчёт агента disk-c1: на диске C свободно 112 ГБ из 476 ГБ. Изменения не выполнялись."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "112"
+      ],
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]{3}"
+      ]
+    },
+    "rubric": "Retell the Russian agent report in English: 112 GB free of 476 GB, nothing changed.",
+    "judge": false
+  },
+  {
+    "id": "es-question",
+    "variant": "browser",
+    "messages": [
+      {
+        "role": "user",
+        "content": "¿Cuál es la diferencia entre «ser» y «estar»? Responde brevemente."
+      }
+    ],
+    "expect": {
+      "no_tools": true,
+      "content_all": [
+        "\\b(es|y|el|la|para|se)\\b"
+      ],
+      "content_none": [
+        "\\uFFFD",
+        "[А-Яа-яЁё]"
+      ]
+    },
+    "rubric": "A brief correct answer in Spanish.",
+    "judge": false
+  }
+]

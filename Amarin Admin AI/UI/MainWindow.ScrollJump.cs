@@ -178,13 +178,12 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Пока в открытом чате идёт ход, у «в конец» вместо стрелки бегут точки: внизу ведётся
-        /// работа (1.37.0-beta.9).
+        /// Пока в открытом чате идёт ход, играют прежние точки и видна тонкая акцентная рамка.
         /// </summary>
         /// <remarks>
         /// Зовут начало и конец хода (<see cref="UpdateComposerChrome"/>), смена чата
-        /// (<see cref="RebuildTranscript"/>) и проявление кнопки. Бегут точки, только пока кнопка
-        /// видна: у низа чата она погашена, и анимация шла бы впустую весь ответ.
+        /// (<see cref="RebuildTranscript"/>) и проявление кнопки. Ссылка на ресурс сохраняет
+        /// актуальный акцент при смене темы посреди хода.
         /// </remarks>
         internal void UpdateScrollBottomWork()
         {
@@ -192,6 +191,9 @@ namespace Amarin.UI
             ScrollBottomIcon.Visibility = working ? Visibility.Collapsed : Visibility.Visible;
             ScrollBottomDots.Visibility = working ? Visibility.Visible : Visibility.Collapsed;
             ScrollBottomDots.Active = working && _scrollBottomShown;
+            ScrollBottomButton.SetResourceReference(
+                System.Windows.Controls.Control.BorderBrushProperty,
+                working ? "Accent.Fill" : "Border.Subtle");
         }
 
         /// <summary>Проявляет или гасит кнопку; у круглой ещё и приподнимает её снизу.</summary>

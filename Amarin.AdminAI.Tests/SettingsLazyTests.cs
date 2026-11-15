@@ -58,7 +58,7 @@ public sealed class SettingsLazyTests : IDisposable
                      [
                          "LoadSettingsUi", "LoadAccountUi", "LoadUpdatesUi", "RenderUpdates", "RefreshBehaviorLinks",
                          "RefreshAppearanceLinks", "RefreshPromptLinks", "RefreshAllowedDomainsUi",
-                         "PushKeysToPickers", "ShowSettingsModelSelections", "BindSettingsReasoningPickers",
+                         "PushKeysToPickers", "ShowSettingsModelSelections",
                          "ShowSynGuardModelName", "UpdateTranslationEditButton"
                      ])
             {
@@ -112,6 +112,48 @@ public sealed class SettingsLazyTests : IDisposable
         // Тяжёлое содержимое подстраниц прогрев достраивает своими порциями.
         Assert.Equal(ThemeCatalog.Presets.Count, themes);
         Assert.Equal(HotkeyMap.All.Count, hotkeys);
+    }
+
+    [Fact]
+    public async Task The_whats_new_sheet_holds_the_prewarm_until_it_is_closed()
+    {
+        // Порции прогрева дольше кадра: при открытом листе его сцена на запуске шла рывками.
+        var (heldWhileOpen, builtAfterClose) = await _wpf.Ui.Invoke(async () =>
+        {
+            var window = OffScreen(Services("whatsnew"));
+            var motion = UiMotion.Enabled;
+            UiMotion.Enabled = false;
+
+            // Как на запуске: лист встаёт до первого кадра.
+            window.Loaded += (_, _) =>
+                window.ShowWhatsNew(ReleaseVersion.Parse("1.37.0")!.Value, "# 1.37.0\n\nIntro.\n\n## Chat\n\n- One.\n");
+            var rendered = new TaskCompletionSource();
+            window.ContentRendered += (_, _) => rendered.TrySetResult();
+            window.Show();
+            try
+            {
+                await rendered.Task;
+                await Task.Delay(700);
+                var held = View(window) is null;
+
+                window.WhatsNewHost.Children.OfType<WhatsNewSheet>().Single().Close();
+                var watch = Stopwatch.StartNew();
+                while (!Done(window) && watch.Elapsed < TimeSpan.FromSeconds(20))
+                {
+                    await Task.Delay(50);
+                }
+
+                return (held, Done(window));
+            }
+            finally
+            {
+                UiMotion.Enabled = motion;
+                window.Close();
+            }
+        });
+
+        Assert.True(heldWhileOpen, "прогрев настроек шёл под открытым листом");
+        Assert.True(builtAfterClose, "после закрытия листа прогрев не продолжился");
     }
 
     [Fact]

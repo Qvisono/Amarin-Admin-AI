@@ -105,7 +105,8 @@ public sealed partial class VeniceClient
         }
 
         var cost = CostOf(
-            accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier);
+            accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier,
+            accumulator.CacheReadTokens, accumulator.CacheWriteTokens);
         Book(cost, model, credential);
 
         return new StreamedChatCompletion
@@ -130,7 +131,8 @@ public sealed partial class VeniceClient
     /// </summary>
     /// <remarks>
     /// Поля размышления у моделей разных поколений приняты по-разному, а посредник человека
-    /// может не знать части из них. Ответ без размышления лучше, чем никакого.
+    /// может не знать части из них. Ответ без размышления лучше, чем никакого. Отказ меток кэша
+    /// обходится отдельно: размышление за него платить не должно.
     /// </remarks>
     private async Task<HttpResponseMessage> PostAnthropicWithRelaxAsync(
         ChatCompletionRequest request,
@@ -140,23 +142,15 @@ public sealed partial class VeniceClient
         ApiCredential credential,
         CancellationToken cancellationToken)
     {
-        var shaped = prepareMessages
-            ? new ChatCompletionRequest
-            {
-                Model = request.Model,
-                Messages = ApiContextLimiter.Prepare(request.Messages),
-                Tools = request.Tools,
-                ToolChoice = request.ToolChoice,
-                ReasoningChoice = request.ReasoningChoice
-            }
-            : request;
+        var shaped = prepareMessages ? request with { Messages = ApiContextLimiter.Prepare(request.Messages) } : request;
 
         var info = ResolveModelInfo?.Invoke(model);
         var official = !credential.Provider.IsCustom;
         var bare = ModelRef.Bare(model);
+        var cache = !_cacheRefused.ContainsKey(model);
 
         var response = await PostAnthropicAsync(
-                AnthropicMessages.Build(shaped, bare, info, stream, official), model, credential, cancellationToken)
+                AnthropicMessages.Build(shaped, bare, info, stream, official, cache: cache), model, credential, cancellationToken)
             .ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
@@ -172,8 +166,14 @@ public sealed partial class VeniceClient
             throw ApiError(credential, status, error);
         }
 
+        var marksRefused = cache && AnthropicMessages.NamesCacheMarks(error);
+        if (marksRefused)
+        {
+            _cacheRefused[model] = true;
+        }
+
         var retry = await PostAnthropicAsync(
-                AnthropicMessages.Build(shaped, bare, info, stream, official, relaxed: true),
+                AnthropicMessages.Build(shaped, bare, info, stream, official, relaxed: !marksRefused, cache: cache && !marksRefused),
                 model,
                 credential,
                 cancellationToken)

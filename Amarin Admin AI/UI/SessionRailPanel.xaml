@@ -1,0 +1,206 @@
+<UserControl x:Class="Amarin.UI.SessionRailPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="RailCard" TargetType="Border" BasedOn="{StaticResource SettingsGroup}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="Padding" Value="12,7"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+            </Style>
+            <Style x:Key="RailTitle" TargetType="TextBlock" BasedOn="{StaticResource SettingTitle}">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style x:Key="RailText" TargetType="TextBlock" BasedOn="{StaticResource SettingTitle}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            </Style>
+            <Style x:Key="RailMeta" TargetType="TextBlock" BasedOn="{StaticResource AiMetaText}">
+                <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            </Style>
+            <Style x:Key="RailRow" TargetType="Grid"><Setter Property="Margin" Value="0,3"/></Style>
+            <Style x:Key="RailIcon" TargetType="Path">
+                <Setter Property="Width" Value="13"/><Setter Property="Height" Value="13"/><Setter Property="Stretch" Value="Uniform"/>
+                <Setter Property="Stroke" Value="{DynamicResource Text.Dim}"/><Setter Property="StrokeThickness" Value="1.3"/>
+                <Setter Property="StrokeStartLineCap" Value="Round"/><Setter Property="StrokeEndLineCap" Value="Round"/>
+                <Setter Property="StrokeLineJoin" Value="Round"/><Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style x:Key="RailDivider" TargetType="Border" BasedOn="{StaticResource GroupDivider}"><Setter Property="Margin" Value="0,8"/></Style>
+            <Style x:Key="RailActionRow" TargetType="Button">
+                <Setter Property="Cursor" Value="Hand"/><Setter Property="Focusable" Value="False"/><Setter Property="Height" Value="28"/>
+                <Setter Property="Margin" Value="-6,0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,0"><ContentPresenter VerticalAlignment="Center"/></Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="RailStepButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+                <Setter Property="Width" Value="22"/><Setter Property="Height" Value="22"/><Setter Property="Focusable" Value="False"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+    <StackPanel x:Name="CardsPanel" Background="Transparent">
+        <Border x:Name="ContextCard" Style="{StaticResource RailCard}">
+            <StackPanel>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.Context.Label}"/>
+                    <TextBlock x:Name="ContextPercent" Grid.Column="1" Style="{StaticResource RailTitle}" Foreground="{DynamicResource Accent.Fill}"/>
+                </Grid>
+                <TextBlock x:Name="ContextTotal" Style="{StaticResource RailMeta}"/>
+                <TextBlock x:Name="ContextAttachmentNote" Style="{StaticResource RailMeta}" Text="{DynamicResource S.SessionRail.AttachmentsUnknown}" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ContextUnavailable" Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Unknown}" TextWrapping="Wrap"/>
+                <Grid x:Name="ContextBar" Height="5" Margin="0,9,0,2"><Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ContextUsedColumn" Width="0*"/><ColumnDefinition x:Name="ContextFreeColumn" Width="1*"/>
+                </Grid.ColumnDefinitions><Border Grid.ColumnSpan="2" Background="{DynamicResource Bg.Track}" CornerRadius="2.5"/><Border Grid.Column="0" Background="{DynamicResource Accent.Fill}" CornerRadius="2.5"/></Grid>
+                <StackPanel x:Name="ContextParts" Margin="0,4,0,0"/>
+                <Border Style="{StaticResource RailDivider}" Margin="0,6,0,3"/>
+                <Button x:Name="CompactButton" Style="{StaticResource RailActionRow}" Click="Compact_Click" AutomationProperties.Name="{DynamicResource S.Compact.MenuItem}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Path Style="{StaticResource RailIcon}" Data="M4.5,1.5 L8,5 L11.5,1.5 M4.5,14.5 L8,11 L11.5,14.5 M1.5,8 H14.5"/>
+                        <TextBlock Grid.Column="1" Style="{StaticResource RailText}" Text="{DynamicResource S.Compact.MenuItem}"/>
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </Border>
+        <Border x:Name="SettingsCard" Style="{StaticResource RailCard}"><StackPanel>
+            <TextBlock Style="{StaticResource RailTitle}" Margin="0,0,0,3" Text="{DynamicResource S.SessionRail.Title}"/>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Computer}"/>
+                <CheckBox x:Name="ComputerToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" ToolTipService.ShowOnDisabled="True" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.Computer}"/>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.Browser}"/>
+                <CheckBox x:Name="BrowserToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" ToolTipService.ShowOnDisabled="True" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.Browser}"/>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.InheritAgent}" TextTrimming="CharacterEllipsis"/>
+                <CheckBox x:Name="InheritAgentToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" Checked="SessionSetting_Changed" Unchecked="SessionSetting_Changed" AutomationProperties.Name="{DynamicResource S.SessionRail.InheritAgent}"/>
+            </Grid>
+        </StackPanel></Border>
+        <Border x:Name="FilesCard" Style="{StaticResource RailCard}"><StackPanel>
+            <Grid Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.SessionRail.Files}"/><TextBlock x:Name="FilesCount" Grid.Column="1" Style="{StaticResource RailMeta}"/>
+            </Grid>
+            <StackPanel x:Name="FilesItems"/>
+        </StackPanel></Border>
+        <Border x:Name="AgentsCard" Style="{StaticResource RailCard}" Margin="0"><StackPanel>
+            <Grid Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailTitle}" Text="{DynamicResource S.Cost.Agents}"/><TextBlock x:Name="AgentsCount" Grid.Column="1" Style="{StaticResource RailMeta}"/>
+            </Grid>
+            <StackPanel x:Name="AgentItems"/>
+        </StackPanel></Border>
+    </StackPanel>
+
+    <!-- Экран сжатия встаёт на место карточек в той же колонке; «Назад» и Esc возвращают их. -->
+    <Border x:Name="CompactView" Style="{StaticResource RailCard}" Margin="0" Padding="12,8,12,12" VerticalAlignment="Top" Visibility="Collapsed">
+        <StackPanel>
+            <Grid Margin="-6,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Button x:Name="CompactBackButton" Style="{StaticResource RailStepButton}" Click="CompactBack_Click"
+                        ToolTip="{DynamicResource S.Common.Back}" AutomationProperties.Name="{DynamicResource S.Common.Back}">
+                    <Path Style="{StaticResource IconGlyph}" Data="M7.5,2 L3.5,6 L7.5,10" Stretch="None"/>
+                </Button>
+                <TextBlock Grid.Column="1" Style="{StaticResource RailTitle}" Margin="2,0,0,0" Text="{DynamicResource S.Compact.MenuItem}"/>
+            </Grid>
+
+            <!-- Было и станет. Шкала во всю ширину — занятое сейчас, а не окно модели: у почти пустого
+                 окна разницу иначе не разглядеть. Сплошная часть останется, бледная освободится. -->
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Label}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock x:Name="CompactBefore" Style="{StaticResource RailMeta}"/>
+                    <Path x:Name="CompactArrow" Data="M0,3 H8 M5,0.6 L8,3 L5,5.4" Width="8" Height="6" Stretch="Uniform" Margin="5,0"
+                          Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CompactAfter" Style="{StaticResource RailMeta}" Foreground="{DynamicResource Accent.Fill}" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+            <Grid x:Name="CompactBar" Height="10" Margin="0,7,0,0"><Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="CompactKeptColumn" Width="1*"/><ColumnDefinition x:Name="CompactFreedColumn" Width="0*"/>
+            </Grid.ColumnDefinitions>
+                <Border Grid.ColumnSpan="2" CornerRadius="5" Background="{DynamicResource Accent.Fill}" Opacity="0.25"/>
+                <Border Grid.Column="0" CornerRadius="5" Background="{DynamicResource Accent.Fill}"/>
+            </Grid>
+            <TextBlock x:Name="CompactFrees" Style="{StaticResource RailMeta}" Margin="0,5,0,0"/>
+
+            <Border Style="{StaticResource RailDivider}" Margin="0,12,0,8"/>
+
+            <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactFirst}"/>
+                <CheckBox x:Name="CompactFirstToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="True"
+                          Checked="CompactOption_Changed" Unchecked="CompactOption_Changed"
+                          AutomationProperties.Name="{DynamicResource S.SessionRail.CompactFirst}"/>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}" Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactKeep}"/>
+                <Border Grid.Column="1" Height="24" CornerRadius="6" BorderThickness="1" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="KeepLessButton" Style="{StaticResource RailStepButton}" Click="KeepLess_Click"
+                                AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepLess}">
+                            <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5" Stretch="None"/>
+                        </Button>
+                        <TextBlock x:Name="KeepValue" Width="22" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   TextAlignment="Center" VerticalAlignment="Center"/>
+                        <Button x:Name="KeepMoreButton" Style="{StaticResource RailStepButton}" Click="KeepMore_Click"
+                                AutomationProperties.Name="{DynamicResource S.SessionRail.CompactKeepMore}">
+                            <Path Style="{StaticResource IconGlyph}" Data="M2.5,6 H9.5 M6,2.5 V9.5" Stretch="None"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <TextBlock x:Name="KeepHint" Style="{StaticResource RailMeta}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+
+            <Border Style="{StaticResource RailDivider}" Margin="0,10,0,10"/>
+
+            <TextBlock Style="{StaticResource RailMeta}" Margin="0,0,0,5" Text="{DynamicResource S.SessionRail.CompactModel}"/>
+            <local:ModelPickerField x:Name="CompactModelField" MinWidth="0" AutomationProperties.Name="{DynamicResource S.SessionRail.CompactModel}"/>
+
+            <TextBlock Style="{StaticResource RailMeta}" Margin="0,10,0,5" Text="{DynamicResource S.SessionRail.CompactInstructions}"/>
+            <Border Style="{StaticResource FieldFrame}" Padding="9,6">
+                <Grid>
+                    <TextBox x:Name="CompactInstructionsBox" Style="{StaticResource FieldTextBox}" MinHeight="34" MaxHeight="120" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.Name="{DynamicResource S.SessionRail.CompactInstructions}"/>
+                    <TextBlock VerticalAlignment="Top" Text="{DynamicResource S.SessionRail.CompactInstructionsHint}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Placeholder}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=CompactInstructionsBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+
+            <Button x:Name="CompactRunButton" Style="{StaticResource PrimaryButton}" Height="28" Margin="0,12,0,0" HorizontalAlignment="Stretch"
+                    Content="{DynamicResource S.Compact.Hint}" Click="CompactRun_Click"/>
+            <Button x:Name="CompactUndoButton" Style="{StaticResource RailActionRow}" Margin="-6,6,-6,0" Click="CompactUndo_Click"
+                    AutomationProperties.Name="{DynamicResource S.Compact.Undo}">
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.Compact.Undo}"/>
+            </Button>
+        </StackPanel>
+    </Border>
+    </Grid>
+    </ScrollViewer>
+</UserControl>

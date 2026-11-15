@@ -212,9 +212,10 @@ internal sealed class BalanceBadge
 
         var rows = _forced is null && book is not null ? book.Breakdown(keys) : [];
         var thresholds = _thresholds() ?? new BalanceThresholds();
-        _amount.Text = FormatUsd(total.Usd);
+        var totalText = (rows.Any(row => row.Provider == LlmProvider.Polza) ? "≈" : "") + FormatUsd(total.Usd);
+        _amount.Text = totalText;
         var (lines, notes) = BuildTooltip(total, rows, thresholds, tokens);
-        ShowTooltip(new TipRow(Loc.Get("S.Balance.Total"), FormatUsd(total.Usd)), lines, notes);
+        ShowTooltip(new TipRow(Loc.Get("S.Balance.Total"), totalText), lines, notes);
 
         if (_forced is null)
         {
@@ -298,7 +299,8 @@ internal sealed class BalanceBadge
         // лежат ли они на том ключе, которым идёт разговор. У одного ключа она повторила бы итог.
         if (rows.Count > 1)
         {
-            lines.AddRange(rows.Select(row => new TipRow(row.Label, FormatUsd(row.Usd))));
+            lines.AddRange(rows.Select(row => new TipRow(row.Label,
+                (row.Provider == LlmProvider.Polza ? "≈" : "") + FormatUsd(row.Usd))));
         }
 
         lines.AddRange(tokens);

@@ -61,7 +61,6 @@ public sealed class PopupShadowTests
                          ("ProviderKeyField", new ProviderKeyField(), "ChoicePopup"),
                          ("ColorPickerField", new ColorPickerField(), "PickerPopup"),
                          ("LanguagePickerField", new LanguagePickerField(), "PickerPopup"),
-                         ("ReasoningPicker", new ReasoningPicker(), "PickerPopup"),
                          ("TargetPicker", new TargetPicker(), "Popup")
                      })
             {
@@ -105,7 +104,6 @@ public sealed class PopupShadowTests
                      {
                          ("ColorPickerField", new ColorPickerField(), "PickerPopup"),
                          ("LanguagePickerField", new LanguagePickerField(), "PickerPopup"),
-                         ("ReasoningPicker", new ReasoningPicker(), "PickerPopup"),
                          ("TargetPicker", new TargetPicker(), "Popup")
                      })
             {
@@ -132,7 +130,6 @@ public sealed class PopupShadowTests
         Assert.Equal((0.0, -6.0), shifts["ConfirmationAllowPopup"]);
         Assert.Equal((-70.0, 4.0), shifts["ColorPickerField"]);
         Assert.Equal((-40.0, 4.0), shifts["LanguagePickerField"]);
-        Assert.Equal((0.0, -8.0), shifts["ReasoningPicker"]);
         Assert.Equal((0.0, -8.0), shifts["TargetPicker"]);
         Assert.Equal((10.0, 6.0), shifts["AppContextMenu"]);
         Assert.Equal((0.0, 4.0), shifts["DarkComboBox"]);

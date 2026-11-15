@@ -16,6 +16,19 @@ public sealed partial class VeniceClient
         }
     }
 
+    /// <summary>Рубли провайдера не должны попасть в долларовый журнал без явного курса.</summary>
+    private void NormalizeUsageCost(VeniceUsage? usage, ApiCredential credential)
+    {
+        if (usage is null || ProviderSpec.Of(credential).CostCurrency != ProviderCurrency.Rub)
+        {
+            return;
+        }
+
+        var rubles = usage.CostRub ?? usage.Cost;
+        usage.Cost = rubles is { } value ? ProviderMoney.ToUsd(value, _options.RublesPerUsd?.Invoke()) : null;
+        usage.CostEstimated = usage.Cost is not null;
+    }
+
     private void RecordCost(ChatCompletionResponse result, string model, ApiCredential credential)
     {
         // По тому же правилу, по которому цену ответа читают побочные запросы для разбивки под
@@ -26,13 +39,16 @@ public sealed partial class VeniceClient
             model,
             usage?.PromptTokens ?? 0,
             usage?.CompletionTokens ?? 0,
-            result.ServiceTier);
+            result.ServiceTier,
+            usage?.CacheReadTokens ?? 0,
+            usage?.CacheWriteTokens ?? 0);
 
         // Посчитанную цену — и в сам ответ: восемь побочных запросов (заголовок, сводка,
         // маршрутизатор…) читают её через ReportedCost и ставят свою строку в разбивку.
         if (cost.Estimated && usage is not null)
         {
             usage.Cost = cost.Usd;
+            usage.CostEstimated = true;
         }
 
         Book(cost, model, credential);
@@ -59,18 +75,23 @@ public sealed partial class VeniceClient
     /// Каким уровнем ответ обслужили (1.37.0). Каталог знает только обычную цену, а Flex, Fast и
     /// Ultrafast стоят иначе: без поправки оценка врала бы вдвое и больше, а по ней держатся лимиты.
     /// </param>
+    /// <param name="cacheRead">Токены запроса, прочитанные из кэша: они в разы дешевле обычных.</param>
+    /// <param name="cacheWrite">Токены запроса, записанные в кэш: у части провайдеров дороже обычных.</param>
     private VeniceCost CostOf(
         VeniceCost reported,
         string model,
         int promptTokens,
         int completionTokens,
-        string? servedTier = null)
+        string? servedTier = null,
+        int cacheRead = 0,
+        int cacheWrite = 0)
     {
         var cost = new VeniceCost
         {
             Usd = reported.Usd,
             Diem = reported.Diem,
             HasData = reported.HasData,
+            Estimated = reported.Estimated,
             InputTokens = Math.Max(0, promptTokens),
             OutputTokens = Math.Max(0, completionTokens)
         };
@@ -85,8 +106,7 @@ public sealed partial class VeniceClient
             return cost;
         }
 
-        var usd = (cost.InputTokens * price.InputPerMillion + cost.OutputTokens * price.OutputPerMillion) / 1_000_000m
-                  * ModelSpeeds.PriceFactor(servedTier);
+        var usd = price.Usd(cost.InputTokens, cost.OutputTokens, cacheRead, cacheWrite) * ModelSpeeds.PriceFactor(servedTier);
         if (usd > 0m)
         {
             cost.Usd = usd;
@@ -218,6 +238,7 @@ public sealed partial class VeniceClient
         {
             CanConsume = limits.AccessPermitted,
             Usd = (balances.Usd ?? 0m) + (balances.BundledCredits ?? 0m),
+            RublesPerUsd = limits.RublesPerUsd,
             Diem = balances.Diem
         });
     }

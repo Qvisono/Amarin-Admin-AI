@@ -5,82 +5,90 @@ using Amarin.Core;
 
 namespace Amarin.UI;
 
-/// <summary>
-/// Одна строка списка моделей в плашке выбора.
-/// </summary>
-/// <remarks>
-/// Отдельный объект, а не собранная в коде кнопка: контейнеры строк переиспользует
-/// <c>VirtualizingStackPanel</c>, и переиспользовать он умеет только то, что нарисовано
-/// шаблоном по данным. Прежде список строился кнопками целиком — у OpenRouter это триста
-/// кнопок с подсказками на каждый символ, набранный в поиске, и окно вставало.
-/// <para>
-/// Логотип разрешается один раз при сборке строки: <c>TryFindResource</c> на каждую
-/// перерисовку виртуализованного контейнера обходился бы словарями тем по десять раз в кадр.
-/// Смену темы плашка переживает пересборкой — она подписана на
-/// <c>ThemeManager.EffectiveThemeChanged</c>.
-/// </para>
-/// </remarks>
-internal sealed class ModelPickerRow : INotifyPropertyChanged
+/// <summary>Данные строки. Логотип запрашивается только при создании видимого контейнера.</summary>
+internal sealed class ModelPickerRow(ModelPickerPanel host, VeniceModelInfo model, string id) : INotifyPropertyChanged
 {
+    private string? _logoKey;
+    private string? _display;
+    private bool _logoResolved;
     private bool _selected;
+    private bool _favorite;
 
-    public required string Id { get; init; }
+    public VeniceModelInfo Model => model;
+    public string Id => id;
+    public string FavoriteId { get; } = ModelRef.WithoutOpenRouterRouting(id);
+    public string Display => _display ??= ModelPickerField.ModelName(Id, Model);
+    public string Tooltip => VeniceModelCatalog.BuildTooltip(Model, Id);
+    public string Letter => VeniceModelCatalog.GetLogoLetter(Id);
 
-    public required string Display { get; init; }
+    private string? LogoKey
+    {
+        get
+        {
+            if (!_logoResolved)
+            {
+                _logoKey = VeniceModelCatalog.GetLogoResourceKey(Id);
+                _logoResolved = true;
+            }
 
-    public required string Tooltip { get; init; }
+            return _logoKey;
+        }
+    }
 
-    public ImageSource? Logo { get; init; }
-
-    public double LogoSize { get; init; } = 15;
-
-    public Thickness LogoMargin { get; init; }
-
-    public string Letter { get; init; } = "";
-
+    public ImageSource? Logo => LogoKey is { } key ? host.RowLogo(key) : null;
+    public Thickness LogoMargin => LogoKey is { } key ? ModelBrand.LogoMargin(key) : default;
+    public double LogoSize => Math.Max(1, (LogoKey == "Grok" ? 13 : 15) - LogoMargin.Left - LogoMargin.Right);
     public Visibility LogoVisibility => Logo is null ? Visibility.Collapsed : Visibility.Visible;
-
     public Visibility LetterVisibility => Logo is null ? Visibility.Visible : Visibility.Collapsed;
 
-    /// <summary>Галочка у выбранной модели. Меняется без пересборки списка.</summary>
     public Visibility CheckVisibility => _selected ? Visibility.Visible : Visibility.Collapsed;
+    public bool IsSelected => _selected;
 
-    public bool IsSelected
+    public bool IsFavorite
     {
-        get => _selected;
+        get => _favorite;
         set
         {
-            if (_selected == value)
+            if (_favorite == value)
             {
                 return;
             }
 
-            _selected = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CheckVisibility)));
+            _favorite = value;
+            Notify(nameof(IsFavorite));
+            Notify(nameof(FavoriteAction));
         }
     }
 
+    public string FavoriteAction => Loc.Get(_favorite ? "S.Models.FavoriteRemove" : "S.Models.FavoriteAdd");
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>Собирает строку по модели каталога, разрешив логотип в живых ресурсах.</summary>
-    public static ModelPickerRow Build(FrameworkElement host, VeniceModelInfo model)
+    public void SetSelection(bool selected)
     {
-        var key = VeniceModelCatalog.GetLogoResourceKey(model.Id);
-        var logo = key is null ? null : host.TryFindResource(key) as ImageSource;
-        var margin = key is null ? default : ModelBrand.LogoMargin(key);
-
-        // Grok рисуется плотнее прочих: его знак занимает весь квадрат без полей.
-        var size = key is not null && key.Equals("Grok", StringComparison.Ordinal) ? 13d : 15d;
-
-        return new ModelPickerRow
+        if (_selected == selected)
         {
-            Id = model.Id,
-            Display = VeniceModelCatalog.GetListDisplayName(model),
-            Tooltip = VeniceModelCatalog.BuildTooltip(model),
-            Logo = logo,
-            LogoSize = Math.Max(1, size - margin.Left - margin.Right),
-            LogoMargin = margin,
-            Letter = VeniceModelCatalog.GetLogoLetter(model.Id)
-        };
+            return;
+        }
+
+        _selected = selected;
+        Notify(nameof(IsSelected));
+        Notify(nameof(CheckVisibility));
     }
+
+    public void RefreshTheme()
+    {
+        Notify(nameof(Logo));
+        Notify(nameof(LogoVisibility));
+        Notify(nameof(LetterVisibility));
+    }
+
+    public void RefreshLanguage()
+    {
+        _display = null;
+        Notify(nameof(Display));
+        Notify(nameof(FavoriteAction));
+    }
+
+    private void Notify(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

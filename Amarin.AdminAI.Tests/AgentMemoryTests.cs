@@ -68,20 +68,23 @@ public sealed class AgentMemoryTests
     }
 
     [Fact]
-    public void The_chat_file_keeps_only_the_latest_agents()
+    public void The_chat_file_keeps_all_agents()
     {
         var chat = new ChatSession { Id = "chat" };
         var agents = new AgentMemoryBook().For(chat, AgentMemory.Chat);
-        for (var i = 1; i <= AgentMemoryBook.Limit + 5; i++)
+        for (var i = 1; i <= 25; i++)
         {
             var conversation = Conversation("a" + i);
             conversation.UpdatedAt = new DateTime(2026, 1, 1).AddMinutes(i);
             agents.Keep(conversation);
         }
 
-        Assert.Equal(AgentMemoryBook.Limit, chat.Agents!.Count);
-        Assert.DoesNotContain(chat.Agents, agent => agent.Id == "a1");
-        Assert.Contains(chat.Agents, agent => agent.Id == "a" + (AgentMemoryBook.Limit + 5));
+        Assert.Equal(25, chat.Agents!.Count);
+        Assert.Contains(chat.Agents, agent => agent.Id == "a1");
+        Assert.Contains(chat.Agents, agent => agent.Id == "a25");
+
+        var restored = new AgentMemoryBook().For(chat, AgentMemory.Chat);
+        Assert.Equal(25, restored.All.Count);
     }
 
     /// <summary>Счётчик реестра на каждом запуске идёт с a1, а агенты из файла помнят свои номера.</summary>
@@ -129,10 +132,30 @@ public sealed class AgentMemoryTests
         Assert.Equal(2, bodies.Count);
     }
 
+    [Fact]
+    public async Task A_nested_record_keeps_the_agent_id_for_the_session_panel()
+    {
+        var host = Host(Settings(AgentMemory.Chat), [Final("report")], []);
+        var call = new ToolCallRecord { Id = "call", Name = InitAgentTool.ToolName };
+        using (AgentRunScope.Push(new AgentRunContext
+        {
+            Call = call,
+            Assistant = new ChatDisplayMessage { Role = "assistant" },
+            Observer = SilentTurnObserver.Instance,
+            SessionId = "chat",
+            Conversations = new AgentConversations()
+        }))
+        {
+            await host.RunAsync("task", null, CancellationToken.None);
+        }
+
+        Assert.Equal("a1", call.NestedAgent?.AgentId);
+    }
+
     [Theory]
     [InlineData(AgentMemory.Answer, "этом ответе")]
     [InlineData(AgentMemory.Session, "не сохраняются")]
-    [InlineData(AgentMemory.Chat, "последних разговоров")]
+    [InlineData(AgentMemory.Chat, "разговор с ним недоступен")]
     public async Task An_unknown_agent_is_explained_by_the_lifetime_the_person_chose(AgentMemory mode, string expected)
     {
         var host = Host(Settings(mode), [], []);

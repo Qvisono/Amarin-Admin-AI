@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Amarin.Core;
 
@@ -98,6 +100,9 @@ public partial class SettingsSecurityPage : UserControl
             NoRetentionToggle.IsChecked = settings.OpenRouterNoRetention;
             TemporaryUntilCloseToggle.IsChecked = settings.TemporaryChatsUntilClose;
             DownloadAnySiteToggle.IsChecked = settings.DownloadAnySite;
+            DownloadSizeLimitToggle.IsChecked = settings.DownloadSizeLimitEnabled;
+            DownloadMaxSizeBox.Text = CurrentDownloadMaxSizeMb(settings).ToString(CultureInfo.InvariantCulture);
+            DownloadMaxSizeField.IsEnabled = settings.DownloadSizeLimitEnabled;
             ShowAllowlistState(settings.DownloadAnySite);
             ShowPolicy(settings, OrganizationPolicy.Current);
         }
@@ -237,6 +242,55 @@ public partial class SettingsSecurityPage : UserControl
         _services.SettingsStore.Save(_services.Settings);
         Amarin.Tools.DownloadValidator.ConfigureAnySite(on);
         ShowAllowlistState(on);
+    }
+
+    private int CurrentDownloadMaxSizeMb(AppSettings settings) =>
+        settings.DownloadMaxSizeMb is > 0 and var maxMb
+            ? maxMb
+            : (int)Math.Clamp((_services?.Options.Download.MaxSizeBytes ?? new DownloadOptions().MaxSizeBytes) / (1024L * 1024L), 1, int.MaxValue);
+
+    private void DownloadSizeLimitToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        var enabled = DownloadSizeLimitToggle.IsChecked == true;
+        DownloadMaxSizeField.IsEnabled = enabled;
+        _services.Settings.DownloadSizeLimitEnabled = enabled;
+        _services.SettingsStore.Save(_services.Settings);
+    }
+
+    private void DownloadMaxSizeBox_LostFocus(object sender, RoutedEventArgs e) => CommitDownloadMaxSize();
+
+    private void DownloadMaxSizeBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            CommitDownloadMaxSize();
+            e.Handled = true;
+        }
+    }
+
+    private void CommitDownloadMaxSize()
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        var settings = _services.Settings;
+        var current = CurrentDownloadMaxSizeMb(settings);
+        var maxMb = int.TryParse(DownloadMaxSizeBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value > 0
+            ? value
+            : current;
+        DownloadMaxSizeBox.Text = maxMb.ToString(CultureInfo.InvariantCulture);
+        if (maxMb != current)
+        {
+            settings.DownloadMaxSizeMb = maxMb;
+            _services.SettingsStore.Save(settings);
+        }
     }
 
     /// <summary>

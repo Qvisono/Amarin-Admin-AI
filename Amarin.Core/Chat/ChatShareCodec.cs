@@ -314,6 +314,9 @@ internal static class ChatShareCodec
             DisableThinking = session.DisableThinking,
             ReasoningEffort = session.ReasoningEffort,
             ModelSpeed = session.ModelSpeed,
+            ComputerControlOverride = session.ComputerControlOverride,
+            AgentBrowserOverride = session.AgentBrowserOverride,
+            InheritAgentModelOverride = session.InheritAgentModelOverride,
             Messages = kept,
             ApiMessages = api
         };

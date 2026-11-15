@@ -47,14 +47,29 @@ internal static class ChatToolPreview
     /// <summary>Сколько знаков вывода инструмента уходит модели.</summary>
     internal const int ApiLimit = 12_000;
 
+    /// <summary>
+    /// Ответ агента чату уходит целиком (1.38.0-beta.4): обрезанный отчёт чат переспрашивал через
+    /// <c>message_agent</c>, и это стоило лишнего прогона агента.
+    /// </summary>
+    public static bool IsAgentReport(string toolName) =>
+        toolName is InitAgentTool.ToolName or MessageAgentTool.ToolName or AgentRefusedTool.ToolName;
+
     /// <summary>Модель увидит этот вывод обрезанным (D10): лента помечает такой вызов.</summary>
+    public static bool IsCallTruncatedForApi(string toolName, ToolResult result) =>
+        !IsAgentReport(toolName) && IsTruncatedForApi(result);
+
     public static bool IsTruncatedForApi(ToolResult result) =>
         (result.Success ? result.Output?.Length ?? 0 : (result.Output?.Length ?? 0) + "ERROR: ".Length) > ApiLimit;
+
+    public static string FormatCallForApi(string toolName, ToolResult result) =>
+        IsAgentReport(toolName) ? Text(result) : FormatForApi(result);
+
+    private static string Text(ToolResult result) => result.Success ? result.Output : $"ERROR: {result.Output}";
 
     public static string FormatForApi(ToolResult result)
     {
         const int maxChars = ApiLimit;
-        var output = result.Success ? result.Output : $"ERROR: {result.Output}";
+        var output = Text(result);
         return output.Length <= maxChars
             ? output
             : output[..maxChars] + "\n... [обрезано для контекста API]";

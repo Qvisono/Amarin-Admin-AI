@@ -22,7 +22,7 @@ namespace Amarin.AdminAI.Tests;
 /// </remarks>
 internal static class UiServices
 {
-    public static AppServices Build(string root, string apiKey, HttpMessageHandler handler) =>
+    public static AppServices Build(string root, string apiKey, HttpMessageHandler handler, AuditLog? audit = null) =>
         Build(
             root,
             new AgentOptions
@@ -32,15 +32,15 @@ internal static class UiServices
                 Model = "grok-4-6",
                 MaxToolRounds = 2
             },
-            new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") });
+            new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") },
+            audit: audit);
 
     /// <param name="loadKeys">Прочитать <c>keys.json</c> папки, как это делает запуск.</param>
-    public static AppServices Build(string root, AgentOptions options, HttpClient http, bool loadKeys = false)
+    public static AppServices Build(string root, AgentOptions options, HttpClient http, bool loadKeys = false, AuditLog? audit = null)
     {
         Directory.CreateDirectory(Path.Combine(root, "chats"));
 
         var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
         var settingsStore = new AppSettingsStore(root);
         var settings = settingsStore.Load();
         var profile = new ProfileScope(
@@ -49,11 +49,20 @@ internal static class UiServices
             settings,
             new ApiKeyProvider(),
             new SpendLedger(root),
-            new InstructionLibrary(root));
+            new InstructionLibrary(root),
+            audit: audit);
         if (loadKeys)
         {
             profile.KeyStore.Load();
         }
+
+        var balances = new BalanceBook(() => profile.Settings.RublesPerUsd, profile.Keys.DefaultFor);
+        options = options with
+        {
+            RublesPerUsd = options.RublesPerUsd ?? (() => profile.Settings.RublesPerUsd),
+            BalanceSink = options.BalanceSink ?? balances.Remember
+        };
+        var venice = new VeniceClient(http, options);
 
         return new AppServices
         {
@@ -68,7 +77,7 @@ internal static class UiServices
             Venice = venice,
             Models = new VeniceModelListCache(venice),
             AudioModels = new AudioModelCatalog(http),
-            Balances = new BalanceBook(),
+            Balances = balances,
             Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
             Titles = new ChatTitleGenerator(http, options, () => settings),
             Summaries = new ChatSummaryGenerator(http, options, () => settings),

@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Авто · Галерея логотипов</title>
+<style>
+:root{--bg:#0e1116;--card:#171c24;--text:#e7eaf0;--muted:#8d95a3;--chip:#1c232d;--chip-txt:#cdd3dd;--accent:#2f6fed;--bd:#232a35}
+html[data-theme="light"]{--bg:#f4f6f9;--card:#ffffff;--text:#1b232e;--muted:#67707d;--chip:#e8edf4;--chip-txt:#39424f;--accent:#2f6fed;--bd:#dde3ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;transition:background .3s,color .3s}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px 6px;flex-wrap:wrap}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px}
+.meta{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+#theme{background:var(--chip);color:var(--chip-txt);border:1px solid var(--bd);border-radius:10px;padding:7px 14px;cursor:pointer;font-size:13px}
+#theme:hover{border-color:var(--accent)}
+nav{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px 4px}
+.chip{background:var(--chip);color:var(--chip-txt);border:1px solid transparent;border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip.active{background:var(--accent);color:#fff}
+main{padding:8px 24px 30px}
+section{margin:18px 0}
+section h2{font-size:15px;font-weight:600;color:var(--muted);margin:0 0 10px;letter-spacing:.4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card{display:block;background:var(--card);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.12);transition:transform .2s, box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.22)}
+.card img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+.cap{display:block;padding:7px 10px;font-size:12px;color:var(--muted);font-family:Consolas,monospace}
+footer{padding:10px 24px 26px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Авто · 100 логотипов</h1>
+  <div class="meta"><span id="count">44 шт.</span><button id="theme" type="button">Светлая тема</button></div>
+</header>
+<nav id="chips"><button class="chip active" data-b="all">Все</button><button class="chip" data-b="01">B01 Волны и круги</button><button class="chip" data-b="02">B02 Кляксы и звёзды</button><button class="chip" data-b="03">B03 Спирали и узлы</button><button class="chip" data-b="04">B04 Аврора и свет</button><button class="chip" data-b="05">B05 Космос</button><button class="chip" data-b="06">B06 Листья и семена</button><button class="chip" data-b="07">B07 Капли и вода</button><button class="chip" data-b="08">B08 Гора и солнце</button><button class="chip" data-b="09">B09 Звери-силуэты</button></nav>
+<main><section data-b="01"><h2>B01 · Волны и круги</h2><div class="grid"><a class="card" href="assets/icons/logo-b01-1.png" target="_blank" rel="noopener" title="Волны и круги"><img src="assets/icons/logo-b01-1.png" alt="B01-1" loading="lazy"><span class="cap">B01 · 1</span></a>
+<a class="card" href="assets/icons/logo-b01-2.png" target="_blank" rel="noopener" title="Волны и круги"><img src="assets/icons/logo-b01-2.png" alt="B01-2" loading="lazy"><span class="cap">B01 · 2</span></a>
+<a class="card" href="assets/icons/logo-b01-3.png" target="_blank" rel="noopener" title="Волны и круги"><img src="assets/icons/logo-b01-3.png" alt="B01-3" loading="lazy"><span class="cap">B01 · 3</span></a>
+<a class="card" href="assets/icons/logo-b01-4.png" target="_blank" rel="noopener" title="Волны и круги"><img src="assets/icons/logo-b01-4.png" alt="B01-4" loading="lazy"><span class="cap">B01 · 4</span></a>
+<a class="card" href="assets/icons/logo-b01-5.png" target="_blank" rel="noopener" title="Волны и круги"><img src="assets/icons/logo-b01-5.png" alt="B01-5" loading="lazy"><span class="cap">B01 · 5</span></a>
+</div></section>
+<section data-b="02"><h2>B02 · Кляксы и звёзды</h2><div class="grid"><a class="card" href="assets/icons/logo-b02-1.png" target="_blank" rel="noopener" title="Кляксы и звёзды"><img src="assets/icons/logo-b02-1.png" alt="B02-1" loading="lazy"><span class="cap">B02 · 1</span></a>
+<a class="card" href="assets/icons/logo-b02-2.png" target="_blank" rel="noopener" title="Кляксы и звёзды"><img src="assets/icons/logo-b02-2.png" alt="B02-2" loading="lazy"><span class="cap">B02 · 2</span></a>
+<a class="card" href="assets/icons/logo-b02-3.png" target="_blank" rel="noopener" title="Кляксы и звёзды"><img src="assets/icons/logo-b02-3.png" alt="B02-3" loading="lazy"><span class="cap">B02 · 3</span></a>
+<a class="card" href="assets/icons/logo-b02-4.png" target="_blank" rel="noopener" title="Кляксы и звёзды"><img src="assets/icons/logo-b02-4.png" alt="B02-4" loading="lazy"><span class="cap">B02 · 4</span></a>
+<a class="card" href="assets/icons/logo-b02-5.png" target="_blank" rel="noopener" title="Кляксы и звёзды"><img src="assets/icons/logo-b02-5.png" alt="B02-5" loading="lazy"><span class="cap">B02 · 5</span></a>
+</div></section>
+<section data-b="03"><h2>B03 · Спирали и узлы</h2><div class="grid"><a class="card" href="assets/icons/logo-b03-1.png" target="_blank" rel="noopener" title="Спирали и узлы"><img src="assets/icons/logo-b03-1.png" alt="B03-1" loading="lazy"><span class="cap">B03 · 1</span></a>
+<a class="card" href="assets/icons/logo-b03-2.png" target="_blank" rel="noopener" title="Спирали и узлы"><img src="assets/icons/logo-b03-2.png" alt="B03-2" loading="lazy"><span class="cap">B03 · 2</span></a>
+<a class="card" href="assets/icons/logo-b03-3.png" target="_blank" rel="noopener" title="Спирали и узлы"><img src="assets/icons/logo-b03-3.png" alt="B03-3" loading="lazy"><span class="cap">B03 · 3</span></a>
+<a class="card" href="assets/icons/logo-b03-4.png" target="_blank" rel="noopener" title="Спирали и узлы"><img src="assets/icons/logo-b03-4.png" alt="B03-4" loading="lazy"><span class="cap">B03 · 4</span></a>
+<a class="card" href="assets/icons/logo-b03-5.png" target="_blank" rel="noopener" title="Спирали и узлы"><img src="assets/icons/logo-b03-5.png" alt="B03-5" loading="lazy"><span class="cap">B03 · 5</span></a>
+</div></section>
+<section data-b="04"><h2>B04 · Аврора и свет</h2><div class="grid"><a class="card" href="assets/icons/logo-b04-1.png" target="_blank" rel="noopener" title="Аврора и свет"><img src="assets/icons/logo-b04-1.png" alt="B04-1" loading="lazy"><span class="cap">B04 · 1</span></a>
+<a class="card" href="assets/icons/logo-b04-2.png" target="_blank" rel="noopener" title="Аврора и свет"><img src="assets/icons/logo-b04-2.png" alt="B04-2" loading="lazy"><span class="cap">B04 · 2</span></a>
+<a class="card" href="assets/icons/logo-b04-3.png" target="_blank" rel="noopener" title="Аврора и свет"><img src="assets/icons/logo-b04-3.png" alt="B04-3" loading="lazy"><span class="cap">B04 · 3</span></a>
+<a class="card" href="assets/icons/logo-b04-4.png" target="_blank" rel="noopener" title="Аврора и свет"><img src="assets/icons/logo-b04-4.png" alt="B04-4" loading="lazy"><span class="cap">B04 · 4</span></a>
+<a class="card" href="assets/icons/logo-b04-5.png" target="_blank" rel="noopener" title="Аврора и свет"><img src="assets/icons/logo-b04-5.png" alt="B04-5" loading="lazy"><span class="cap">B04 · 5</span></a>
+</div></section>
+<section data-b="05"><h2>B05 · Космос</h2><div class="grid"><a class="card" href="assets/icons/logo-b05-1.png" target="_blank" rel="noopener" title="Космос"><img src="assets/icons/logo-b05-1.png" alt="B05-1" loading="lazy"><span class="cap">B05 · 1</span></a>
+<a class="card" href="assets/icons/logo-b05-2.png" target="_blank" rel="noopener" title="Космос"><img src="assets/icons/logo-b05-2.png" alt="B05-2" loading="lazy"><span class="cap">B05 · 2</span></a>
+<a class="card" href="assets/icons/logo-b05-3.png" target="_blank" rel="noopener" title="Космос"><img src="assets/icons/logo-b05-3.png" alt="B05-3" loading="lazy"><span class="cap">B05 · 3</span></a>
+<a class="card" href="assets/icons/logo-b05-4.png" target="_blank" rel="noopener" title="Космос"><img src="assets/icons/logo-b05-4.png" alt="B05-4" loading="lazy"><span class="cap">B05 · 4</span></a>
+<a class="card" href="assets/icons/logo-b05-5.png" target="_blank" rel="noopener" title="Космос"><img src="assets/icons/logo-b05-5.png" alt="B05-5" loading="lazy"><span class="cap">B05 · 5</span></a>
+</div></section>
+<section data-b="06"><h2>B06 · Листья и семена</h2><div class="grid"><a class="card" href="assets/icons/logo-b06-1.png" target="_blank" rel="noopener" title="Листья и семена"><img src="assets/icons/logo-b06-1.png" alt="B06-1" loading="lazy"><span class="cap">B06 · 1</span></a>
+<a class="card" href="assets/icons/logo-b06-2.png" target="_blank" rel="noopener" title="Листья и семена"><img src="assets/icons/logo-b06-2.png" alt="B06-2" loading="lazy"><span class="cap">B06 · 2</span></a>
+<a class="card" href="assets/icons/logo-b06-3.png" target="_blank" rel="noopener" title="Листья и семена"><img src="assets/icons/logo-b06-3.png" alt="B06-3" loading="lazy"><span class="cap">B06 · 3</span></a>
+<a class="card" href="assets/icons/logo-b06-4.png" target="_blank" rel="noopener" title="Листья и семена"><img src="assets/icons/logo-b06-4.png" alt="B06-4" loading="lazy"><span class="cap">B06 · 4</span></a>
+<a class="card" href="assets/icons/logo-b06-5.png" target="_blank" rel="noopener" title="Листья и семена"><img src="assets/icons/logo-b06-5.png" alt="B06-5" loading="lazy"><span class="cap">B06 · 5</span></a>
+</div></section>
+<section data-b="07"><h2>B07 · Капли и вода</h2><div class="grid"><a class="card" href="assets/icons/logo-b07-1.png" target="_blank" rel="noopener" title="Капли и вода"><img src="assets/icons/logo-b07-1.png" alt="B07-1" loading="lazy"><span class="cap">B07 · 1</span></a>
+<a class="card" href="assets/icons/logo-b07-2.png" target="_blank" rel="noopener" title="Капли и вода"><img src="assets/icons/logo-b07-2.png" alt="B07-2" loading="lazy"><span class="cap">B07 · 2</span></a>
+<a class="card" href="assets/icons/logo-b07-3.png" target="_blank" rel="noopener" title="Капли и вода"><img src="assets/icons/logo-b07-3.png" alt="B07-3" loading="lazy"><span class="cap">B07 · 3</span></a>
+<a class="card" href="assets/icons/logo-b07-4.png" target="_blank" rel="noopener" title="Капли и вода"><img src="assets/icons/logo-b07-4.png" alt="B07-4" loading="lazy"><span class="cap">B07 · 4</span></a>
+<a class="card" href="assets/icons/logo-b07-5.png" target="_blank" rel="noopener" title="Капли и вода"><img src="assets/icons/logo-b07-5.png" alt="B07-5" loading="lazy"><span class="cap">B07 · 5</span></a>
+</div></section>
+<section data-b="08"><h2>B08 · Гора и солнце</h2><div class="grid"><a class="card" href="assets/icons/logo-b08-1.png" target="_blank" rel="noopener" title="Гора и солнце"><img src="assets/icons/logo-b08-1.png" alt="B08-1" loading="lazy"><span class="cap">B08 · 1</span></a>
+<a class="card" href="assets/icons/logo-b08-2.png" target="_blank" rel="noopener" title="Гора и солнце"><img src="assets/icons/logo-b08-2.png" alt="B08-2" loading="lazy"><span class="cap">B08 · 2</span></a>
+<a class="card" href="assets/icons/logo-b08-3.png" target="_blank" rel="noopener" title="Гора и солнце"><img src="assets/icons/logo-b08-3.png" alt="B08-3" loading="lazy"><span class="cap">B08 · 3</span></a>
+<a class="card" href="assets/icons/logo-b08-4.png" target="_blank" rel="noopener" title="Гора и солнце"><img src="assets/icons/logo-b08-4.png" alt="B08-4" loading="lazy"><span class="cap">B08 · 4</span></a>
+<a class="card" href="assets/icons/logo-b08-5.png" target="_blank" rel="noopener" title="Гора и солнце"><img src="assets/icons/logo-b08-5.png" alt="B08-5" loading="lazy"><span class="cap">B08 · 5</span></a>
+</div></section>
+<section data-b="09"><h2>B09 · Звери-силуэты</h2><div class="grid"><a class="card" href="assets/icons/logo-b09-1.png" target="_blank" rel="noopener" title="Звери-силуэты"><img src="assets/icons/logo-b09-1.png" alt="B09-1" loading="lazy"><span class="cap">B09 · 1</span></a>
+<a class="card" href="assets/icons/logo-b09-2.png" target="_blank" rel="noopener" title="Звери-силуэты"><img src="assets/icons/logo-b09-2.png" alt="B09-2" loading="lazy"><span class="cap">B09 · 2</span></a>
+<a class="card" href="assets/icons/logo-b09-3.png" target="_blank" rel="noopener" title="Звери-силуэты"><img src="assets/icons/logo-b09-3.png" alt="B09-3" loading="lazy"><span class="cap">B09 · 3</span></a>
+<a class="card" href="assets/icons/logo-b09-4.png" target="_blank" rel="noopener" title="Звери-силуэты"><img src="assets/icons/logo-b09-4.png" alt="B09-4" loading="lazy"><span class="cap">B09 · 4</span></a>
+</div></section>
+</main>
+<footer>Галерея сгенерирована для приложения и модели «Авто» · код проекта не затронут</footer>
+<script>
+(function(){
+var chips=[].slice.call(document.querySelectorAll('.chip'));
+chips.forEach(function(c){c.addEventListener('click',function(){
+chips.forEach(function(x){x.classList.remove('active')});
+c.classList.add('active');
+var b=c.getAttribute('data-b');
+[].slice.call(document.querySelectorAll('section')).forEach(function(s){
+s.style.display=(b==='all'||s.getAttribute('data-b')===b)?'':'none';});
+});});
+var btn=document.getElementById('theme');
+try{var t=localStorage.getItem('lab-theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}
+function label(){var l=document.documentElement.getAttribute('data-theme')==='light'?'Тёмная тема':'Светлая тема';btn.textContent=l;}
+label();
+btn.addEventListener('click',function(){
+var n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+document.documentElement.setAttribute('data-theme',n);
+try{localStorage.setItem('lab-theme',n);}catch(e){}
+label();
+});
+})();
+</script>
+</body>
+</html>
+

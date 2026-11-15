@@ -37,11 +37,11 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Записывает счёт хода и рядом — разбивку, которую читает подсказка цены.
+    /// Записывает счёт сообщения и рядом его разбивку, которую читает подсказка цены.
     /// </summary>
     /// <remarks>
     /// <paramref name="chatCost"/> — траты общего <see cref="VeniceClient"/>: разговор и инструменты,
-    /// которые платят через него (рисование, чтение страниц). Те же списания
+    /// которые платят через него (рисование, чтение страниц), только для этого сообщения. Те же списания
     /// <c>AgentRunScope.Charge</c> пишет и на строки инструментов, так что за их вычетом остаётся
     /// ровно цена самой модели. Вложенные агенты работают на своём клиенте — их цена прибавляется,
     /// а не вычитается.
@@ -72,8 +72,8 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Закрывает счёт сообщения: переносит на него то, что относится ко всему ходу
-    /// (маршрутизатор) и ко всему чату (заголовок), и только потом складывает.
+    /// Закрывает счёт сообщения: приписывает ему маршрутизатор первого ответа и заголовок,
+    /// и только потом складывает расходы.
     /// </summary>
     /// <remarks>
     /// <see cref="ApplyCosts"/> обязан оставаться пересчётом, а не прибавлением: по одному и
@@ -86,6 +86,14 @@ internal sealed partial class ChatEngine
         // ??= а не =: на втором проходе переписывать нечего.
         assistant.RouterCost ??= turn.RouterCost;
         ChatTitleCost.Attach(session, assistant);
-        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+        ApplyCosts(assistant, MessageCost(turn, RecoverTurnTotal(assistant)));
+    }
+
+    private static VeniceCost MessageCost(VeniceTurnContext turn, VeniceCost fallback)
+    {
+        var cost = turn.MessageTotal;
+        // Токены без долларовой цены тоже принадлежат сообщению. В запасной цене уже
+        // закрытого ответа не должно быть заголовка и агентов: ApplyCosts добавит их сам.
+        return cost.HasData || cost.InputTokens > 0 || cost.OutputTokens > 0 ? cost : fallback;
     }
 }

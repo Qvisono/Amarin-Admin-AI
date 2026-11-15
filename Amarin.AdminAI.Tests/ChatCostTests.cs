@@ -57,6 +57,51 @@ public sealed class ChatCostTests
     }
 
     [Fact]
+    public void Deleting_a_message_does_not_lower_the_chat_total()
+    {
+        var session = Chat();
+        Assert.Equal(0.91m, ChatCost.Total(session));
+
+        // Удалён ответ за 0.20: потраченное остаётся потраченным.
+        session.Messages.RemoveAt(2);
+        Assert.Equal(0.91m, ChatCost.Total(session));
+
+        // Новый ответ прибавляется к счёту, а не к уменьшившейся сумме сообщений.
+        session.Messages.Add(new ChatDisplayMessage { Id = "a3", Role = "assistant", Cost = Usd(0.30m) });
+        Assert.Equal(1.21m, ChatCost.Total(session));
+        Assert.Equal(1.21m, ChatCost.Total(session));
+
+        var lines = ChatCost.Breakdown(session);
+        Assert.Equal(1.21m, lines[^1].Cost.Usd);
+        Assert.Equal(1.21m, lines.Take(lines.Count - 1).Sum(line => line.Cost.Usd));
+    }
+
+    [Fact]
+    public void The_chat_total_is_saved_with_the_chat()
+    {
+        var session = Chat();
+        _ = ChatCost.Total(session);
+        session.Messages.RemoveAt(2);
+        _ = ChatCost.Total(session);
+
+        var restored = System.Text.Json.JsonSerializer.Deserialize<ChatSession>(
+            System.Text.Json.JsonSerializer.Serialize(session, AppJson.Options), AppJson.Options)!;
+
+        Assert.Equal(0.91m, restored.SpentUsd);
+        Assert.Equal(0.91m, ChatCost.Total(restored));
+    }
+
+    [Fact]
+    public void A_chat_saved_before_the_counter_starts_from_its_messages()
+    {
+        var old = new ChatSession { Id = "old" };
+        old.Messages.Add(new ChatDisplayMessage { Id = "a", Role = "assistant", Cost = Usd(0.4m) });
+
+        Assert.Equal(0m, old.SpentUsd);
+        Assert.Equal(0.4m, ChatCost.Total(old));
+    }
+
+    [Fact]
     public void The_breakdown_adds_up_to_the_total_and_names_what_it_cannot_split()
     {
         var lines = ChatCost.Breakdown(Chat());

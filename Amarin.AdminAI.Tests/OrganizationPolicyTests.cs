@@ -148,6 +148,19 @@ public sealed class OrganizationPolicyTests : IDisposable
     }
 
     [Fact]
+    public void A_chat_override_cannot_bypass_the_computer_policy()
+    {
+        var settings = new AppSettings { ComputerControl = true, AgentBrowser = true };
+        var chat = new ChatSession { ComputerControlOverride = true, AgentBrowserOverride = false };
+
+        OrganizationPolicy.Current = new OrganizationPolicy { DisableComputerControl = true };
+        var access = chat.Access(settings);
+
+        Assert.False(access.CanControlComputer);
+        Assert.False(access.CanUseAgentBrowser);
+    }
+
+    [Fact]
     public async Task A_blocked_provider_gets_no_request_at_all()
     {
         OrganizationPolicy.Current = new OrganizationPolicy { AllowedProviders = ["anthropic"] };
@@ -195,6 +208,28 @@ public sealed class OrganizationPolicyTests : IDisposable
 
         OrganizationPolicy.Current = new OrganizationPolicy { AllowedProviders = ["venice", "openRouter"] };
         Assert.Equal(["grok-4-6", "openrouter:openai/gpt-5"], VeniceModelCatalog.ForSlot(models, ModelSlot.Chat).Select(model => model.Id));
+    }
+
+    [Fact]
+    public void An_exact_openrouter_route_can_be_selected_without_allowing_the_base_model()
+    {
+        const string baseId = "openrouter:minimax/minimax-m3.1-flash";
+        var routeId = baseId + ModelRef.NitroVariant;
+        IReadOnlyList<VeniceModelInfo> models = [new() { Id = baseId }];
+        OrganizationPolicy.Current = new OrganizationPolicy { AllowedModels = [routeId] };
+
+        var visible = VeniceModelCatalog.ForSlot(models, ModelSlot.Chat, includeRoutingSources: true);
+        Assert.Same(models[0], Assert.Single(visible));
+        Assert.Empty(VeniceModelCatalog.ForSlot(models, ModelSlot.Chat));
+        Assert.False(OrganizationPolicy.Current.AllowsModel(baseId));
+        Assert.True(VeniceModelCatalog.IsSelectable(visible, routeId));
+        Assert.False(VeniceModelCatalog.IsSelectable(visible, baseId + ModelRef.FloorVariant));
+        Assert.Equal(routeId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.AgentFast, models));
+        Assert.Equal(routeId, ModelSlotDefaults.Resolve(LlmProvider.OpenRouter, ModelSlot.Chat, models));
+
+        var settings = new AppSettings { ChatModelId = routeId };
+        ModelSlotHealing.Heal(settings, LlmProvider.OpenRouter, models, LlmProvider.OpenRouter, _ => true, _ => true);
+        Assert.Equal(routeId, settings.ChatModelId);
     }
 
     [Fact]
