@@ -86,7 +86,7 @@ public sealed partial class VeniceClient
 
     private static string? PolzaEffort(ReasoningChoice choice, VeniceModelInfo? info, bool withTools) =>
         ReasoningPolicy.ClampEffort(choice.Effort, info, withTools) ??
-        (ReasoningPolicy.EffortRank(choice.Effort) < 6 ? choice.Effort?.Trim().ToLowerInvariant() : null);
+        (ReasoningPolicy.EffortRank(choice.Effort) < ReasoningPolicy.EffortRank(null) ? choice.Effort?.Trim().ToLowerInvariant() : null);
 
     /// <summary>Метаданные важнее имени; без них новые Claude используют адаптивный синтаксис.</summary>
     private static bool PolzaAdaptiveThinking(string model, VeniceModelInfo? info)

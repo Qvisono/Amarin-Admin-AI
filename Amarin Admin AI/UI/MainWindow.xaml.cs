@@ -1476,7 +1476,7 @@ namespace Amarin.UI
 
             if (Belongs(_session.SelectedModelId, provider) &&
                 (!VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId) ||
-                 VeniceModelCatalog.IsDecisionModel(ReasoningPolicy.Find(models, _session.SelectedModelId))))
+                 VeniceModelCatalog.IsDecisionModel(VeniceModelCatalog.Find(models, _session.SelectedModelId))))
             {
                 // Пустая строка — «бери из настроек», а не «нет модели».
                 _session.SelectedModelId = "";

@@ -882,7 +882,7 @@ public partial class ModelPickerPanel : UserControl
     }
 
     private VeniceModelInfo? ChoiceModel() => _markedRow?.Model ??
-        ReasoningPolicy.Find(State(_shown).Models, ModelRef.WithoutOpenRouterRouting(_selected.ModelId));
+        VeniceModelCatalog.Find(State(_shown).Models, ModelRef.WithoutOpenRouterRouting(_selected.ModelId));
 
     private void RefreshChoiceLabels(ReasoningChoice choice, VeniceModelInfo? model)
     {

@@ -47,6 +47,9 @@ namespace Amarin.UI
         /// <summary>Страницу создаёт прогрев: заполнение уходит в следующую порцию, а не в эту же.</summary>
         private bool _prewarmCreating;
 
+        /// <summary>Прогрев ждёт, пока закроют лист «Что нового».</summary>
+        private bool _prewarmHeld;
+
         /// <summary>
         /// Тяжёлое содержимое подстраниц (карточки тем, строки сочетаний): своими порциями прогрева или
         /// при первом заходе на подстраницу — что раньше. Со страницей одной порцией оно держало
@@ -163,6 +166,14 @@ namespace Amarin.UI
                 return;
             }
 
+            // Порция прогрева бывает дольше кадра, а сцена «Что нового» идёт по часам: на запуске
+            // её появление шло рывками. Прогрев продолжает закрытие листа (ResumeSettingsPrewarm).
+            if (WhatsNewHost.Visibility == Visibility.Visible)
+            {
+                _prewarmHeld = true;
+                return;
+            }
+
             using var timer = PerfLog.Measure("settings_prewarm_step");
             if (_settingsView is null)
             {
@@ -201,6 +212,16 @@ namespace Amarin.UI
 
             if (more || _staleSettingsPages.Count > 0 || _settingsDeferred.Count > 0)
             {
+                ScheduleSettingsPrewarm();
+            }
+        }
+
+        /// <summary>Лист «Что нового» закрыт: прогрев, который он придержал, идёт дальше.</summary>
+        private void ResumeSettingsPrewarm()
+        {
+            if (_prewarmHeld)
+            {
+                _prewarmHeld = false;
                 ScheduleSettingsPrewarm();
             }
         }

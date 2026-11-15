@@ -46,7 +46,7 @@ internal static class ModelSlotHealing
             }
 
             var wrongType = slot is not (ModelSlot.Router or ModelSlot.SynGuard) &&
-                            VeniceModelCatalog.IsDecisionModel(ReasoningPolicy.Find(models, current));
+                            VeniceModelCatalog.IsDecisionModel(VeniceModelCatalog.Find(models, current));
             var selectable = ModelRef.OpenRouterRouting(current).Length == 0
                 ? VeniceModelCatalog.IsSelectable(available, current)
                 : VeniceModelCatalog.IsSelectable(models, current);

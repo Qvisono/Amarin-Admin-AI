@@ -77,9 +77,6 @@ internal static class ReasoningPolicy
         @"gpt-5[.-]?[456](?:$|[^0-9])|gpt-6(?:$|[^0-9])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    public static VeniceModelInfo? Find(IEnumerable<VeniceModelInfo>? models, string? id) =>
-        VeniceModelCatalog.Find(models, id);
-
     public static bool SupportsEffort(VeniceModelInfo? model)
     {
         var caps = model?.ModelSpec?.Capabilities;
@@ -387,35 +384,6 @@ internal static class ReasoningPolicy
             "max" => "Max",
             _ => char.ToUpperInvariant(effort.Trim()[0]) + effort.Trim()[1..].ToLowerInvariant()
         };
-    }
-
-    public static string ButtonText(
-        ReasoningChoice choice,
-        VeniceModelInfo? model,
-        bool autoMode,
-        bool withTools = false)
-    {
-        choice = Effective(choice, model, withTools);
-        if (choice.DisableThinking)
-        {
-            return Loc.Get("S.Reasoning.Off");
-        }
-
-        // «Авто» своим словом, а не общим «Обычное»: уровень здесь берётся от лёгкой и тяжёлой
-        // модели и заранее не известен, так что называть его конкретной ступенью — врать.
-        if (autoMode)
-        {
-            return Loc.Get("S.Reasoning.Auto");
-        }
-
-        var options = VisibleEffortOptions(model, withTools);
-        if (options.Count == 0)
-        {
-            return Loc.Get("S.Reasoning.On");
-        }
-
-        var effort = ClampEffort(choice.Effort, model, withTools);
-        return string.IsNullOrWhiteSpace(effort) ? Loc.Get("S.Reasoning.On") : EffortLabel(effort);
     }
 
     public static bool FamilyBlocksEffortWithTools(string? modelId)

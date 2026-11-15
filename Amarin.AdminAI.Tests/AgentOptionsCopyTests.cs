@@ -88,7 +88,7 @@ public sealed class AgentOptionsCopyTests
         using var http = Http();
         var summaries = new ChatSummaryGenerator(http, Options(seen), () => new AppSettings());
 
-        await summaries.CompactAsync("человек: привет\nассистент: здравствуйте");
+        await summaries.CompactAsync(["человек: привет\nассистент: здравствуйте"], null, null, null);
 
         Assert.Equal([4.20m], seen);
     }

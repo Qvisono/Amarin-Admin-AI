@@ -1159,109 +1159,109 @@ internal sealed partial class ChatEngine
 
         try
         {
-        for (var round = 1; round <= _options.MaxToolRounds; round++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+            for (var round = 1; round <= _options.MaxToolRounds; round++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var streamed = await StreamWithRetryAsync(
+                var streamed = await StreamWithRetryAsync(
+                        messages,
+                        tools,
+                        "auto",
+                        assistant,
+                        observer,
+                        clock,
+                        turn,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                // Отказ — вызовом i_refuse: ответ выбрасывается целиком, ещё до записи в историю, и
+                // задачу берёт модель сильнее. Выше никого — человек получает отказ этой модели.
+                if (Refusals.TryFind(streamed.ToolCalls, out var reasons))
+                {
+                    if (ClimbAfterRefusal(assistant, observer, turn))
+                    {
+                        // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
+                        messages = BuildApiMessages(session, turn.ModelId, instructions);
+                        continue;
+                    }
+
+                    FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
+                    return NotifyCompleted();
+                }
+
+                if (streamed.ToolCalls.Count == 0)
+                {
+                    FinishAssistant(session, assistant, clock, streamed, turn);
+                    return NotifyCompleted();
+                }
+
+                var apiAssistant = new ChatMessage
+                {
+                    Role = "assistant",
+                    Content = string.IsNullOrWhiteSpace(streamed.Text)
+                        ? null
+                        : ChatContent.Text(streamed.Text),
+                    ToolCalls = streamed.ToolCalls,
+
+                    // Размышление Anthropic с подписью: следующий запрос раунда обязан вернуть его
+                    // как есть, иначе модель продолжит с вызовами, но без хода своих мыслей.
+                    ReplayBlocks = streamed.ReplayBlocks
+                };
+                var stored = ChatMessageCloner.CloneForStorage(apiAssistant);
+                messages.Add(stored);
+                session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
+
+                var toolRound = CreateRound(streamed.ToolCalls);
+
+                // Модель часто что-то говорит перед вызовом инструмента. Этот текст лежит в
+                // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
+                // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
+                toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
+
+                // Новым списком: лента в это время может перебирать прежний (см. AgentUiAdapter.StartRound).
+                assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
+                observer.OnToolsChanged(assistant);
+
+                // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
+                // пока раунд идёт, его ещё можно исполнить — остановить агента или пересадить его.
+                var early = new List<string>();
+                using var watch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
+                try
+                {
+                    await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    await watch.CancelAsync().ConfigureAwait(false);
+                    await watcher.ConfigureAwait(false);
+                    pending.AddRange(early);
+                }
+
+                toolRound.InfoLine = EngineLines.ToolsDone;
+                observer.OnToolsChanged(assistant);
+                while (observer.TryTakeQueuedMessage(out var queued))
+                {
+                    pending.Add(queued);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var synthesis = await StreamWithRetryAsync(
                     messages,
-                    tools,
-                    "auto",
+                    tools: null,
+                    toolChoice: "none",
                     assistant,
                     observer,
                     clock,
                     turn,
                     cancellationToken)
                 .ConfigureAwait(false);
-
-            // Отказ — вызовом i_refuse: ответ выбрасывается целиком, ещё до записи в историю, и
-            // задачу берёт модель сильнее. Выше никого — человек получает отказ этой модели.
-            if (Refusals.TryFind(streamed.ToolCalls, out var reasons))
-            {
-                if (ClimbAfterRefusal(assistant, observer, turn))
-                {
-                    // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
-                    messages = BuildApiMessages(session, turn.ModelId, instructions);
-                    continue;
-                }
-
-                FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
-                return NotifyCompleted();
-            }
-
-            if (streamed.ToolCalls.Count == 0)
-            {
-                FinishAssistant(session, assistant, clock, streamed, turn);
-                return NotifyCompleted();
-            }
-
-            var apiAssistant = new ChatMessage
-            {
-                Role = "assistant",
-                Content = string.IsNullOrWhiteSpace(streamed.Text)
-                    ? null
-                    : ChatContent.Text(streamed.Text),
-                ToolCalls = streamed.ToolCalls,
-
-                // Размышление Anthropic с подписью: следующий запрос раунда обязан вернуть его
-                // как есть, иначе модель продолжит с вызовами, но без хода своих мыслей.
-                ReplayBlocks = streamed.ReplayBlocks
-            };
-            var stored = ChatMessageCloner.CloneForStorage(apiAssistant);
-            messages.Add(stored);
-            session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
-
-            var toolRound = CreateRound(streamed.ToolCalls);
-
-            // Модель часто что-то говорит перед вызовом инструмента. Этот текст лежит в
-            // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
-            // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
-            toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
-
-            // Новым списком: лента в это время может перебирать прежний (см. AgentUiAdapter.StartRound).
-            assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
-            observer.OnToolsChanged(assistant);
-
-            // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
-            // пока раунд идёт, его ещё можно исполнить — остановить агента или пересадить его.
-            var early = new List<string>();
-            using var watch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
-            try
-            {
-                await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
-                    .ConfigureAwait(false);
-            }
-            finally
-            {
-                await watch.CancelAsync().ConfigureAwait(false);
-                await watcher.ConfigureAwait(false);
-                pending.AddRange(early);
-            }
-
-            toolRound.InfoLine = EngineLines.ToolsDone;
-            observer.OnToolsChanged(assistant);
-            while (observer.TryTakeQueuedMessage(out var queued))
-            {
-                pending.Add(queued);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        var synthesis = await StreamWithRetryAsync(
-                messages,
-                tools: null,
-                toolChoice: "none",
-                assistant,
-                observer,
-                clock,
-                turn,
-                cancellationToken)
-            .ConfigureAwait(false);
-        FinishAssistant(session, assistant, clock, synthesis, turn);
-        return NotifyCompleted();
+            FinishAssistant(session, assistant, clock, synthesis, turn);
+            return NotifyCompleted();
         }
         finally
         {

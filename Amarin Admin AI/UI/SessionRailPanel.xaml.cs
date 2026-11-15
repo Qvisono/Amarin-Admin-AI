@@ -93,14 +93,7 @@ public enum SessionRailContextCategory
 public sealed record SessionRailAgent(string Id, string Name, string ModelId, bool IsWorking, bool IsSuccessful = true);
 
 /// <summary>Файл, создание или изменение которого подтвердил структурированный результат инструмента.</summary>
-public sealed record SessionRailFile(string Path, SessionRailFileChange Change);
-
-/// <summary>Вид подтверждённого изменения файла.</summary>
-public enum SessionRailFileChange
-{
-    Created,
-    Modified
-}
+public sealed record SessionRailFile(string Path);
 
 /// <summary>Локальные переключатели, принадлежащие одному чату.</summary>
 public sealed record SessionRailSettings(
@@ -123,12 +116,13 @@ public sealed class SessionRailSettingsChangedEventArgs(SessionRailSettings sett
 /// </summary>
 public partial class SessionRailPanel : UserControl
 {
-    internal const double MinWindowWidth = 1120;
-
     private bool _applying;
     private SessionRailSettings _settings = new(false, false);
     private SessionRailSnapshot _snapshot = SessionRailSnapshot.Empty;
     private int _keep = CompactionOptions.DefaultKeep;
+    private List<SessionRailFile> _shownFiles = [];
+    private List<SessionRailAgent> _shownAgents = [];
+    private ThemePresetInfo? _shownAgentsTheme;
 
     public SessionRailPanel()
     {
@@ -158,7 +152,6 @@ public partial class SessionRailPanel : UserControl
     /// <summary>Локальные настройки изменены человеком и должны быть сохранены владельцем чата.</summary>
     public event EventHandler<SessionRailSettingsChangedEventArgs>? SettingsChanged;
 
-    internal static bool FitsWindow(double width) => width >= MinWindowWidth;
 
     /// <summary>
     /// Показывает снимок текущего чата. Этот метод вызывается на потоке WPF после смены чата,
@@ -267,13 +260,19 @@ public partial class SessionRailPanel : UserControl
 
     private void ShowFiles(IReadOnlyList<SessionRailFile> files)
     {
-        FilesItems.Children.Clear();
         var known = files
             .Where(file => !string.IsNullOrWhiteSpace(file.Path))
             .GroupBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.Last())
             .ToList();
         FilesCount.Text = known.Count.ToString(CultureInfo.CurrentCulture);
+        if (known.SequenceEqual(_shownFiles))
+        {
+            return;
+        }
+
+        _shownFiles = known;
+        FilesItems.Children.Clear();
 
         foreach (var file in known)
         {
@@ -286,7 +285,6 @@ public partial class SessionRailPanel : UserControl
         var row = new Grid();
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var icon = new System.Windows.Shapes.Path
         {
             Data = Geometry.Parse("M3.5,1.5 H9 L12.5,5 V14.5 H3.5 Z M9,1.5 V5 H12.5"),
@@ -304,13 +302,25 @@ public partial class SessionRailPanel : UserControl
 
     private void ShowAgents(IReadOnlyList<SessionRailAgent> agents)
     {
-        AgentItems.Children.Clear();
         var known = agents
             .Where(agent => !string.IsNullOrWhiteSpace(agent.Id) && !string.IsNullOrWhiteSpace(agent.Name))
             .GroupBy(agent => agent.Id, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.Last())
             .ToList();
+
         AgentsCount.Text = known.Count.ToString(CultureInfo.CurrentCulture);
+
+        // Панель обновляется на каждое событие инструментов: пересборка тех же строк перезапускала
+        // бы знак работающего агента с начала круга. Логотип модели зависит от темы.
+        var theme = ThemeManager.Current;
+        if (known.SequenceEqual(_shownAgents) && theme == _shownAgentsTheme)
+        {
+            return;
+        }
+
+        _shownAgents = known;
+        _shownAgentsTheme = theme;
+        AgentItems.Children.Clear();
 
         foreach (var agent in known)
         {

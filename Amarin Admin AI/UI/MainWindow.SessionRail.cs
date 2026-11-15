@@ -143,7 +143,7 @@ public partial class MainWindow
 
             if (call.Name is not "create_folder")
             {
-                files.AddRange(call.SavedFiles.Select(file => new SessionRailFile(file.Path, SessionRailFileChange.Modified)));
+                files.AddRange(call.SavedFiles.Select(file => new SessionRailFile(file.Path)));
             }
 
             if (call.Name is not ("write_file" or "edit_file" or "edit_document" or "create_document" or "save_image"))
@@ -165,7 +165,7 @@ public partial class MainWindow
                     path.GetString() is { Length: > 0 } value && !FileToolPaths.IsAttachmentHandle(value) &&
                     FileToolPaths.TryResolve(value, out var resolved, out _))
                 {
-                    files.Add(new SessionRailFile(resolved, SessionRailFileChange.Modified));
+                    files.Add(new SessionRailFile(resolved));
                 }
             }
             catch (JsonException)

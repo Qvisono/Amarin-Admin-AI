@@ -63,14 +63,9 @@ internal sealed class ChatSummaryGenerator
 
     /// <summary>
     /// Пересказ старой части переписки для сжатия контекста (D10). Null в тексте — модель
-    /// ничего не вернула: сжатие не применяется.
-    /// </summary>
-    public Task<ChatSummaryDraft> CompactAsync(string transcript, CancellationToken cancellationToken = default) =>
-        CompactAsync([transcript], null, null, null, cancellationToken);
-
-    /// <summary>
-    /// То же по частям (<see cref="ContextCompaction.Chunks"/>): каждая следующая часть
-    /// пересказывается вместе со сводкой предыдущих, поэтому длинная переписка не теряет начало.
+    /// ничего не вернула: сжатие не применяется. По частям (<see cref="ContextCompaction.Chunks"/>):
+    /// каждая следующая часть пересказывается вместе со сводкой предыдущих, поэтому длинная
+    /// переписка не теряет начало.
     /// </summary>
     /// <param name="modelId">Модель с экрана сжатия; null — модель слота «Сводка».</param>
     /// <param name="keyId">Ключ, выбранный вместе с моделью; null — ключ слота.</param>

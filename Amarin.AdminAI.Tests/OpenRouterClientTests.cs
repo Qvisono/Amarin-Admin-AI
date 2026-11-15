@@ -159,7 +159,7 @@ public sealed class OpenRouterClientTests
             """,
             VeniceJsonContext.Default.OpenRouterModelsResponse)!);
         var (client, _, recorder) = Build((_, _) => Json(Completion()));
-        client.ResolveModelInfo = id => ReasoningPolicy.Find(models, id);
+        client.ResolveModelInfo = id => VeniceModelCatalog.Find(models, id);
 
         await client.CreateChatCompletionAsync(
             "openrouter:aion-labs/aion-3.5-mini",
@@ -200,7 +200,7 @@ public sealed class OpenRouterClientTests
         Assert.Equal(6, models.Count);
         var free = models[1];
         var id = free.Id + suffix;
-        Assert.Same(free, ReasoningPolicy.Find(models, id));
+        Assert.Same(free, VeniceModelCatalog.Find(models, id));
         Assert.True(VeniceModelCatalog.IsSelectable(models, id));
         Assert.All(models.Skip(2), model => Assert.False(VeniceModelCatalog.CanUseOpenRouterRouting(model)));
         Assert.False(VeniceModelCatalog.IsSelectable(models, "openrouter:meta/missing:free" + suffix));
@@ -208,7 +208,7 @@ public sealed class OpenRouterClientTests
         Assert.False(VeniceModelCatalog.IsSelectable(models, models[2].Id + suffix));
 
         var (client, _, recorder) = Build((_, _) => Json(Completion()));
-        client.ResolveModelInfo = requested => ReasoningPolicy.Find(models, requested);
+        client.ResolveModelInfo = requested => VeniceModelCatalog.Find(models, requested);
         await client.CreateChatCompletionAsync(id, [User("привет")], tools: null, toolChoice: null,
             new VeniceParameters(), CancellationToken.None, new ReasoningChoice(false, "xhigh"));
         using var body = JsonDocument.Parse(recorder.Bodies[0]);
@@ -230,7 +230,7 @@ public sealed class OpenRouterClientTests
             """,
             VeniceJsonContext.Default.OpenRouterModelsResponse)!);
         var (client, _, recorder) = Build((_, _) => Json(Completion()));
-        client.ResolveModelInfo = id => ReasoningPolicy.Find(models, id);
+        client.ResolveModelInfo = id => VeniceModelCatalog.Find(models, id);
 
         await client.CreateChatCompletionAsync(
             "openrouter:anthropic/claude-haiku-5.5",
@@ -272,7 +272,6 @@ public sealed class OpenRouterClientTests
         Assert.False(ReasoningPolicy.CanDisable(anthropicOpus));
         Assert.True(ReasoningPolicy.CanDisable(null));
         Assert.Equal(new ReasoningChoice(false, "low"), ReasoningPolicy.Effective(ReasoningChoice.Disabled, models[0], withTools: true));
-        Assert.Equal("Low", ReasoningPolicy.ButtonText(ReasoningChoice.Disabled, models[0], autoMode: false, withTools: true));
         Assert.Equal(ReasoningChoice.Disabled, ReasoningPolicy.Effective(ReasoningChoice.Disabled, null));
     }
 

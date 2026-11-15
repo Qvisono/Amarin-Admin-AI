@@ -1568,19 +1568,13 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">New profile</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>
 
-    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In Auto, reasoning follows the light and heavy model settings on the Models page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning level</system:String>
     <system:String x:Key="S.Speed.Caption" xml:space="preserve">Speed</system:String>
     <system:String x:Key="S.Speed.Flex" xml:space="preserve">Economy</system:String>
     <system:String x:Key="S.Speed.Standard" xml:space="preserve">Standard</system:String>
     <system:String x:Key="S.Speed.Fast" xml:space="preserve">Fast</system:String>
     <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Ultrafast</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Reasoning</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
     <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Run the recipe "{0}": call the tool {1} with the arguments&#10;{2}&#10;If the call fails, find out why and suggest what to do.</system:String>
     <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">{{name}} in a value becomes a parameter asked at launch.</system:String>

@@ -674,16 +674,6 @@
       "sha256": "722f74b289d95486b43662fe24fa883b333701296f618406cd0ed502299170b6"
     },
     {
-      "key": "Qwen",
-      "file": "assets/Qwen.svg",
-      "kind": "svg",
-      "monochrome": false,
-      "sourceUrl": "https://raw.githubusercontent.com/lobehub/lobe-icons/ea434b96e75813517b377825e01c0df61dee8836/packages/static-svg/icons/qwen-color.svg",
-      "license": "MIT (LobeHub)",
-      "source": "Lobe Icons",
-      "sha256": "a158a0e3ed5b541e4f91384ece02c3acf0a0d81b7b11a46d77bafb248b09e32c"
-    },
-    {
       "key": "Alibaba",
       "file": "assets/Alibaba.svg",
       "kind": "svg",

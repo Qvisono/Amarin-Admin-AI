@@ -1568,19 +1568,13 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">Новый профиль</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
 
-    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся из настроек лёгкой и тяжёлой модели на странице «Модели»</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Уровень размышления</system:String>
     <system:String x:Key="S.Speed.Caption" xml:space="preserve">Скорость</system:String>
     <system:String x:Key="S.Speed.Flex" xml:space="preserve">Экономная</system:String>
     <system:String x:Key="S.Speed.Standard" xml:space="preserve">Обычная</system:String>
     <system:String x:Key="S.Speed.Fast" xml:space="preserve">Быстрая</system:String>
     <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Сверхбыстрая</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Размышление</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
-    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
     <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Выполни рецепт «{0}»: вызови инструмент {1} с аргументами&#10;{2}&#10;Если вызов не удастся, выясни причину и предложи, что делать.</system:String>
     <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">{{имя}} в значении становится параметром, его спросят при запуске.</system:String>

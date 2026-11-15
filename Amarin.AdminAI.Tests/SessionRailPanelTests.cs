@@ -16,13 +16,6 @@ public sealed class SessionRailPanelTests
     public SessionRailPanelTests(WpfFixture wpf) => _wpf = wpf;
 
     [Fact]
-    public void The_rail_appears_only_when_the_window_is_wide_enough()
-    {
-        Assert.False(SessionRailPanel.FitsWindow(SessionRailPanel.MinWindowWidth - 1));
-        Assert.True(SessionRailPanel.FitsWindow(SessionRailPanel.MinWindowWidth));
-    }
-
-    [Fact]
     public void The_rail_fits_only_to_the_right_of_both_chat_and_composer()
     {
         Assert.True(MainWindow.RailFits(1600, 1320, 1330, 250, 20));
@@ -106,9 +99,9 @@ public sealed class SessionRailPanelTests
                     new SessionRailAgent("a2", "Review", "zai:glm-5.3-flash", false)
                 ],
                 [
-                    new SessionRailFile(@"C:\work\answer.txt", SessionRailFileChange.Created),
-                    new SessionRailFile(@"C:\work\answer.txt", SessionRailFileChange.Modified),
-                    new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created)
+                    new SessionRailFile(@"C:\work\answer.txt"),
+                    new SessionRailFile(@"C:\work\answer.txt"),
+                    new SessionRailFile(@"C:\work\report.md")
                 ],
                 new SessionRailSettings(true, false),
                 true));
@@ -136,6 +129,33 @@ public sealed class SessionRailPanelTests
             Assert.True(panel.ComputerToggle.IsChecked);
             Assert.False(panel.BrowserToggle.IsChecked);
             Assert.True(panel.CompactButton.IsEnabled);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void The_same_agents_keep_their_rows_so_the_working_sign_does_not_restart()
+    {
+        _wpf.Ui.Invoke(() =>
+        {
+            // Панель обновляется на каждое событие инструментов; агенты при этом чаще всего те же.
+            var panel = new SessionRailPanel();
+            static SessionRailSnapshot Snapshot(bool working) => new(
+                null, [new SessionRailAgent("a1", "agent", "claude-haiku-5-5", working)], [new SessionRailFile(@"C:\work\a.txt")],
+                new(false, false), false);
+
+            panel.ShowSession(Snapshot(working: true));
+            var agentRow = panel.AgentItems.Children[0];
+            var fileRow = panel.FilesItems.Children[0];
+            panel.ShowSession(Snapshot(working: true));
+
+            Assert.Same(agentRow, panel.AgentItems.Children[0]);
+            Assert.Same(fileRow, panel.FilesItems.Children[0]);
+
+            panel.ShowSession(Snapshot(working: false));
+
+            Assert.NotSame(agentRow, panel.AgentItems.Children[0]);
+            Assert.Equal("1", panel.AgentsCount.Text);
             return true;
         });
     }
@@ -298,7 +318,7 @@ public sealed class SessionRailPanelTests
             var opened = new List<string>();
             panel.FileOpenRequested += (_, e) => opened.Add(e.Path);
             panel.ShowSession(new SessionRailSnapshot(
-                null, [], [new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created)], new(false, false), false));
+                null, [], [new SessionRailFile(@"C:\work\report.md")], new(false, false), false));
             Arrange(panel);
 
             Click((Button)panel.FilesItems.Children[0]);
@@ -347,8 +367,8 @@ public sealed class SessionRailPanelTests
                             new SessionRailAgent("a2", "agent", "zai:glm-5.3-flash", false)
                         ],
                         [
-                            new SessionRailFile(@"C:\work\report.md", SessionRailFileChange.Created),
-                            new SessionRailFile(@"C:\work\a-very-long-file-name-for-the-narrow-column.xlsx", SessionRailFileChange.Modified)
+                            new SessionRailFile(@"C:\work\report.md"),
+                            new SessionRailFile(@"C:\work\a-very-long-file-name-for-the-narrow-column.xlsx")
                         ],
                         new SessionRailSettings(true, false),
                         true,

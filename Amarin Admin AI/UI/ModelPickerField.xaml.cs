@@ -188,7 +188,7 @@ public partial class ModelPickerField : UserControl
     private void ShowLabel()
     {
         var catalog = _catalogs.GetValueOrDefault(ModelRef.Of(SelectedModelId)).Models;
-        var model = _reasoning is null ? null : ReasoningPolicy.Find(catalog, SelectedModelId);
+        var model = _reasoning is null ? null : VeniceModelCatalog.Find(catalog, SelectedModelId);
         SelectedLabel.Text = ModelLabel(SelectedModelId, _reasoning, model, _withTools);
 
         var keyLabel = KeyLabel();

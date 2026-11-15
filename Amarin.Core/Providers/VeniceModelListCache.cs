@@ -83,7 +83,7 @@ internal sealed class VeniceModelListCache
     public VeniceModelInfo? Find(string? id)
     {
         var provider = ModelRef.Of(id, Default);
-        if (ReasoningPolicy.Find(CachedFor(provider), id) is { } hit)
+        if (VeniceModelCatalog.Find(CachedFor(provider), id) is { } hit)
         {
             return hit;
         }
@@ -91,7 +91,7 @@ internal sealed class VeniceModelListCache
         foreach (var spec in _keys?.Providers ?? ProviderSpec.All)
         {
             if (spec.Provider != provider &&
-                ReasoningPolicy.Find(CachedFor(spec.Provider), id) is { } other)
+                VeniceModelCatalog.Find(CachedFor(spec.Provider), id) is { } other)
             {
                 return other;
             }

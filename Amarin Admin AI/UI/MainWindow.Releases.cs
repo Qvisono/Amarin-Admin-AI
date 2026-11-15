@@ -260,6 +260,7 @@ namespace Amarin.UI
                     }
 
                     FocusMessageInput();
+                    ResumeSettingsPrewarm();
                 };
                 WhatsNewHost.Children.Add(sheet);
                 _whatsNew = sheet;
