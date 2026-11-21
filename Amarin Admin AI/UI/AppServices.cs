@@ -66,6 +66,7 @@ internal sealed class AppServices : IDisposable
     /// сумму плашка в композере.
     /// </summary>
     public required BalanceBook Balances { get; init; }
+    internal BalanceStore? BalanceCache { get; init; }
 
     public required ProfileStore Profiles { get; init; }
 

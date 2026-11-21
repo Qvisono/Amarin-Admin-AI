@@ -275,6 +275,10 @@ public sealed class ChatDisplayMessage
 
     public string Text { get; set; } = "";
 
+    /// <summary>Пустая строка обозначает исследование, для которого план ещё не готов.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ResearchPlan { get; set; }
+
     /// <summary>
     /// Картинки, приложенные к сообщению. В памяти — base64, на диске <see cref="ChatStore"/>
     /// выносит их в файлы вложений; экспорт и «Поделиться» несут их внутри чата. У ответов

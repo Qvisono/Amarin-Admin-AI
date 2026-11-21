@@ -210,7 +210,8 @@ public sealed class SessionRailPanelTests
             Assert.True(panel.CompactFirstToggle.IsChecked);
             Assert.Equal("grok-4-6", panel.CompactModelField.SelectedModelId);
 
-            // Шкала меряет занятое сейчас (800), а не окно модели: видна освобождаемая доля.
+            // Третья часть шкалы показывает свободный объём полного окна модели.
+            Assert.Equal(200, panel.CompactFreeColumn.Width.Value);
             Assert.Equal(200, panel.CompactKeptColumn.Width.Value);
             Assert.Equal(600, panel.CompactFreedColumn.Width.Value);
             Assert.Equal(
@@ -241,8 +242,51 @@ public sealed class SessionRailPanelTests
             Assert.Equal("grok-4-6", request.ModelId);
             Assert.Equal("keep the paths", request.Instructions);
             Assert.Equal(new SessionRailCompactOptions(9, false), asked[^1]);
-            Assert.Equal(Visibility.Collapsed, panel.CompactView.Visibility);
-            Assert.Equal(Visibility.Visible, panel.CardsPanel.Visibility);
+            Assert.Equal(Visibility.Visible, panel.CompactView.Visibility);
+            Assert.Equal(Visibility.Collapsed, panel.CardsPanel.Visibility);
+            return true;
+        });
+    }
+
+    [Theory]
+    [InlineData(true, 230)]
+    [InlineData(false, 175)]
+    public void Compaction_keeps_the_preview_while_working_then_displays_the_result(bool success, int expectedSolid)
+    {
+        _wpf.Ui.Invoke(() =>
+        {
+            var panel = new SessionRailPanel { Width = 250 };
+            var idle = new SessionRailSnapshot(new SessionRailContext(800, 1000, []), [], [], new(false, false), true,
+                Compaction: new SessionRailCompaction("grok-4-6", null, _ => new SessionRailCompactPreview(200, 6, 16, 625)),
+                SessionId: "s");
+            panel.ShowSession(idle);
+            Arrange(panel);
+            Click(panel.CompactButton);
+            panel.ShowSession(idle with { CanCompact = false, IsCompacting = true });
+
+            Assert.True(panel.IsCompactOpen);
+            Assert.False(panel.CompactRunButton.IsEnabled);
+            Assert.Equal(625, panel.CompactFreedColumn.Width.Value);
+
+            var actual = success ? new SessionRailContext(230, 1000, []) : idle.Context;
+            panel.ShowSession(idle with { Context = actual, IsCompacted = success, CanCompact = !success });
+            var animations = UiMotion.Enabled;
+            try
+            {
+                UiMotion.Enabled = false;
+                panel.CompleteCompaction(success);
+            }
+            finally
+            {
+                UiMotion.Enabled = animations;
+            }
+
+            Assert.Equal(expectedSolid, panel.CompactKeptColumn.Width.Value);
+            Assert.Equal(success ? 0 : 625, panel.CompactFreedColumn.Width.Value);
+            Assert.Equal(Visibility.Collapsed, panel.CompactTransition.Visibility);
+
+            panel.ShowSession(idle with { SessionId = "other" });
+            Assert.False(panel.IsCompactOpen);
             return true;
         });
     }

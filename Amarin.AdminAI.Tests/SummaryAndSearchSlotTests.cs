@@ -309,8 +309,10 @@ public sealed class WebSearchEngineTests
     }
 
     /// <summary>Выбранный движок уезжает в плагин запроса.</summary>
-    [Fact]
-    public async Task The_chosen_engine_reaches_the_request()
+    [Theory]
+    [InlineData("parallel", "turbo")]
+    [InlineData("exa", "deep-reasoning")]
+    public async Task The_chosen_engine_reaches_the_request(string engine, string mode)
     {
         var keys = Keys();
         var recorder = new Recorder();
@@ -318,14 +320,15 @@ public sealed class WebSearchEngineTests
 
         var settings = AppSettings.CreateDefault();
         settings.WebSearchProvider = LlmProvider.OpenRouter;
-        settings.WebSearchEngine = "parallel";
-        settings.WebSearchEngineMode = "turbo";
+        settings.WebSearchEngine = engine;
+        settings.WebSearchEngineMode = mode;
 
         await client.SearchWebAsync("погода", ModelSlots.WebSearch(settings));
 
         var body = Assert.Single(recorder.Bodies);
-        Assert.Contains("\"engine\":\"parallel\"", body, StringComparison.Ordinal);
-        Assert.Contains("\"mode\":\"turbo\"", body, StringComparison.Ordinal);
+        Assert.Contains($"\"engine\":\"{engine}\"", body, StringComparison.Ordinal);
+        Assert.Contains($"\"mode\":\"{mode}\"", body, StringComparison.Ordinal);
+        Assert.Equal(mode, WebSearchEngines.Match(engine, mode).Mode);
     }
 
     /// <summary>

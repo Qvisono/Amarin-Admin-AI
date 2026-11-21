@@ -69,6 +69,7 @@ public static class ProfileDataWiper
                 // Картинка фона с готовыми снимками (background.<отпечаток>.cache.png) и
                 // недописанные «.tmp» от записи тех же файлов.
                 if (name.StartsWith("background.", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith("panorama.", StringComparison.OrdinalIgnoreCase) ||
                     IsLeftoverOf(name))
                 {
                     DeleteFile(dataRoot, name, failed);

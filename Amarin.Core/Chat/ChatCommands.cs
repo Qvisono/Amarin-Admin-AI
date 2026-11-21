@@ -1,7 +1,7 @@
 namespace Amarin.Core;
 
 /// <summary>Команда через «/» из поля ввода, уже разделённая на имя и аргумент.</summary>
-internal readonly record struct ChatCommand(string Name, string Argument, string Complexity);
+internal readonly record struct ChatCommand(string Name, string Argument, string Complexity, bool ExplicitTier = false);
 
 /// <summary>Команда «/» для подсказки и справки (D9): имя, что писать после, что делает.</summary>
 /// <param name="ArgumentKey">Ключ подписи аргумента; null — команда без аргумента.</param>
@@ -17,6 +17,7 @@ internal readonly record struct LocalCommand(string Name, string Argument);
 internal static class ChatCommands
 {
     public const string Agent = "agent";
+    public const string Research = "research";
     public const string Heavy = "heavy";
     public const string Lite = "lite";
     public const string Fast = "fast";
@@ -42,7 +43,8 @@ internal static class ChatCommands
         new(Instruction, "S.Command.Arg.Name", "S.Command.Instr"),
         new(Recipe, "S.Command.Arg.Name", "S.Command.Recipe"),
         new(ReadOnly, null, "S.Command.ReadOnly"),
-        new(Agent, "S.Command.Arg.Task", "S.Command.Agent")
+        new(Agent, "S.Command.Arg.Task", "S.Command.Agent"),
+        new(Research, "S.Command.Arg.Topic", "S.Command.Research")
     ];
 
     /// <summary>
@@ -63,7 +65,7 @@ internal static class ChatCommands
     }
 
     /// <summary>
-    /// Команда окна: имя из <see cref="All"/> (кроме агента — его разбирает <see cref="TryParse"/>)
+    /// Команда окна: имя из <see cref="All"/> (кроме команд хода из <see cref="TryParse"/>)
     /// строго целиком. Всё прочее, начинающееся с «/», — обычный текст для модели.
     /// </summary>
     public static LocalCommand? TryParseLocal(string? input)
@@ -76,7 +78,7 @@ internal static class ChatCommands
 
         var (verb, rest) = SplitFirstWord(text[1..]);
         var known = All.FirstOrDefault(command =>
-            command.Name != Agent && command.Name.Equals(verb, StringComparison.OrdinalIgnoreCase));
+            command.Name is not (Agent or Research) && command.Name.Equals(verb, StringComparison.OrdinalIgnoreCase));
         if (known is null)
         {
             return null;
@@ -129,7 +131,9 @@ internal static class ChatCommands
     public static string PromptBlock() =>
         "The user can type these commands in the input box; the app runs them itself, you never receive them: " +
         string.Join(", ", All.Select(command => "/" + command.Name)) +
-        ". Mention one only when it directly solves what the user asks about.";
+        ". The agent command uses the chat model when agent inheritance is enabled. " +
+        "An explicit fast, light (also lite), or heavy tier uses the configured agent model. " +
+        "Mention a command only when it directly solves what the user asks about.";
 
     /// <summary>
     /// Узнаёт <c>/agent &lt;задача&gt;</c> (по умолчанию тяжёлый уровень), а также <c>/agent lite …</c>,
@@ -148,40 +152,33 @@ internal static class ChatCommands
         var verb = (space < 0 ? text[1..] : text[1..space]).Trim();
         var rest = (space < 0 ? "" : text[(space + 1)..]).Trim();
 
-        var complexity = Heavy;
-        if (verb.Equals($"{Agent}-{Lite}", StringComparison.OrdinalIgnoreCase))
+        if (verb.Equals(Research, StringComparison.OrdinalIgnoreCase))
         {
-            complexity = Lite;
-        }
-        else if (verb.Equals($"{Agent}-{Fast}", StringComparison.OrdinalIgnoreCase))
-        {
-            complexity = Fast;
-        }
-        else if (verb.Equals($"{Agent}-{Heavy}", StringComparison.OrdinalIgnoreCase))
-        {
-            complexity = Heavy;
-        }
-        else if (verb.Equals(Agent, StringComparison.OrdinalIgnoreCase))
-        {
-            // «/agent lite сделай»: уточнение — уточнение, только если за ним есть задача, иначе
-            // «lite» и есть задача.
-            var (word, tail) = SplitFirstWord(rest);
-            if (tail.Length > 0 &&
-                (word.Equals(Lite, StringComparison.OrdinalIgnoreCase) ||
-                 word.Equals(Fast, StringComparison.OrdinalIgnoreCase) ||
-                 word.Equals(Heavy, StringComparison.OrdinalIgnoreCase)))
-            {
-                complexity = word.ToLowerInvariant();
-                rest = tail;
-            }
-        }
-        else
-        {
-            return null;
+            return new ChatCommand(Research, rest, "");
         }
 
-        return rest.Length == 0 ? null : new ChatCommand(Agent, rest, complexity);
+        if (verb.Equals(Agent, StringComparison.OrdinalIgnoreCase))
+        {
+            var (word, tail) = SplitFirstWord(rest);
+            var tier = tail.Length > 0 ? AgentTier(word) : null;
+            return rest.Length == 0
+                ? null
+                : new ChatCommand(Agent, tier is null ? rest : tail, tier ?? Heavy, tier is not null);
+        }
+
+        return verb.StartsWith(Agent + "-", StringComparison.OrdinalIgnoreCase) &&
+               AgentTier(verb[(Agent.Length + 1)..]) is { } explicitTier && rest.Length > 0
+            ? new ChatCommand(Agent, rest, explicitTier, ExplicitTier: true)
+            : null;
     }
+
+    private static string? AgentTier(string value) => value.ToLowerInvariant() switch
+    {
+        Lite or "light" => Lite,
+        Fast => Fast,
+        Heavy => Heavy,
+        _ => null
+    };
 
     private static (string Word, string Tail) SplitFirstWord(string text)
     {

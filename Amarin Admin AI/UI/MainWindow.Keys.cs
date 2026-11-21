@@ -59,7 +59,7 @@ namespace Amarin.UI
         {
             // Ключи сменились — сумма считается по новому списку, а у новых ключей цифру
             // ещё предстоит спросить.
-            _balance?.Refresh();
+            RefreshBalanceWatch();
             Detached.Run(RefreshStaleBalancesAsync(), "balances");
             _services?.Models.Invalidate(provider);
 
@@ -90,7 +90,7 @@ namespace Amarin.UI
         {
             // Остаток больше не принадлежит выбранному ключу: плашка складывает все. Стирать
             // нечего — достаточно пересчитать сумму по новому списку.
-            _balance?.Refresh();
+            RefreshBalanceWatch();
             PushKeysToPickers();
         }
 

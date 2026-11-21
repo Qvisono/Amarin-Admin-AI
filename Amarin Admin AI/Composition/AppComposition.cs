@@ -212,6 +212,7 @@ internal static class AppComposition
             Profile = scope,
             SpendGuard = spendGuard,
             Balances = balances,
+            BalanceCache = new BalanceStore(),
             Profiles = profile.Store,
             ProfileRegistry = profile.Registry,
             Http = http,
@@ -224,7 +225,8 @@ internal static class AppComposition
             Chat = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations)
             {
                 Files = fileState,
-                AgentBook = agentMemory
+                AgentBook = agentMemory,
+                McpTools = mcp.Tools
             },
             AgentBook = agentMemory,
             Titles = new ChatTitleGenerator(http, options, ReadSettings),

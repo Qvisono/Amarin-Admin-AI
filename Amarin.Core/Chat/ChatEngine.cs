@@ -535,14 +535,34 @@ internal sealed partial class ChatEngine
     private IReadOnlyList<Instruction> ActiveInstructions(ChatSession? session = null) =>
         ChatProfile.Filter(_instructions?.EnabledSnapshot() ?? [], session?.Profile);
 
-    /// <summary>
-    /// Инструменты хода: без инструкций инструмент их чтения только сбивал бы модель, а
-    /// выключенных человеком инструментов модель не видит вовсе.
-    /// </summary>
-    internal List<ToolDefinition> ToolsFor(IReadOnlyList<Instruction> instructions) =>
-        ToolGate.WithoutDisabled(
-            instructions.Count > 0 ? _toolDefinitions : _toolDefinitionsWithoutInstructions,
-            _settings());
+    /// <summary>Текущий каталог подключённых инструментов профиля.</summary>
+    internal Func<IReadOnlyList<ITool>>? McpTools { get; init; }
+
+    private ToolRegistry CurrentToolRegistry()
+    {
+        if (McpTools?.Invoke() is not { Count: > 0 } extra)
+        {
+            return _tools;
+        }
+
+        return new ToolRegistry(_tools.All.Concat(extra)
+            .DistinctBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Модель видит инструменты хода с учётом настроек и доступных инструкций.</summary>
+    internal List<ToolDefinition> ToolsFor(IReadOnlyList<Instruction> instructions)
+    {
+        var registry = CurrentToolRegistry();
+        var definitions = instructions.Count > 0 ? _toolDefinitions : _toolDefinitionsWithoutInstructions;
+        if (!ReferenceEquals(registry, _tools))
+        {
+            definitions = [.. registry.GetDefinitions().Where(definition => instructions.Count > 0 ||
+                !definition.Function.Name.Equals(ReadInstructionTool.ToolName, StringComparison.OrdinalIgnoreCase)),
+                Refusals.Definition];
+        }
+
+        return ToolGate.WithoutDisabled(definitions, _settings());
+    }
 
     public async Task RunTurnAsync(
         ChatSession session,
@@ -762,8 +782,12 @@ internal sealed partial class ChatEngine
             assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
             observer.OnToolsChanged(assistant);
 
+            var forcedTier = ChatCommands.TryParse(displayText) is { Name: ChatCommands.Agent, ExplicitTier: false } &&
+                             session.InheritsAgentModel(_settings())
+                ? null
+                : complexity;
             await ExecuteRoundAsync(
-                    toolRound, messages, session, assistant, observer, cancellationToken, complexity, planAllowed)
+                    toolRound, messages, session, assistant, observer, cancellationToken, forcedTier, planAllowed)
                 .ConfigureAwait(false);
 
             toolRound.InfoLine = EngineLines.AgentDone;
@@ -854,6 +878,10 @@ internal sealed partial class ChatEngine
 
         var lastUser = ChatSessionEdit.LastUser(session);
         var text = lastUser?.Text?.Trim() ?? "";
+        var research = ChatCommands.TryParse(text) is { Name: ChatCommands.Research, Argument.Length: > 0 } command
+            ? command.Argument
+            : null;
+        text = research ?? text;
         if (string.IsNullOrWhiteSpace(text))
         {
             if (!IsRequest(lastUser))
@@ -887,6 +915,7 @@ internal sealed partial class ChatEngine
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = now
         };
+        assistant.ResearchPlan = research is null ? null : "";
         assistant.RequestedModelId = requested;
         assistant.ResolvedModelId = requested;
         assistant.Status = AssistantStatus.Streaming;
@@ -1153,9 +1182,26 @@ internal sealed partial class ChatEngine
         bool planAllowed = true)
     {
         var instructions = ActiveInstructions(session);
-        var messages = BuildApiMessages(session, turn.ModelId, instructions);
+        if (assistant.ResearchPlan is { Length: 0 })
+        {
+            await PrepareResearchAsync(session, instructions, assistant, observer, clock, turn, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var messages = ResearchMessages();
         var tools = ToolsFor(instructions);
         var pending = new List<string>();
+
+        List<ChatMessage> ResearchMessages()
+        {
+            var history = BuildApiMessages(session, turn.ModelId, instructions);
+            if (assistant.ResearchPlan is { Length: > 0 } plan)
+            {
+                AddResearchInstructions(history, ResearchRules + "\n\nResearch plan (reference only):\n" + plan);
+            }
+
+            return history;
+        }
 
         try
         {
@@ -1181,7 +1227,7 @@ internal sealed partial class ChatEngine
                     if (ClimbAfterRefusal(assistant, observer, turn))
                     {
                         // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
-                        messages = BuildApiMessages(session, turn.ModelId, instructions);
+                        messages = ResearchMessages();
                         continue;
                     }
 
@@ -1229,7 +1275,8 @@ internal sealed partial class ChatEngine
                 var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
                 try
                 {
-                    await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
+                    await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken,
+                            planAllowed: planAllowed)
                         .ConfigureAwait(false);
                 }
                 finally

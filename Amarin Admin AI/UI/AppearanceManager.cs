@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Amarin.Core;
 
@@ -66,11 +68,14 @@ internal sealed class AppearanceManager : IDisposable
     /// </summary>
     private readonly Rectangle _photo = new() { Opacity = 0, Visibility = Visibility.Collapsed };
     private readonly Rectangle _brightness = new();
+    private PanoramaBackdrop? _panorama;
+    private (string Path, double Saturation, double Blur)? _panoramaImage;
     private readonly Rectangle _frost = new();
     private readonly Rectangle _sheen = new();
     private readonly Rectangle _vignette = new();
 
     private AppearanceSettings _settings = new();
+    private BackdropMode _backdropMode;
     private Storyboard? _motion;
     private int _imageGeneration;
     private bool _disposed;
@@ -92,10 +97,15 @@ internal sealed class AppearanceManager : IDisposable
         ThemeManager.EffectiveThemeChanged += OnThemeChanged;
         _window.StateChanged += OnPowerRelevantChange;
         _window.IsVisibleChanged += OnVisibilityChanged;
+        _window.MouseEnter += OnBackdropMouseMove;
+        _window.PreviewMouseMove += OnBackdropMouseMove;
+        _window.MouseLeave += OnBackdropMouseLeave;
     }
 
     /// <summary>Рисуется ли фон на самом деле — с учётом общего выключателя и проверки картинки.</summary>
-    public bool BackdropActive { get; private set; }
+    public bool BackdropActive => _backdropMode != BackdropMode.None;
+
+    private bool WindowCanRender => _window.IsVisible && _window.WindowState != WindowState.Minimized;
 
     /// <summary>
     /// Папка профиля, куда скопирована картинка фона. В настройках — голое имя файла, чтобы
@@ -143,15 +153,21 @@ internal sealed class AppearanceManager : IDisposable
         using var timer = PerfLog.Measure("appearance_apply");
 
         var mode = settings.Enabled ? settings.BackdropMode : BackdropMode.None;
-        if (mode == BackdropMode.Image && string.IsNullOrWhiteSpace(settings.BackgroundImagePath))
+        if (mode == BackdropMode.Image && string.IsNullOrWhiteSpace(ImagePath()))
         {
             mode = BackdropMode.Gradient;
         }
 
-        BackdropActive = mode != BackdropMode.None;
+        _backdropMode = mode;
         _host.Visibility = BackdropActive ? Visibility.Visible : Visibility.Collapsed;
 
         StopMotion();
+        if (!BackdropActive)
+        {
+            _imageGeneration++;
+            HidePanorama();
+        }
+
         if (BackdropActive)
         {
             PaintBackdrop(mode);
@@ -170,7 +186,14 @@ internal sealed class AppearanceManager : IDisposable
     /// выводятся из неё, а не только из настроек оформления.
     /// </summary>
     private string BuildKey() =>
-        ThemeManager.Current.PaletteName + "|" + JsonSerializer.Serialize(_settings, AppJson.Options);
+        ThemeManager.Current.PaletteName + "|" + DataRoot + "|" + JsonSerializer.Serialize(_settings, AppJson.Options);
+
+    public void InvalidateImages()
+    {
+        _appliedKey = null;
+        _imageGeneration++;
+        HidePanorama();
+    }
 
     // ───────────────────────── фон ─────────────────────────
 
@@ -184,8 +207,14 @@ internal sealed class AppearanceManager : IDisposable
             ? new SolidColorBrush(window.Color)
             : Brushes.Black;
 
-        if (mode == BackdropMode.Image)
+        if (mode == BackdropMode.Image && _settings.UsePanorama)
         {
+            _base.Fill = BuildGradientBrush();
+            ShowPanorama();
+        }
+        else if (mode == BackdropMode.Image)
+        {
+            HidePanorama();
             _base.Fill = BuildImageBrush();
         }
         else
@@ -193,6 +222,7 @@ internal sealed class AppearanceManager : IDisposable
             // Слой проявления снимаем и здесь: ушли с картинки на градиент — доехавшее фото
             // не должно остаться висеть поверх него.
             _imageGeneration++;
+            HidePanorama();
             HidePhotoLayer();
             _base.Fill = BuildGradientBrush();
         }
@@ -357,24 +387,37 @@ internal sealed class AppearanceManager : IDisposable
 
         // Картинка ещё не готова: пока — градиент, а готовая встанет, когда фон её досчитает.
         // Выбор обоев 4K не останавливает поток интерфейса.
-        var generation = _imageGeneration;
-        var saturation = _settings.ImageSaturation;
-        var blur = _settings.ImageBlur;
-        _ = AppearanceImageCache.LoadAsync(path, saturation, blur, DataRoot).ContinueWith(
-            task =>
-            {
-                if (_disposed || generation != _imageGeneration || task.Result is null)
-                {
-                    return;
-                }
-
-                FadeInPhoto(ImageBrushFor(task.Result));
-            },
-            CancellationToken.None,
-            TaskContinuationOptions.OnlyOnRanToCompletion,
-            TaskScheduler.FromCurrentSynchronizationContext());
-
+        Detached.Run(LoadBackdropImageAsync(path, panorama: false), "backdrop_image_load");
         return BuildGradientBrush();
+    }
+
+    private async Task LoadBackdropImageAsync(string path, bool panorama)
+    {
+        var generation = _imageGeneration;
+        var image = await AppearanceImageCache.LoadAsync(path, _settings.ImageSaturation, _settings.ImageBlur,
+            panorama ? null : DataRoot, panorama).ConfigureAwait(false);
+        if (image is null)
+        {
+            return;
+        }
+
+        // При запуске оформление применяется до app.Run, когда контекста синхронизации ещё нет.
+        await _window.Dispatcher.InvokeAsync(() =>
+        {
+            if (_disposed || generation != _imageGeneration)
+            {
+                return;
+            }
+
+            if (panorama)
+            {
+                ApplyPanorama(image);
+            }
+            else
+            {
+                FadeInPhoto(ImageBrushFor(image));
+            }
+        }).Task.ConfigureAwait(false);
     }
 
     private void HidePhotoLayer()
@@ -398,7 +441,7 @@ internal sealed class AppearanceManager : IDisposable
             });
     }
 
-    private Brush ImageBrushFor(System.Windows.Media.Imaging.BitmapSource image)
+    private Brush ImageBrushFor(BitmapSource image)
     {
         var brush = new ImageBrush(image)
         {
@@ -426,7 +469,99 @@ internal sealed class AppearanceManager : IDisposable
     /// тем же путём строится ключ кэша, и второй копией правила они бы молча разошлись.
     /// </summary>
     private string ImagePath() =>
-        AppearanceImageCache.ResolvePath(_settings.BackgroundImagePath, DataRoot);
+        AppearanceImageCache.ResolvePath(_settings.UsePanorama ? _settings.PanoramaPath : _settings.BackgroundImagePath, DataRoot);
+
+    private void ShowPanorama()
+    {
+        var path = ImagePath();
+        var source = (path, _settings.ImageSaturation, _settings.ImageBlur);
+        if (_panoramaImage != source)
+        {
+            HidePhotoLayer();
+            HidePanorama();
+            _panoramaImage = source;
+            _imageGeneration++;
+            if (AppearanceImageCache.Peek(path, source.ImageSaturation, source.ImageBlur, panorama: true) is { } ready)
+            {
+                ApplyPanorama(ready);
+            }
+            else if (!string.IsNullOrWhiteSpace(path))
+            {
+                Detached.Run(LoadBackdropImageAsync(path, panorama: true), "panorama_load");
+            }
+        }
+
+        UpdatePanoramaView();
+    }
+
+    private void ApplyPanorama(BitmapSource image)
+    {
+        if (_panorama is null)
+        {
+            _panorama = new PanoramaBackdrop();
+            _host.Children.Insert(_host.Children.IndexOf(_brightness), _panorama.View);
+        }
+
+        _panorama.Show(image, WindowCanRender);
+        UpdatePanoramaView();
+    }
+
+    private void HidePanorama()
+    {
+        _panoramaImage = null;
+        _panorama?.Hide();
+    }
+
+    private void UpdatePanoramaView()
+    {
+        if (_panorama is not { } panorama)
+        {
+            return;
+        }
+
+        panorama.SetWindowVisible(WindowCanRender);
+        if (panorama.View.Visibility != Visibility.Visible)
+        {
+            return;
+        }
+
+        panorama.SetView(_settings.PanoramaYaw, _settings.PanoramaPitch, _settings.PanoramaFieldOfView);
+        UpdatePanoramaPointer(_window.IsMouseOver ? Mouse.GetPosition(_host) : null);
+    }
+
+    private void UpdatePanoramaPointer(Point? cursor)
+    {
+        if (_panorama is not { View.Visibility: Visibility.Visible } panorama)
+        {
+            return;
+        }
+
+        if (!_settings.PanoramaMouse || !_settings.AnimationsEnabled || !SystemParameters.ClientAreaAnimation)
+        {
+            panorama.ResetPointer();
+            return;
+        }
+
+        var size = _host.RenderSize;
+        var range = 24 * _settings.PanoramaSensitivity;
+        Vector? offset = cursor is { } point && size.Width > 0 && size.Height > 0 && new Rect(size).Contains(point)
+            ? new Vector(
+                range * (2 * point.X / size.Width - 1),
+                -range * 0.5 * (2 * point.Y / size.Height - 1))
+            : null;
+        panorama.SetPointerTarget(offset);
+    }
+
+    private void OnBackdropMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_panorama is { View.Visibility: Visibility.Visible })
+        {
+            UpdatePanoramaPointer(e.GetPosition(_host));
+        }
+    }
+
+    private void OnBackdropMouseLeave(object sender, MouseEventArgs e) =>
+        UpdatePanoramaPointer(null);
 
     // ───────────────────────── движение ─────────────────────────
 
@@ -442,7 +577,9 @@ internal sealed class AppearanceManager : IDisposable
             return false;
         }
 
-        if (_window.WindowState == WindowState.Minimized || !_window.IsVisible)
+        // Панорама двигается только за курсором. Сохранённый эффект другого фона
+        // иначе гонял бы бесконечный сториборд даже за неподвижной сферой.
+        if (!WindowCanRender || (_backdropMode == BackdropMode.Image && _settings.UsePanorama))
         {
             return false;
         }
@@ -787,7 +924,7 @@ internal sealed class AppearanceManager : IDisposable
         // всё ещё побеждает. Отложи пересборку — была бы видна вспышка.
         if (BackdropActive)
         {
-            PaintBackdrop(_settings.BackdropMode);
+            PaintBackdrop(_backdropMode);
         }
 
         WriteOverrides();
@@ -802,18 +939,19 @@ internal sealed class AppearanceManager : IDisposable
 
     private void OnPowerRelevantChange(object? sender, EventArgs e)
     {
+        UpdatePanoramaView();
         if (_motion is null)
         {
             if (BackdropActive && MotionAllowed())
             {
-                StartMotion(_settings.BackdropMode);
+                StartMotion(_backdropMode);
             }
 
             return;
         }
 
         // Пауза, а не остановка: продолжение не перескакивает фазу.
-        if (_window.WindowState == WindowState.Minimized || !_window.IsVisible)
+        if (!WindowCanRender)
         {
             _motion.Pause(_window);
         }
@@ -832,8 +970,12 @@ internal sealed class AppearanceManager : IDisposable
 
         _disposed = true;
         StopMotion();
+        HidePanorama();
         ThemeManager.EffectiveThemeChanged -= OnThemeChanged;
         _window.StateChanged -= OnPowerRelevantChange;
         _window.IsVisibleChanged -= OnVisibilityChanged;
+        _window.MouseEnter -= OnBackdropMouseMove;
+        _window.PreviewMouseMove -= OnBackdropMouseMove;
+        _window.MouseLeave -= OnBackdropMouseLeave;
     }
 }

@@ -74,6 +74,118 @@ public sealed class ModelNoteTests
     }
 
     [Fact]
+    public async Task Research_displays_the_plan_before_tools_and_keeps_it_on_the_answer()
+    {
+        var bodies = new List<string>();
+        var observer = new SilentObserver();
+        var handler = new ScriptedHandler(request =>
+        {
+            bodies.Add(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            return bodies.Count switch
+            {
+                1 => Sse("Compare primary sources."),
+                2 when observer.VisibleResearchPlan == "Compare primary sources." => SseWithToolCall("", "read_file"),
+                3 => Sse("Findings."),
+                _ => throw new InvalidOperationException("Unexpected request.")
+            };
+        });
+        using var http = new HttpClient(handler);
+        var options = Options();
+        var engine = new ChatEngine(new VeniceClient(http, options), options, AppSettings.CreateDefault,
+            new ToolRegistry([new StubTool()]));
+        var session = new ChatSession { Id = "r", SelectedModelId = "grok-4-6" };
+
+        await engine.RunTurnAsync(session, "/research explain this", observer, CancellationToken.None);
+
+        Assert.Equal(3, bodies.Count);
+        Assert.DoesNotContain("\"tools\"", bodies[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("/research explain this", bodies[0], StringComparison.Ordinal);
+        Assert.Contains("explain this", bodies[0], StringComparison.Ordinal);
+        Assert.Contains("\"tools\"", bodies[1], StringComparison.Ordinal);
+        Assert.Contains("independent sources", bodies[1], StringComparison.Ordinal);
+        Assert.Contains("содержимое", ChatContent.ReadText(session.ApiMessages.Single(m => m.Role == "tool").Content));
+        var answer = session.Messages[^1];
+        Assert.Equal("Findings.", answer.Text);
+        Assert.Equal("Compare primary sources.", answer.ResearchPlan);
+    }
+
+    [Fact]
+    public async Task Resuming_research_uses_its_plan_and_the_next_normal_turn_has_none()
+    {
+        var bodies = new List<string>();
+        var handler = new ScriptedHandler(request =>
+        {
+            bodies.Add(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            return Sse(bodies.Count == 1 ? "Check both alternatives." : "Answer.");
+        });
+        using var cancellation = new CancellationTokenSource();
+        using var http = new HttpClient(handler);
+        var options = Options();
+        var engine = new ChatEngine(new VeniceClient(http, options), options, AppSettings.CreateDefault, new ToolRegistry([]));
+        var session = new ChatSession { Id = "r", SelectedModelId = "grok-4-6" };
+
+        await engine.RunTurnAsync(session, "/research topic", new SilentObserver { PlanShown = cancellation.Cancel }, cancellation.Token);
+        var cancelled = session.Messages[^1];
+        Assert.Single(bodies);
+        Assert.Equal("Check both alternatives.", cancelled.ResearchPlan);
+        await engine.ResumeAssistantAsync(session, cancelled, new SilentObserver(), CancellationToken.None);
+        await engine.RunTurnAsync(session, "plain follow up", new SilentObserver(), CancellationToken.None);
+
+        Assert.Equal(3, bodies.Count);
+        Assert.Contains("Check both alternatives.", bodies[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("The user requested deep research", bodies[2], StringComparison.Ordinal);
+        Assert.Null(session.Messages[^1].ResearchPlan);
+    }
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    public async Task Chat_mcp_tools_obey_confirmation_and_current_server_availability(
+        bool approve, bool disconnectDuringConfirmation, bool expectSuccess)
+    {
+        const string name = "test_beta7__probe";
+        var settings = AppSettings.CreateDefault();
+        settings.ApprovalMode = ApprovalMode.AskAll;
+        var queue = new ConfirmationQueue(() => settings);
+        var connected = true;
+        var questioned = false;
+        queue.Changed += () =>
+        {
+            if (queue.TryPeek(out var request))
+            {
+                questioned = true;
+                connected = !disconnectDuringConfirmation;
+                queue.Complete(request, approve);
+            }
+        };
+        var bodies = new List<string>();
+        using var http = new HttpClient(new ScriptedHandler(request =>
+        {
+            bodies.Add(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            return bodies.Count == 1 ? SseWithToolCall("", name) : Sse("Done.");
+        }));
+        var options = Options();
+        var engine = new ChatEngine(new VeniceClient(http, options), options, () => settings, new ToolRegistry([]),
+            confirmations: queue)
+        {
+            McpTools = () => connected ? [new StubTool(name)] : []
+        };
+        var session = new ChatSession { Id = "s", SelectedModelId = "grok-4-6" };
+
+        await engine.RunTurnAsync(session, "Try the connected tool", new SilentObserver(), CancellationToken.None);
+
+        Assert.True(questioned);
+        Assert.Contains(name, bodies[0], StringComparison.Ordinal);
+        var tool = Assert.Single(Assert.Single(session.Messages[^1].ToolRounds).Calls);
+        Assert.Equal(expectSuccess, tool.Success);
+        if (disconnectDuringConfirmation)
+        {
+            Assert.DoesNotContain(engine.ToolsFor([]), definition => definition.Function.Name == name);
+        }
+    }
+
+    [Fact]
     public void A_silent_model_leaves_the_note_empty_rather_than_blank_padded()
     {
         Assert.Equal("", new ToolRound().ModelNote);
@@ -204,9 +316,9 @@ public sealed class ModelNoteTests
             Task.FromResult(script(request));
     }
 
-    private sealed class StubTool : ITool
+    private sealed class StubTool(string name = "read_file") : ITool
     {
-        public string Name => "read_file";
+        public string Name => name;
 
         public string Description => "stub";
 
@@ -221,6 +333,9 @@ public sealed class ModelNoteTests
 
     private sealed class SilentObserver : IChatTurnObserver
     {
+        public string? VisibleResearchPlan { get; private set; }
+        public Action? PlanShown { get; init; }
+
         public void OnUserAppended(ChatDisplayMessage user)
         {
         }
@@ -235,6 +350,11 @@ public sealed class ModelNoteTests
 
         public void OnToolsChanged(ChatDisplayMessage assistant)
         {
+            if (VisibleResearchPlan is null && assistant.ResearchPlan is { Length: > 0 } plan)
+            {
+                VisibleResearchPlan = plan;
+                PlanShown?.Invoke();
+            }
         }
 
         public void OnAssistantCompleted(ChatDisplayMessage assistant)

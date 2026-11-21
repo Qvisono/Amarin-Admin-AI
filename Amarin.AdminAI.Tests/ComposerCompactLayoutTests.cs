@@ -94,34 +94,11 @@ public sealed class ComposerCompactLayoutTests
     }
 
     [Fact]
-    public void The_balance_plate_keeps_its_size_across_a_fold()
+    public void The_composer_has_no_balance_plate_after_a_fold()
     {
-        // It is the one control in the strip with no fixed height of its own to fall back on,
-        // so a shorter toolbar used to shrink it outright.
-        var before = _wpf.Ui.Invoke(() =>
-        {
-            var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var plate = (FrameworkElement)window.FindName("BalanceBadge");
-            plate.Visibility = Visibility.Visible;
-            window.UpdateLayout();
-            return (plate.ActualWidth, plate.ActualHeight);
-        });
+        var plate = AfterFoldCycle(window => window.FindName("BalanceBadge"));
 
-        var after = AfterFoldCycle(window =>
-        {
-            var plate = (FrameworkElement)window.FindName("BalanceBadge");
-            return (plate.ActualWidth, plate.ActualHeight);
-        });
-
-        _wpf.Ui.Invoke<bool>(() =>
-        {
-            var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            ((FrameworkElement)window.FindName("BalanceBadge")).Visibility = Visibility.Collapsed;
-            return true;
-        });
-
-        Assert.Equal(28, before.ActualHeight);
-        Assert.Equal(before, after);
+        Assert.Null(plate);
     }
 
     [Fact]

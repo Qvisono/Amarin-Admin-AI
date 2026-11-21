@@ -51,6 +51,7 @@ namespace Amarin.UI
             UpdateCompactHint();
             RefreshSessionRail();
             ShowSessionNotice(session.Id, Loc.Get("S.Compact.Working"));
+            var applied = false;
             try
             {
                 IReadOnlyList<string> chunks;
@@ -69,7 +70,7 @@ namespace Amarin.UI
                 // Пока модель пересказывала, в чат могли написать: граница та же, но проверяем,
                 // что сжатая часть не изменилась под нами.
                 var before = ReferenceEquals(session, _session) ? CompactedIds() : [];
-                var applied = draft.Summary is not null && !IsBusy(session.Id) &&
+                applied = draft.Summary is not null && !IsBusy(session.Id) &&
                               ContextCompaction.TryApply(session, plan, sourceFingerprint, draft.Summary);
                 if (applied || priced is not null)
                 {
@@ -100,6 +101,7 @@ namespace Amarin.UI
                     // Панель рисовалась, пока сжатие ещё шло: без этого её кнопки оставались выключенными.
                     UpdateCompactHint();
                     RefreshSessionRail();
+                    SessionRail.CompleteCompaction(applied);
                 }
             }
         }

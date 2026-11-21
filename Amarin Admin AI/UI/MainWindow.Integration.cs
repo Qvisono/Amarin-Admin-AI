@@ -226,7 +226,7 @@ namespace Amarin.UI
         private static ImageSource AppIconImage()
         {
             var decoder = BitmapDecoder.Create(
-                new Uri("pack://application:,,,/jeklE-removebg-preview_1.ico"),
+                new Uri("pack://application:,,,/Assets/Amarin.ico"),
                 BitmapCreateOptions.None,
                 BitmapCacheOption.OnLoad);
             return decoder.Frames.OrderBy(frame => Math.Abs(frame.PixelWidth - 32)).First();

@@ -428,6 +428,31 @@ public sealed class AgentTierRoutingTests
         Assert.Equal("fast", probe.SeenTier);
     }
 
+    [Theory]
+    [InlineData(true, null)]
+    [InlineData(false, "heavy")]
+    public async Task The_unqualified_command_inherits_only_when_enabled(bool enabled, string? expectedTier)
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.InheritAgentModel = enabled;
+        using var http = new HttpClient(new ScriptedHandler(_ => Sse("Готово.")));
+        var options = Options("https://api.venice.ai/api/v1");
+        var tool = new TierProbeTool();
+        var engine = new ChatEngine(new VeniceClient(http, options), options, () => settings, new ToolRegistry([tool]));
+
+        await engine.RunAgentCommandAsync(
+            new ChatSession { Id = "s", SelectedModelId = "chat-model", ReasoningEffort = "high" },
+            "/agent задача", "задача", "heavy", new SilentObserver(), CancellationToken.None);
+
+        Assert.Equal(expectedTier, tool.SeenTier);
+        Assert.Equal(enabled ? "chat-model" : null, tool.SeenInherited?.ModelId);
+        if (enabled)
+        {
+            Assert.Equal("test", tool.SeenInherited!.Credential.Secret);
+            Assert.Equal("high", tool.SeenInherited.Reasoning.Effort);
+        }
+    }
+
     [Fact]
     public async Task The_chat_model_key_and_reasoning_travel_to_the_agent()
     {

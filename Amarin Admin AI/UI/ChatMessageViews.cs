@@ -179,6 +179,7 @@ internal sealed class AssistantMessageView
     public required System.Windows.Shapes.Path LogoLightning { get; init; }
     public required FrameworkElement RootElement { get; init; }
     public required StackPanel ToolsHost { get; init; }
+    public TextBlock? ResearchPlanBlock { get; init; }
 
     /// <summary>Полоса карточек файлов, которые инструменты этого ответа положили на диск.</summary>
     public required StackPanel FilesHost { get; init; }
@@ -464,6 +465,12 @@ internal sealed class AssistantMessageView
 
     public void UpdateTools(ChatDisplayMessage message)
     {
+        if (ResearchPlanBlock is { } plan && message.ResearchPlan is { Length: > 0 } text && plan.Text != text)
+        {
+            plan.Text = text;
+            ((FrameworkElement)plan.Parent).Visibility = Visibility.Visible;
+        }
+
         UpdateSavedFiles(message);
         UpdateInstructions(message);
         UpdateDeferred(message);
@@ -1519,6 +1526,19 @@ internal static class ChatMessageViews
         var deferredHost = new StackPanel { Visibility = Visibility.Collapsed };
         var column = new StackPanel();
         column.Children.Add(meta);
+        TextBlock? researchPlan = null;
+        if (message.ResearchPlan is not null)
+        {
+            var planPanel = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 9) };
+            var title = new TextBlock { FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) };
+            title.SetResourceReference(TextBlock.TextProperty, "S.Command.ResearchPlan");
+            title.SetResourceReference(TextBlock.ForegroundProperty, "Text.Primary");
+            researchPlan = new TextBlock { TextWrapping = TextWrapping.Wrap };
+            researchPlan.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
+            planPanel.Children.Add(title);
+            planPanel.Children.Add(researchPlan);
+            column.Children.Add(planPanel);
+        }
         column.Children.Add(toolsHost);
         column.Children.Add(instructionsHost);
         column.Children.Add(body);
@@ -1552,6 +1572,7 @@ internal static class ChatMessageViews
             LogoLightning = logo.Lightning,
             RootElement = grid,
             ToolsHost = toolsHost,
+            ResearchPlanBlock = researchPlan,
             FilesHost = filesHost,
             InstructionsHost = instructionsHost,
             DeferredHost = deferredHost,

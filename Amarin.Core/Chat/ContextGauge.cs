@@ -29,7 +29,7 @@ internal readonly record struct ContextCategoryUsage(
 /// <summary>Прикидка результата сжатия.</summary>
 /// <param name="UsedAfter">Заполненность после сжатия, в токенах.</param>
 /// <param name="CompactedMessages">Сколько сообщений ленты уйдёт под сводку; ноль — сопоставить с лентой не вышло.</param>
-internal readonly record struct CompactionPreview(int UsedAfter, int CompactedMessages, int TotalMessages);
+internal readonly record struct CompactionPreview(int UsedAfter, int CompactedMessages, int TotalMessages, int TokensToCompact);
 
 /// <summary>
 /// Сравнивает окно контекста с тем, что чат собирается отправить.
@@ -201,7 +201,8 @@ internal static class ContextGauge
             return new CompactionPreview(
                 Math.Max(0, used - freed + summary),
                 last < 0 || first < 0 ? 0 : last - first + 1,
-                session.Messages.Count);
+                session.Messages.Count,
+                freed);
         }
     }
 

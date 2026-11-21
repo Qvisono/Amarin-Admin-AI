@@ -586,6 +586,7 @@ namespace Amarin.UI
 
             // Кэш держит прежний фон объектом, и без сброса на экране остался бы старый.
             AppearanceImageCache.Clear();
+            _appearance?.InvalidateImages();
             ClearPendingAttachments();
 
             // Открытый чат мог быть удалён режимом «Заменить».

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -201,7 +202,7 @@ internal static class ChatMarkdown
             document.FontFamily = box.FontFamily;
         }
 
-        var context = new RenderContext(host, fontSize, lineHeight, files ?? [], [], streaming);
+        var context = new RenderContext(host, document.FontFamily, fontSize, lineHeight, files ?? [], [], streaming);
         if (parsed.Blocks.Count == 0)
         {
             // Пусто или один пробельный текст: разметки нет, но пустой документ выглядел бы багом.
@@ -235,6 +236,7 @@ internal static class ChatMarkdown
     /// </param>
     private sealed record RenderContext(
         FrameworkElement Host,
+        FontFamily FontFamily,
         double FontSize,
         double LineHeight,
         IReadOnlyList<SavedFile> Files,
@@ -666,13 +668,15 @@ internal static class ChatMarkdown
 
     private static WpfBlock BuildList(ListBlock list, RenderContext context, bool last)
     {
+        var start = ParseStart(list.OrderedStart);
+        var lastIndex = (long)start + Math.Max(0, list.Count - 1);
         var wpf = new WpfList
         {
             Margin = new Thickness(0, 0, 0, last ? 0 : BlockGap),
-            Padding = new Thickness(20, 0, 0, 0),
+            Padding = new Thickness(list.IsOrdered ? OrderedMarkerPadding(lastIndex, context) : 20, 0, 0, 0),
             MarkerOffset = 5,
             MarkerStyle = list.IsOrdered ? TextMarkerStyle.Decimal : TextMarkerStyle.Disc,
-            StartIndex = ParseStart(list.OrderedStart)
+            StartIndex = start
         };
 
         foreach (var child in list)
@@ -697,6 +701,21 @@ internal static class ChatMarkdown
         }
 
         return wpf;
+    }
+
+    private static double OrderedMarkerPadding(long lastIndex, RenderContext context)
+    {
+        var typeface = new Typeface(context.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var dpi = VisualTreeHelper.GetDpi(context.Host).PixelsPerDip;
+        var culture = CultureInfo.CurrentCulture;
+        var digitCount = lastIndex.ToString(CultureInfo.InvariantCulture).Length;
+        var widest = "0123456789".Max(digit => Measure(digit.ToString()));
+
+        return Math.Max(20, Math.Ceiling(widest * digitCount + Measure(".") + 5));
+
+        double Measure(string text) =>
+            new FormattedText(text, culture, FlowDirection.LeftToRight,
+                typeface, context.FontSize, Brushes.Black, dpi).WidthIncludingTrailingWhitespace;
     }
 
     private static WpfBlock BuildTable(MdTable table, RenderContext context, bool last)

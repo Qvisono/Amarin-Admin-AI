@@ -617,6 +617,10 @@ namespace Amarin.UI
             p.BackdropNone.Checked += BackdropMode_Checked;
             p.BackdropGradient.Checked += BackdropMode_Checked;
             p.BackdropImage.Checked += BackdropMode_Checked;
+            p.BackdropPanorama.Checked += BackdropMode_Checked;
+            p.PanoramaMouseToggle.Checked += PanoramaMouse_Changed;
+            p.PanoramaMouseToggle.Unchecked += PanoramaMouse_Changed;
+            p.ResetPanoramaButton.Click += ResetPanorama_Click;
             p.MotionCombo.SelectionChanged += MotionCombo_SelectionChanged;
             p.RemoveBackgroundButton.Click += RemoveBackgroundButton_Click;
             p.ChooseBackgroundButton.Click += ChooseBackgroundButton_Click;

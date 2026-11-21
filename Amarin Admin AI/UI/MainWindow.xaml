@@ -25,6 +25,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources.xaml"/>
+                <ResourceDictionary Source="AmarinBrand.xaml"/>
                 <!--
                     Палитры здесь нет намеренно: в работающем приложении её подставляет
                     ThemeManager словарями уровня Application, и словарь уровня окна
@@ -498,7 +499,7 @@
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
                                                 <Grid>
-                                                    <Image x:Name="LogoImage" Source="/jeklE-removebg-preview_1.ico" Width="20" Height="20"/>
+                                                    <Image x:Name="LogoImage" Source="{StaticResource AmarinLogo}" Width="20" Height="20"/>
                                                     <Path x:Name="ExpandIcon" Visibility="Collapsed"
                                                           Data="M 2,2 L 7,7 L 2,12 M 8,2 L 13,7 L 8,12"
                                                           Width="12" Height="12" Stretch="Uniform"
@@ -1533,21 +1534,6 @@
                                     </Border>
                                 </StackPanel>
 
-                                    <!--
-                                        Остаток на счету. Высота задана явно, а не растянута по
-                                        строке: тулбар меняет высоту в компактном режиме, и плашка
-                                        на Stretch скакала бы вместе с ним. Радиус и высота взяты
-                                        от кнопки отправки справа, чтобы пара читалась как один
-                                        ряд. Цвета ставит BalanceBadge из палитры — здесь только
-                                        форма. Видна всегда: до первого ответа Venice цифра берётся
-                                        из кэша на диске, а если и его нет — стоит прочерк.
-                                    -->
-                                    <!--
-                                        Кольцо контекста и остаток на счету — один ряд показаний.
-                                        Обёрнуты в общую панель, потому что оба жмутся вправо в
-                                        одну звёздную колонку: два независимых HorizontalAlignment
-                                        встали бы друг на друга.
-                                    -->
                                     <StackPanel Grid.Column="3" Orientation="Horizontal"
                                                 HorizontalAlignment="Right" VerticalAlignment="Center">
 
@@ -1555,8 +1541,7 @@
                                         Заполненность контекстного окна. Геометрию обеих дуг
                                         строит код (ContextRing): дуга прогресса обязана лечь
                                         ровно на фоновую, а два набора чисел — в разметке и в
-                                        коде — рано или поздно разъезжаются. Форма повторяет
-                                        плашку баланса справа, цвета ставит ContextRing.
+                                        коде — рано или поздно разъезжаются. Цвета ставит ContextRing.
                                     -->
                                     <!-- «Сжать» (D10): появляется, когда окно заполнено почти целиком. -->
                                     <Button x:Name="ContextHintButton" Visibility="Collapsed" Margin="0,0,6,0"
@@ -1599,33 +1584,6 @@
                                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                             </Grid>
                                             <TextBlock x:Name="ContextAmount" Text="-" FontSize="12"
-                                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border x:Name="BalanceBadge"
-                                            VerticalAlignment="Center"
-                                            Height="28" CornerRadius="8" Padding="8,0,10,0"
-                                            BorderThickness="1" Margin="0,0,8,0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <!--
-                                                Обе фигуры одним Path: у них общая система
-                                                координат 24x24, и растянуть их порознь нельзя —
-                                                задняя монетка занимает лишь угол бокса и,
-                                                растянутая сама по себе, раздулась бы на всю
-                                                иконку.
-                                            -->
-                                            <Path x:Name="BalanceCoin" Width="15" Height="15"
-                                                  Stretch="Uniform" Margin="0,0,6,0"
-                                                  VerticalAlignment="Center">
-                                                <Path.Data>
-                                                    <GeometryGroup FillRule="Nonzero">
-                                                        <StaticResource ResourceKey="Coin.Back"/>
-                                                        <StaticResource ResourceKey="Coin.Face"/>
-                                                    </GeometryGroup>
-                                                </Path.Data>
-                                            </Path>
-                                            <TextBlock x:Name="BalanceAmount" Text="-" FontSize="12"
                                                        FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>

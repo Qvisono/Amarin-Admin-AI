@@ -120,35 +120,50 @@
                 <TextBlock Grid.Column="1" Style="{StaticResource RailTitle}" Margin="2,0,0,0" Text="{DynamicResource S.Compact.MenuItem}"/>
             </Grid>
 
-            <!-- Было и станет. Шкала во всю ширину — занятое сейчас, а не окно модели: у почти пустого
-                 окна разницу иначе не разглядеть. Сплошная часть останется, бледная освободится. -->
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Label}"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock x:Name="CompactBefore" Style="{StaticResource RailMeta}"/>
-                    <Path x:Name="CompactArrow" Data="M0,3 H8 M5,0.6 L8,3 L5,5.4" Width="8" Height="6" Stretch="Uniform" Margin="5,0"
+            <TextBlock Style="{StaticResource RailMeta}" Text="{DynamicResource S.Context.Label}"/>
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="CompactBefore" Style="{StaticResource RailTitle}"/>
+                    <Path x:Name="CompactArrow" Data="M0,3 H8 M5,0.6 L8,3 L5,5.4" Width="8" Height="6" Stretch="Uniform" Margin="6,0"
                           Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                           StrokeLineJoin="Round" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="CompactAfter" Style="{StaticResource RailMeta}" Foreground="{DynamicResource Accent.Fill}" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="CompactAfter" Style="{StaticResource RailTitle}" Foreground="{DynamicResource Accent.Fill}"/>
                 </StackPanel>
+                <TextBlock x:Name="CompactCapacity" Grid.Column="1" Style="{StaticResource RailMeta}" VerticalAlignment="Center"/>
             </Grid>
-            <Grid x:Name="CompactBar" Height="10" Margin="0,7,0,0"><Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="CompactKeptColumn" Width="1*"/><ColumnDefinition x:Name="CompactFreedColumn" Width="0*"/>
-            </Grid.ColumnDefinitions>
-                <Border Grid.ColumnSpan="2" CornerRadius="5" Background="{DynamicResource Accent.Fill}" Opacity="0.25"/>
-                <Border Grid.Column="0" CornerRadius="5" Background="{DynamicResource Accent.Fill}"/>
+            <Grid x:Name="CompactBar" Height="19" Margin="0,7,0,0" ClipToBounds="True">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="CompactKeptColumn" Width="0*"/>
+                    <ColumnDefinition x:Name="CompactFreedColumn" Width="0*"/>
+                    <ColumnDefinition x:Name="CompactFreeColumn" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.ColumnSpan="3" CornerRadius="4" Background="{DynamicResource Bg.Track}"/>
+                <Border Background="{DynamicResource Accent.Fill}" CornerRadius="4,0,0,4"/>
+                <Border x:Name="CompactHatch" Grid.Column="1" ClipToBounds="True">
+                    <Border.Background>
+                        <DrawingBrush TileMode="Tile" Viewport="0,0,7,7" ViewportUnits="Absolute" Viewbox="0,0,7,7" ViewboxUnits="Absolute">
+                            <DrawingBrush.Drawing>
+                                <DrawingGroup>
+                                    <GeometryDrawing Geometry="M0,0 H7 V7 H0 Z" Brush="{DynamicResource Bg.Selected}"/>
+                                    <GeometryDrawing Geometry="M-1,6 L6,-1 M0,12 L12,0">
+                                        <GeometryDrawing.Pen><Pen Thickness="1.3" Brush="{DynamicResource Accent.Fill}"/></GeometryDrawing.Pen>
+                                    </GeometryDrawing>
+                                </DrawingGroup>
+                            </DrawingBrush.Drawing>
+                        </DrawingBrush>
+                    </Border.Background>
+                </Border>
+                <Border x:Name="CompactTransition" Grid.ColumnSpan="3" Background="{DynamicResource Accent.Fill}"
+                        CornerRadius="4" Visibility="Collapsed" IsHitTestVisible="False">
+                    <Border.RenderTransform><ScaleTransform x:Name="CompactScale" ScaleX="0"/></Border.RenderTransform>
+                </Border>
             </Grid>
             <TextBlock x:Name="CompactFrees" Style="{StaticResource RailMeta}" Margin="0,5,0,0"/>
 
             <Border Style="{StaticResource RailDivider}" Margin="0,12,0,8"/>
 
             <Grid Style="{StaticResource RailRow}"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactFirst}"/>
-                <CheckBox x:Name="CompactFirstToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="True"
-                          Checked="CompactOption_Changed" Unchecked="CompactOption_Changed"
-                          AutomationProperties.Name="{DynamicResource S.SessionRail.CompactFirst}"/>
-            </Grid>
-            <Grid Style="{StaticResource RailRow}" Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactKeep}"/>
                 <Border Grid.Column="1" Height="24" CornerRadius="6" BorderThickness="1" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}">
                     <StackPanel Orientation="Horizontal">
@@ -164,6 +179,12 @@
                         </Button>
                     </StackPanel>
                 </Border>
+            </Grid>
+            <Grid Style="{StaticResource RailRow}" Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RailText}" Text="{DynamicResource S.SessionRail.CompactFirst}"/>
+                <CheckBox x:Name="CompactFirstToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="True"
+                          Checked="CompactOption_Changed" Unchecked="CompactOption_Changed"
+                          AutomationProperties.Name="{DynamicResource S.SessionRail.CompactFirst}"/>
             </Grid>
             <TextBlock x:Name="KeepHint" Style="{StaticResource RailMeta}" Margin="0,2,0,0" TextWrapping="Wrap"/>
 

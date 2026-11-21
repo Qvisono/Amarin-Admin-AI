@@ -72,7 +72,6 @@ namespace Amarin.UI
         private AppearanceManager? _appearance;
         private GrainOverlay? _grain;
         private ComposerCompactMode? _compact;
-        private BalanceBadge? _balance;
         private ContextRing? _context;
 
         /// <summary>
@@ -108,18 +107,6 @@ namespace Amarin.UI
                 Chat, ComposerBorder, ComposerLayout, ComposerInputRow, ComposerToolbar,
                 AttachmentsHost, MessageTextBox);
 
-            // Книга остатков и ключи берутся функциями: конструктор окна идёт раньше
-            // AttachServices, и ссылкой их сюда не передать.
-            _balance = new BalanceBadge(
-                BalanceBadge,
-                BalanceCoin,
-                BalanceAmount,
-                () => _services?.Balances,
-                () => _services?.KeyStore.List() ?? [],
-                new BalanceStore(),
-                () => _services?.Settings.BalanceThresholds,
-                secret => _services?.Ledger.TokensUsed(secret) ?? 0);
-            _balance.Alerted += OnBalanceAlert;
             _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 
             _appearanceDebounce.Tick += (_, _) =>
@@ -307,7 +294,7 @@ namespace Amarin.UI
                 : appearance.BackdropMode switch
                 {
                     BackdropMode.Gradient => Loc.Get("S.Appearance.Gradient"),
-                    BackdropMode.Image => Loc.Get("S.Appearance.Image"),
+                    BackdropMode.Image => Loc.Get(appearance.UsePanorama ? "S.Appearance.Panorama" : "S.Appearance.Image"),
                     _ => Loc.Get("S.Appearance.AccentOnly")
                 };
         }
@@ -425,6 +412,10 @@ namespace Amarin.UI
 
             Bind(AppearancePage.GradientAngleSlider, AppearancePage.GradientAngleValue, v => $"{v:0}°", (a, v) => a.GradientAngle = v);
             Bind(AppearancePage.MotionSpeedSlider, AppearancePage.MotionSpeedValue, v => $"{v:0.00}×", (a, v) => a.MotionSpeed = v);
+            Bind(AppearancePage.PanoramaYawSlider, AppearancePage.PanoramaYawValue, v => $"{v:0}°", (a, v) => a.PanoramaYaw = v);
+            Bind(AppearancePage.PanoramaPitchSlider, AppearancePage.PanoramaPitchValue, v => $"{v:0}°", (a, v) => a.PanoramaPitch = v);
+            Bind(AppearancePage.PanoramaZoomSlider, AppearancePage.PanoramaZoomValue, v => $"{v:0}°", (a, v) => a.PanoramaFieldOfView = v);
+            Bind(AppearancePage.PanoramaSensitivitySlider, AppearancePage.PanoramaSensitivityValue, v => $"{v:P0}", (a, v) => a.PanoramaSensitivity = v);
             Bind(AppearancePage.ImageBrightnessSlider, AppearancePage.ImageBrightnessValue, v => $"{v * 100:0}%", (a, v) => a.ImageBrightness = v);
             Bind(AppearancePage.ImageSaturationSlider, AppearancePage.ImageSaturationValue, v => $"{v * 100:0}%", (a, v) => a.ImageSaturation = v, debounce: true);
             Bind(AppearancePage.ImageBlurSlider, AppearancePage.ImageBlurValue, v => $"{v:0}", (a, v) => a.ImageBlur = v, debounce: true);
@@ -513,20 +504,42 @@ namespace Amarin.UI
 
         private void BackdropMode_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is not RadioButton { Tag: string tag } ||
-                !Enum.TryParse(tag, ignoreCase: true, out BackdropMode mode))
+            if (sender is not RadioButton { Tag: string tag })
             {
                 return;
             }
 
-            UpdateBackdropPanels(mode);
-            Edit(a => a.BackdropMode = mode);
+            var panorama = tag == "Panorama";
+            if (!Enum.TryParse(panorama ? nameof(BackdropMode.Image) : tag, ignoreCase: true, out BackdropMode mode))
+            {
+                return;
+            }
+
+            UpdateBackdropPanels(mode, panorama);
+            Edit(a =>
+            {
+                a.BackdropMode = mode;
+                a.UsePanorama = panorama;
+            });
+            UpdateBackgroundFileName(_services?.Settings.Appearance);
         }
 
-        private void UpdateBackdropPanels(BackdropMode mode)
+        private void PanoramaMouse_Changed(object sender, RoutedEventArgs e) =>
+            Edit(a => a.PanoramaMouse = AppearancePage.PanoramaMouseToggle.IsChecked == true);
+
+        private void ResetPanorama_Click(object sender, RoutedEventArgs e)
+        {
+            AppearancePage.PanoramaYawSlider.Value = 0;
+            AppearancePage.PanoramaPitchSlider.Value = 0;
+            AppearancePage.PanoramaZoomSlider.Value = new AppearanceSettings().PanoramaFieldOfView;
+        }
+
+        private void UpdateBackdropPanels(BackdropMode mode, bool panorama)
         {
             AppearancePage.GradientPanel.Visibility = mode == BackdropMode.Gradient ? Visibility.Visible : Visibility.Collapsed;
             AppearancePage.ImagePanel.Visibility = mode == BackdropMode.Image ? Visibility.Visible : Visibility.Collapsed;
+            AppearancePage.ImageFitRow.Visibility = panorama ? Visibility.Collapsed : Visibility.Visible;
+            AppearancePage.PanoramaControls.Visibility = panorama ? Visibility.Visible : Visibility.Collapsed;
             AppearancePage.GlassPanel.Visibility = mode == BackdropMode.None ? Visibility.Collapsed : Visibility.Visible;
         }
 
@@ -580,16 +593,20 @@ namespace Amarin.UI
             }
         }
 
-        private void ChooseBackgroundButton_Click(object sender, RoutedEventArgs e)
+        private async void ChooseBackgroundButton_Click(object sender, RoutedEventArgs e)
         {
             if (_services is null)
             {
                 return;
             }
 
+            var settings = _services.Settings;
+            var appearance = settings.Appearance;
+            var panorama = appearance.UsePanorama;
+            var root = ProfileStore.DataRootFor(ActiveProfile.Id);
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = Loc.Get("S.Appearance.BackgroundDialog"),
+                Title = Loc.Get(panorama ? "S.Appearance.Panorama" : "S.Appearance.BackgroundDialog"),
                 // Как и у аватара: .webp разбирается не на каждой Windows.
                 Filter = $"{Loc.Get("S.Attach.FilterImages")}|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|{Loc.Get("S.Common.AllFiles")}|*.*"
             };
@@ -614,21 +631,52 @@ namespace Amarin.UI
             {
                 // Копия в профиль, как у аватара: фон переживёт перенос или удаление оригинала и
                 // переедет вместе с папкой профиля.
-                var root = ProfileStore.DataRootFor(ActiveProfile.Id);
+                if (panorama && !await Task.Run(() => PanoramaBackdrop.IsSupportedFile(dialog.FileName)))
+                {
+                    Inform(Loc.Get("S.Appearance.BackgroundFailedTitle"), Loc.Get("S.Appearance.PanoramaFormat"));
+                    return;
+                }
+
+                if (!ReferenceEquals(_services.Settings, settings) || !ReferenceEquals(settings.Appearance, appearance) ||
+                    appearance.UsePanorama != panorama)
+                {
+                    return;
+                }
+
                 Directory.CreateDirectory(root);
-
-                var fileName = BackgroundFileStem + Path.GetExtension(dialog.FileName);
+                var stem = panorama ? "panorama" : BackgroundFileStem;
+                var fileName = stem + Path.GetExtension(dialog.FileName);
                 var target = Path.Combine(root, fileName);
+                if (!string.Equals(Path.GetFullPath(dialog.FileName), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+                {
+                    var temporary = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                    try
+                    {
+                        File.Copy(dialog.FileName, temporary);
+                        File.Move(temporary, target, overwrite: true);
+                    }
+                    finally
+                    {
+                        File.Delete(temporary);
+                    }
+                }
 
-                RemoveStoredBackgrounds(root, keep: fileName);
-                File.Copy(dialog.FileName, target, overwrite: true);
+                if (panorama)
+                {
+                    appearance.PanoramaPath = fileName;
+                }
+                else
+                {
+                    appearance.BackgroundImagePath = fileName;
+                }
+
                 AppearanceImageCache.Clear();
-
-                _services.Settings.Appearance.BackgroundImagePath = fileName;
-                _services.Settings.Appearance.BackdropMode = BackdropMode.Image;
-                _services.Settings.Appearance.Enabled = true;
-                LoadAppearanceUi(_services.Settings);
+                _appearance?.InvalidateImages();
+                appearance.BackdropMode = BackdropMode.Image;
+                appearance.Enabled = true;
+                LoadAppearanceUi(settings);
                 ApplyAppearance(save: true);
+                RemoveStoredBackgrounds(root, stem, keep: fileName);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
@@ -645,7 +693,8 @@ namespace Amarin.UI
 
             try
             {
-                RemoveStoredBackgrounds(ProfileStore.DataRootFor(ActiveProfile.Id), keep: null);
+                var stem = _services.Settings.Appearance.UsePanorama ? "panorama" : BackgroundFileStem;
+                RemoveStoredBackgrounds(ProfileStore.DataRootFor(ActiveProfile.Id), stem, keep: null);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -653,19 +702,26 @@ namespace Amarin.UI
             }
 
             AppearanceImageCache.Clear();
-            _services.Settings.Appearance.BackgroundImagePath = "";
+            if (_services.Settings.Appearance.UsePanorama)
+            {
+                _services.Settings.Appearance.PanoramaPath = "";
+            }
+            else
+            {
+                _services.Settings.Appearance.BackgroundImagePath = "";
+            }
             LoadAppearanceUi(_services.Settings);
             ApplyAppearance(save: true);
         }
 
-        private static void RemoveStoredBackgrounds(string root, string? keep)
+        private static void RemoveStoredBackgrounds(string root, string stem, string? keep)
         {
             if (!Directory.Exists(root))
             {
                 return;
             }
 
-            foreach (var file in Directory.EnumerateFiles(root, BackgroundFileStem + ".*"))
+            foreach (var file in Directory.EnumerateFiles(root, stem + ".*"))
             {
                 if (keep is not null && string.Equals(Path.GetFileName(file), keep, StringComparison.OrdinalIgnoreCase))
                 {
@@ -715,8 +771,10 @@ namespace Amarin.UI
 
             AppearancePage.BackdropNone.IsChecked = appearance.BackdropMode == BackdropMode.None;
             AppearancePage.BackdropGradient.IsChecked = appearance.BackdropMode == BackdropMode.Gradient;
-            AppearancePage.BackdropImage.IsChecked = appearance.BackdropMode == BackdropMode.Image;
-            UpdateBackdropPanels(appearance.BackdropMode);
+            var panorama = appearance.BackdropMode == BackdropMode.Image && appearance.UsePanorama;
+            AppearancePage.BackdropImage.IsChecked = appearance.BackdropMode == BackdropMode.Image && !panorama;
+            AppearancePage.BackdropPanorama.IsChecked = panorama;
+            UpdateBackdropPanels(appearance.BackdropMode, panorama);
 
             var colors = appearance.GradientColors;
             AppearancePage.GradientColor1.Hex = colors.Count > 0 ? colors[0] : "";
@@ -728,9 +786,12 @@ namespace Amarin.UI
             SelectByTag(AppearancePage.MotionCombo, appearance.GradientMotion.ToString());
             AppearancePage.MotionSpeedSlider.Value = appearance.MotionSpeed;
 
-            AppearancePage.BackgroundImageName.Text = string.IsNullOrWhiteSpace(appearance.BackgroundImagePath)
-                ? Loc.Get("S.Common.NotChosen")
-                : appearance.BackgroundImagePath;
+            UpdateBackgroundFileName(appearance);
+            AppearancePage.PanoramaYawSlider.Value = appearance.PanoramaYaw;
+            AppearancePage.PanoramaPitchSlider.Value = appearance.PanoramaPitch;
+            AppearancePage.PanoramaZoomSlider.Value = appearance.PanoramaFieldOfView;
+            AppearancePage.PanoramaMouseToggle.IsChecked = appearance.PanoramaMouse;
+            AppearancePage.PanoramaSensitivitySlider.Value = appearance.PanoramaSensitivity;
             SelectByTag(AppearancePage.ImageFitCombo, appearance.ImageFit.ToString());
             AppearancePage.ImageBrightnessSlider.Value = appearance.ImageBrightness;
             AppearancePage.ImageSaturationSlider.Value = appearance.ImageSaturation;
@@ -756,6 +817,14 @@ namespace Amarin.UI
             AppearancePage.CompactWidthSlider.Value = appearance.CompactWidthPercent;
             AppearancePage.CompactHoverSlider.Value = appearance.CompactHoverRadius;
             RefreshAppearanceLinks();
+        }
+
+        private void UpdateBackgroundFileName(AppearanceSettings? appearance)
+        {
+            var path = appearance?.UsePanorama == true ? appearance.PanoramaPath : appearance?.BackgroundImagePath;
+            AppearancePage.BackgroundImageName.Text = string.IsNullOrWhiteSpace(path)
+                ? Loc.Get("S.Common.NotChosen")
+                : path;
         }
 
         private static void SelectByTag(ComboBox combo, string tag)

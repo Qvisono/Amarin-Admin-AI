@@ -8,17 +8,17 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.38.0-beta.6</Version>
+    <Version>1.38.0-beta.7</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationIcon>jeklE-removebg-preview_1.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/Amarin.ico</ApplicationIcon>
     <!-- API key: dotnet user-secrets set "VENICE_API_KEY" "..." -->
     <UserSecretsId>amarin-admin-ai-8f3c2a1b-4d5e-6f70-8192-a3b4c5d6e7f8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="jeklE-removebg-preview_1.ico" />
+    <Resource Include="Assets/Amarin.ico" />
     <Resource Include="Fonts\*.ttf" />
     <!--
       Скриншоты гайда на странице Info. Маской, а не поимённо: картинки добавляют по мере

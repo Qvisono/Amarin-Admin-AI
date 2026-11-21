@@ -245,7 +245,18 @@ public sealed class DataBundleTests
             SeedProfiles(source, Profile(ProfileStore.DefaultProfileId, "Default"), Profile("route001", "Router"));
             var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model, InheritAgentModel = true };
             var sourceRoot = new ProfileStore(source).DataRootFor(profileId);
+            settings.WebSearchProvider = LlmProvider.OpenRouter;
+            settings.WebSearchEngine = "exa";
+            settings.WebSearchEngineMode = "deep-reasoning";
+            settings.Appearance = new AppearanceSettings
+            {
+                Enabled = true, BackdropMode = BackdropMode.Image, BackgroundImagePath = "background.jpg",
+                UsePanorama = true, PanoramaPath = "panorama.png", PanoramaYaw = 245, PanoramaPitch = -15,
+                PanoramaFieldOfView = 90, PanoramaMouse = false, PanoramaSensitivity = 0.8
+            };
             new AppSettingsStore(sourceRoot).Save(settings);
+            WriteText(Path.Combine(sourceRoot, "background.jpg"), "photo");
+            WriteText(Path.Combine(sourceRoot, "panorama.png"), "panorama");
             var chat = SeedChat(sourceRoot, "routing-chat", "Routing");
             chat.Summary = "Conversation summary";
             chat.CompactSummary = "Compacted context";
@@ -258,7 +269,7 @@ public sealed class DataBundleTests
             chat.InheritAgentModelOverride = true;
             chat.Messages.Add(new ChatDisplayMessage
             {
-                Role = "assistant", Text = "Answer",
+                Role = "assistant", Text = "Answer", ResearchPlan = "Check both reports.",
                 RouterCost = new VeniceCost { Usd = 0.003m, HasData = true },
                 GuardCost = new VeniceCost { Usd = 0.002m, HasData = true }
             });
@@ -273,6 +284,16 @@ public sealed class DataBundleTests
                 var restored = new AppSettingsStore(targetRoot).Load();
                 Assert.Equal(model, restored.RouterModelId);
                 Assert.Equal(model, restored.SynGuardModelId);
+                Assert.Equal("deep-reasoning", ModelSlots.WebSearch(restored).Mode);
+                Assert.True(restored.Appearance.UsePanorama);
+                Assert.Equal(BackdropMode.Image, restored.Appearance.BackdropMode);
+                Assert.Equal(245, restored.Appearance.PanoramaYaw);
+                Assert.Equal(-15, restored.Appearance.PanoramaPitch);
+                Assert.Equal(90, restored.Appearance.PanoramaFieldOfView);
+                Assert.False(restored.Appearance.PanoramaMouse);
+                Assert.Equal(0.8, restored.Appearance.PanoramaSensitivity);
+                Assert.Equal("photo", File.ReadAllText(Path.Combine(targetRoot, restored.Appearance.BackgroundImagePath)));
+                Assert.Equal("panorama", File.ReadAllText(Path.Combine(targetRoot, restored.Appearance.PanoramaPath)));
                 Assert.True(restored.InheritAgentModel);
                 Assert.Equal(AppSettings.CurrentFactoryModels, restored.FactoryModelsRevision);
                 var restoredChat = new ChatStore(targetRoot).TryLoad(chat.Id);
@@ -286,6 +307,7 @@ public sealed class DataBundleTests
                 Assert.False(restoredChat.ComputerControlOverride);
                 Assert.False(restoredChat.AgentBrowserOverride);
                 Assert.True(restoredChat.InheritAgentModelOverride);
+                Assert.Equal("Check both reports.", Assert.Single(restoredChat.Messages).ResearchPlan);
                 Assert.Equal(0.003m, Assert.Single(restoredChat.Messages).RouterCost?.Usd);
                 Assert.Equal(0.002m, Assert.Single(restoredChat.Messages).GuardCost?.Usd);
                 ModelSlotHealing.Heal(restored, LlmProvider.OpenRouter,

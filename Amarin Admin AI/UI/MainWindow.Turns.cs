@@ -168,7 +168,7 @@ namespace Amarin.UI
             // Venice штампует остаток на заголовках каждого ответа, так что к этому моменту
             // книга уже знает цифру, которую оставил после себя ход — любой, в том числе фоновый.
             // У остальных ключей её спрашивают отдельно, но не чаще, чем раз в несколько минут.
-            _balance?.Refresh();
+            RefreshBalanceWatch();
             Detached.Run(RefreshStaleBalancesAsync(), "balances");
 
             UpdateComposerChrome();

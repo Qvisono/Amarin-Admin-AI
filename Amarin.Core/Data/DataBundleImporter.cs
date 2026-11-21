@@ -1235,7 +1235,8 @@ public sealed class DataBundleImporter
         {
             var name = Path.GetFileName(file);
             var isAppearance = string.Equals(name, "avatar.png", StringComparison.OrdinalIgnoreCase) ||
-                               name.StartsWith("background.", StringComparison.OrdinalIgnoreCase);
+                               name.StartsWith("background.", StringComparison.OrdinalIgnoreCase) ||
+                               name.StartsWith("panorama.", StringComparison.OrdinalIgnoreCase);
 
             if (!isAppearance || !IsAllowedImage(file))
             {

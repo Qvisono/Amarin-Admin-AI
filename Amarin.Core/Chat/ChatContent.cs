@@ -206,7 +206,10 @@ internal static class ChatContent
 
         var images = user.Images.Count == 0 ? null : user.Images;
         var files = user.Files.Count == 0 ? null : user.Files;
-        var body = images is null && files is null ? user.Text : BuildPrompt(user.Text, images, files);
+        var prompt = ChatCommands.TryParse(user.Text) is { Name: ChatCommands.Research, Argument.Length: > 0 } research
+            ? research.Argument
+            : user.Text;
+        var body = images is null && files is null ? prompt : BuildPrompt(prompt, images, files);
         var text = ChatQuotes.Wrap(body, user.Quotes, messages, index);
         var raw = AsFiles(files);
 

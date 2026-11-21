@@ -2827,4 +2827,21 @@
     <system:String x:Key="S.QuickAsk.Busy" xml:space="preserve">Three answers are already running. Wait for one of them to finish.</system:String>
     <system:String x:Key="S.QuickAsk.OpenInChat" xml:space="preserve">Open in chat</system:String>
 
+    <system:String x:Key="S.Command.Arg.Topic" xml:space="preserve">topic</system:String>
+    <system:String x:Key="S.Command.Research" xml:space="preserve">Start deep research</system:String>
+    <system:String x:Key="S.Command.ResearchNeedsTopic" xml:space="preserve">Enter a topic after /research.</system:String>
+    <system:String x:Key="S.Command.ResearchPlan" xml:space="preserve">Research plan</system:String>
+    <system:String x:Key="S.Command.ResearchPlanFailed" xml:space="preserve">Could not make a research plan. Try the request again.</system:String>
+    <system:String x:Key="S.Appearance.Panorama" xml:space="preserve">Panorama</system:String>
+    <system:String x:Key="S.Appearance.PanoramaYaw" xml:space="preserve">Heading</system:String>
+    <system:String x:Key="S.Appearance.PanoramaPitch" xml:space="preserve">Tilt</system:String>
+    <system:String x:Key="S.Appearance.PanoramaZoom" xml:space="preserve">Field of view</system:String>
+    <system:String x:Key="S.Appearance.PanoramaMouse" xml:space="preserve">Follow pointer</system:String>
+    <system:String x:Key="S.Appearance.PanoramaSensitivity" xml:space="preserve">Sensitivity</system:String>
+    <system:String x:Key="S.Appearance.PanoramaReset" xml:space="preserve">Reset view</system:String>
+    <system:String x:Key="S.Appearance.PanoramaFormat" xml:space="preserve">Choose a 2:1 image up to 64 MiB.</system:String>
+    <system:String x:Key="S.SessionRail.CompactCapacity" xml:space="preserve">of {0}</system:String>
+    <system:String x:Key="S.SessionRail.CompactInProgress" xml:space="preserve">Compacting…</system:String>
+    <system:String x:Key="S.SessionRail.CompactApplied" xml:space="preserve">Compaction applied</system:String>
+    <system:String x:Key="S.Mcp.ChatUnavailable" xml:space="preserve">The MCP tool is unavailable. Use another tool or report that this method is unavailable.</system:String>
 </ResourceDictionary>

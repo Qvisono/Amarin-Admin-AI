@@ -2827,4 +2827,21 @@
     <system:String x:Key="S.QuickAsk.Busy" xml:space="preserve">Сейчас идут три ответа. Дождитесь, пока закончится один из них.</system:String>
     <system:String x:Key="S.QuickAsk.OpenInChat" xml:space="preserve">Открыть в чате</system:String>
 
+    <system:String x:Key="S.Command.Arg.Topic" xml:space="preserve">тема</system:String>
+    <system:String x:Key="S.Command.Research" xml:space="preserve">Запустить глубокое исследование</system:String>
+    <system:String x:Key="S.Command.ResearchNeedsTopic" xml:space="preserve">Напишите тему после /research.</system:String>
+    <system:String x:Key="S.Command.ResearchPlan" xml:space="preserve">План исследования</system:String>
+    <system:String x:Key="S.Command.ResearchPlanFailed" xml:space="preserve">Не удалось составить план исследования. Повторите запрос.</system:String>
+    <system:String x:Key="S.Appearance.Panorama" xml:space="preserve">Панорама</system:String>
+    <system:String x:Key="S.Appearance.PanoramaYaw" xml:space="preserve">Поворот</system:String>
+    <system:String x:Key="S.Appearance.PanoramaPitch" xml:space="preserve">Наклон</system:String>
+    <system:String x:Key="S.Appearance.PanoramaZoom" xml:space="preserve">Угол обзора</system:String>
+    <system:String x:Key="S.Appearance.PanoramaMouse" xml:space="preserve">Реакция на курсор</system:String>
+    <system:String x:Key="S.Appearance.PanoramaSensitivity" xml:space="preserve">Чувствительность</system:String>
+    <system:String x:Key="S.Appearance.PanoramaReset" xml:space="preserve">Сбросить ракурс</system:String>
+    <system:String x:Key="S.Appearance.PanoramaFormat" xml:space="preserve">Выберите изображение 2:1 размером до 64 МиБ.</system:String>
+    <system:String x:Key="S.SessionRail.CompactCapacity" xml:space="preserve">из {0}</system:String>
+    <system:String x:Key="S.SessionRail.CompactInProgress" xml:space="preserve">Сжатие…</system:String>
+    <system:String x:Key="S.SessionRail.CompactApplied" xml:space="preserve">Сжатие применено</system:String>
+    <system:String x:Key="S.Mcp.ChatUnavailable" xml:space="preserve">Инструмент MCP недоступен. Используйте другой инструмент или сообщите, что этот способ проверки недоступен.</system:String>
 </ResourceDictionary>

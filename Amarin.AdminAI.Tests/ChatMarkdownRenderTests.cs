@@ -78,6 +78,23 @@ public sealed class ChatMarkdownRenderTests
     }
 
     [Fact]
+    public void Long_ordered_markers_get_room_even_when_nested()
+    {
+        var outer = OnUi("99. Before\n100. After\n\n     999. Before\n     1000. After", blocks =>
+        {
+            var list = Assert.Single(blocks.OfType<List>());
+            var nested = Assert.Single(list.ListItems.LastListItem.Blocks.OfType<List>());
+            return (list.StartIndex, list.Padding.Left, nested.StartIndex, nested.Padding.Left);
+        });
+        var shortMarker = OnUi("1. Short", blocks => Assert.Single(blocks.OfType<List>()).Padding.Left);
+
+        Assert.Equal(99, outer.Item1);
+        Assert.Equal(999, outer.Item3);
+        Assert.True(outer.Item2 > shortMarker);
+        Assert.True(outer.Item4 > outer.Item2);
+    }
+
+    [Fact]
     public void Inline_markup_becomes_real_runs_instead_of_flattened_text()
     {
         var found = OnUi(blocks =>

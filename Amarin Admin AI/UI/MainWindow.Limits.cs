@@ -13,6 +13,58 @@ namespace Amarin.UI
     /// </remarks>
     public partial class MainWindow
     {
+        private readonly BalanceWatch _balanceWatch = new();
+        private BalanceBook? _watchedBalances;
+
+        private void WatchBalances(BalanceBook? book)
+        {
+            if (ReferenceEquals(_watchedBalances, book))
+            {
+                return;
+            }
+
+            if (_watchedBalances is not null)
+            {
+                _watchedBalances.Changed -= OnBalancesChanged;
+            }
+
+            _watchedBalances = book;
+            if (book is not null)
+            {
+                if (_services?.BalanceCache?.Load() is { Count: > 0 } saved)
+                {
+                    book.Restore(saved);
+                }
+
+                book.Changed += OnBalancesChanged;
+                RefreshBalanceWatch();
+            }
+        }
+
+        private void RefreshBalanceWatch()
+        {
+            if (_services is not { } services || _watchedBalances is not { } balances)
+            {
+                return;
+            }
+
+            var keys = services.KeyStore.List();
+            foreach (var alert in _balanceWatch.Observe(services.Settings.BalanceThresholds,
+                         balances.Total(keys), balances.Breakdown(keys)))
+            {
+                OnBalanceAlert(alert);
+            }
+        }
+
+        private void OnBalancesChanged() => Ui(() =>
+        {
+            if (_watchedBalances is { } balances)
+            {
+                _services?.BalanceCache?.Save(balances.Snapshot());
+                RefreshBalanceWatch();
+            }
+        });
+
         private void WireSpendLimits()
         {
             if (_services is not { } services)

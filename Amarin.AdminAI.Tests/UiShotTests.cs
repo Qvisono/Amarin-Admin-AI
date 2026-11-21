@@ -775,13 +775,10 @@ public sealed class UiShotTests : IDisposable
         Call(window, "CloseJournal");
 
         // Подсказки поля ввода — их содержимым: открытая подсказка живёт в своём окне.
-        var balance = (BalanceBadge)typeof(MainWindow).GetField("_balance", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
-        balance.ShowForShot(37.5m);
         var ring = (ContextRing)typeof(MainWindow).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
         ring.Show(new ContextUsage(104_210, 128_000, false));
         foreach (var (tip, file) in new[]
                  {
-                     (((FrameworkElement)window.FindSetting("BalanceBadge")).ToolTip, "e-tip-balance.png"),
                      (((FrameworkElement)window.FindSetting("ContextBadge")).ToolTip, "e-tip-context.png")
                  })
         {

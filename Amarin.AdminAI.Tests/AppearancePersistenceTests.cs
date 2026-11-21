@@ -37,6 +37,8 @@ public sealed class AppearancePersistenceTests
             Assert.True(loaded.Appearance.Enabled);
             Assert.Equal(BackdropMode.Image, loaded.Appearance.BackdropMode);
             Assert.Equal("background.jpg", loaded.Appearance.BackgroundImagePath);
+            Assert.False(loaded.Appearance.UsePanorama);
+            Assert.Equal(75, loaded.Appearance.PanoramaFieldOfView);
             Assert.Equal(["#101010", "#A0A0A0", "#FFFFFF"], loaded.Appearance.GradientColors);
             Assert.Equal(BackdropMotion.Aurora, loaded.Appearance.GradientMotion);
             Assert.Equal(BackdropFit.Tile, loaded.Appearance.ImageFit);

@@ -198,7 +198,7 @@ internal static class Program
 
         // Фон считаем, пока WPF разбирает разметку окна: обои бывают на десятки мегапикселей,
         // и без этого человек успевал увидеть градиент-затычку прежде самой картинки.
-        if (settings.Appearance is { Enabled: true, BackdropMode: BackdropMode.Image } appearance)
+        if (settings.Appearance is { Enabled: true, BackdropMode: BackdropMode.Image, UsePanorama: false } appearance)
         {
             AppearanceImageCache.Prewarm(
                 AppearanceImageCache.ResolvePath(appearance.BackgroundImagePath, dataRoot),

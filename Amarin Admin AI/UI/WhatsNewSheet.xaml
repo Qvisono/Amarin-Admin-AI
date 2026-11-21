@@ -259,8 +259,10 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Image Source="/Amarin Admin AI;component/jeklE-removebg-preview_1.ico" Width="18" Height="18"
-                           Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <Image Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <Image.Resources><ResourceDictionary Source="AmarinBrand.xaml"/></Image.Resources>
+                        <Image.Source><StaticResource ResourceKey="AmarinLogo"/></Image.Source>
+                    </Image>
                     <TextBlock Grid.Column="1" Text="{DynamicResource S.Updates.WhatsNewHeading}" FontSize="15"
                                FontWeight="SemiBold" FontFamily="{StaticResource WhatsNew.Display}"
                                Foreground="{DynamicResource WhatsNew.Text1}" VerticalAlignment="Center"/>

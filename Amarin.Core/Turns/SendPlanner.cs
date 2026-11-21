@@ -24,6 +24,8 @@ internal enum SendVerdict
     /// <summary><c>/agent</c> с цитатами: чата агент не видит, и цитата указывала бы на непрочитанное.</summary>
     AgentNoQuotes,
 
+    ResearchNeedsTopic,
+
     /// <summary>В чате уже отвечают: строка встаёт в очередь идущего хода.</summary>
     FollowUp,
 
@@ -106,7 +108,7 @@ internal static class SendPlanner
             return new SendPlan(SendVerdict.LimitReached, text, Command: command);
         }
 
-        return new SendPlan(command is not null ? SendVerdict.Agent : SendVerdict.Send, text, Command: command);
+        return new SendPlan(command is { Name: ChatCommands.Agent } ? SendVerdict.Agent : SendVerdict.Send, text, Command: command);
     }
 
     /// <summary>
@@ -118,13 +120,14 @@ internal static class SendPlanner
         var text = draft.Text.Trim();
         var command = ChatCommands.TryParse(text);
         var verdict = Refusal(draft, command, hasUsableKey) ??
-                      (!hasRoom ? SendVerdict.LimitReached : command is not null ? SendVerdict.Agent : SendVerdict.Send);
+                      (!hasRoom ? SendVerdict.LimitReached : command is { Name: ChatCommands.Agent } ? SendVerdict.Agent : SendVerdict.Send);
         return new SendPlan(verdict, text, Command: command);
     }
 
     private static SendVerdict? Refusal(OutgoingDraft draft, ChatCommand? command, bool hasUsableKey) =>
         !hasUsableKey ? SendVerdict.NoKey
-        : command is not null && draft.HasAttachments ? SendVerdict.AgentNoAttachments
-        : command is not null && draft.Quotes > 0 ? SendVerdict.AgentNoQuotes
+        : command is { Name: ChatCommands.Agent } && draft.HasAttachments ? SendVerdict.AgentNoAttachments
+        : command is { Name: ChatCommands.Agent } && draft.Quotes > 0 ? SendVerdict.AgentNoQuotes
+        : command is { Name: ChatCommands.Research, Argument.Length: 0 } ? SendVerdict.ResearchNeedsTopic
         : null;
 }

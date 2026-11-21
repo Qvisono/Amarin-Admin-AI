@@ -45,6 +45,51 @@ public sealed class AppearanceImageCacheTests
     }
 
     [Fact]
+    public async Task A_new_panorama_variant_replaces_the_old_one_without_evicting_photos()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            AppearanceImageCache.Clear();
+            var photo = WritePicture(root, "background.png", 40, 24);
+            var panorama = WritePicture(root, "panorama.png", 200, 100);
+            double[] photoSaturations = [0.5, 1.0, 1.5];
+            foreach (var saturation in photoSaturations)
+            {
+                Assert.NotNull(await AppearanceImageCache.LoadAsync(photo, saturation, 0));
+            }
+
+            var first = await AppearanceImageCache.LoadAsync(panorama, 1, 0, panorama: true);
+            Assert.NotNull(first);
+            Assert.Same(first, AppearanceImageCache.Peek(panorama, 1, 0, panorama: true));
+
+            var next = await AppearanceImageCache.LoadAsync(panorama, 1.2, 0, panorama: true);
+            Assert.NotNull(next);
+            Assert.Same(next, AppearanceImageCache.Peek(panorama, 1.2, 0, panorama: true));
+            Assert.Null(AppearanceImageCache.Peek(panorama, 1, 0, panorama: true));
+
+            var variants = await Task.WhenAll(
+                AppearanceImageCache.LoadAsync(panorama, 1, 8, panorama: true),
+                AppearanceImageCache.LoadAsync(panorama, 1.5, 0, panorama: true),
+                AppearanceImageCache.LoadAsync(panorama, 1.5, 0, panorama: true));
+            Assert.All(variants, variant => Assert.NotNull(variant));
+            Assert.Same(variants[1], variants[2]);
+            Assert.Same(variants[2], AppearanceImageCache.Peek(panorama, 1.5, 0, panorama: true));
+            Assert.Null(AppearanceImageCache.Peek(panorama, 1, 8, panorama: true));
+
+            foreach (var saturation in photoSaturations)
+            {
+                Assert.NotNull(AppearanceImageCache.Peek(photo, saturation, 0));
+            }
+        }
+        finally
+        {
+            AppearanceImageCache.Clear();
+            Cleanup(root);
+        }
+    }
+
+    [Fact]
     public async Task The_processed_picture_is_kept_on_disk_for_the_next_launch()
     {
         // Кэш в памяти не переживает выход из программы, а обои бывают на десятки

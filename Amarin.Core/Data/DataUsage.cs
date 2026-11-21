@@ -133,7 +133,8 @@ public static class DataUsage
             return SettingsKey;
         }
 
-        if (name == "avatar.png" || name.StartsWith("background.", StringComparison.Ordinal))
+        if (name == "avatar.png" || name.StartsWith("background.", StringComparison.Ordinal) ||
+            name.StartsWith("panorama.", StringComparison.Ordinal))
         {
             return AppearanceKey;
         }

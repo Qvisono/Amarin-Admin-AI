@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Amarin.Core;
 
 namespace Amarin.UI;
@@ -18,7 +19,9 @@ public sealed record SessionRailSnapshot(
     SessionRailSettings Settings,
     bool CanCompact,
     bool IsCompacted = false,
-    SessionRailCompaction? Compaction = null)
+    SessionRailCompaction? Compaction = null,
+    string? SessionId = null,
+    bool IsCompacting = false)
 {
     /// <summary>Пустой чат до получения данных ядра.</summary>
     public static SessionRailSnapshot Empty { get; } = new(null, [], [], new SessionRailSettings(false, false), false);
@@ -35,7 +38,7 @@ public sealed record SessionRailCompaction(
 public sealed record SessionRailCompactOptions(int KeepMessages, bool CompactFirst);
 
 /// <summary>Контекст после сжатия и число сообщений ленты под сводкой (ноль — неизвестно).</summary>
-public sealed record SessionRailCompactPreview(long UsedAfter, int CompactedMessages, int TotalMessages);
+public sealed record SessionRailCompactPreview(long UsedAfter, int CompactedMessages, int TotalMessages, long? TokensToCompact = null);
 
 /// <summary>Просьба сжать открытый чат с настройками экрана.</summary>
 public sealed class SessionRailCompactRequestedEventArgs(
@@ -120,6 +123,9 @@ public partial class SessionRailPanel : UserControl
     private SessionRailSettings _settings = new(false, false);
     private SessionRailSnapshot _snapshot = SessionRailSnapshot.Empty;
     private int _keep = CompactionOptions.DefaultKeep;
+    private SessionRailContext? _workingContext;
+    private SessionRailCompactPreview? _workingPreview;
+    private bool _showCompactResult;
     private List<SessionRailFile> _shownFiles = [];
     private List<SessionRailAgent> _shownAgents = [];
     private ThemePresetInfo? _shownAgentsTheme;
@@ -176,13 +182,24 @@ public partial class SessionRailPanel : UserControl
             ComputerToggle.ToolTip = _settings.ComputerAvailable ? null : Loc.Get("S.SessionRail.GlobalDisabled");
             BrowserToggle.ToolTip = _settings.BrowserAvailable ? null : Loc.Get("S.SessionRail.GlobalDisabled");
             InheritAgentToggle.IsChecked = _settings.InheritAgentEnabled;
+            if (_snapshot.SessionId != snapshot.SessionId)
+            {
+                ShowCompact(false);
+            }
+            else if (IsCompactOpen && snapshot.IsCompacting && !_snapshot.IsCompacting)
+            {
+                _workingContext = _snapshot.Context;
+                _workingPreview = _snapshot.Compaction?.Preview(CompactOptions);
+                _showCompactResult = false;
+            }
+
             _snapshot = snapshot;
             CompactButton.IsEnabled = snapshot.CanCompact || snapshot.IsCompacted;
             CompactUndoButton.Visibility = snapshot.IsCompacted ? Visibility.Visible : Visibility.Collapsed;
             if (IsCompactOpen)
             {
                 // Экран остаётся открытым и пересчитывает шапку; занятому чату сжатие недоступно.
-                if (CompactButton.IsEnabled)
+                if (CompactButton.IsEnabled || snapshot.IsCompacting || _workingContext is not null)
                 {
                     ShowCompactPreview();
                 }
@@ -420,6 +437,7 @@ public partial class SessionRailPanel : UserControl
         // Переключатель срабатывает и во время чтения разметки, когда экрана ещё нет.
         if (CompactView is not null && IsCompactOpen)
         {
+            _showCompactResult = false;
             ShowCompactPreview();
         }
     }
@@ -427,6 +445,7 @@ public partial class SessionRailPanel : UserControl
     private void SetKeep(int value)
     {
         _keep = Math.Clamp(value, CompactionOptions.MinKeep, CompactionOptions.MaxKeep);
+        _showCompactResult = false;
         ShowCompactPreview();
     }
 
@@ -438,6 +457,13 @@ public partial class SessionRailPanel : UserControl
         {
             ShowCompactPreview();
         }
+        else
+        {
+            _workingContext = null;
+            _workingPreview = null;
+            _showCompactResult = false;
+            StopCompactAnimation();
+        }
     }
 
     private SessionRailCompactOptions CompactOptions => new(_keep, CompactFirstToggle.IsChecked == true);
@@ -445,40 +471,90 @@ public partial class SessionRailPanel : UserControl
     /// <summary>Шапка экрана сжатия: сколько занято сейчас и сколько останется с выбранными настройками.</summary>
     private void ShowCompactPreview()
     {
+        var working = _snapshot.IsCompacting || _workingContext is not null;
         KeepValue.Text = _keep.ToString(CultureInfo.CurrentCulture);
-        KeepLessButton.IsEnabled = _keep > CompactionOptions.MinKeep;
-        KeepMoreButton.IsEnabled = _keep < CompactionOptions.MaxKeep;
+        KeepLessButton.IsEnabled = !working && _keep > CompactionOptions.MinKeep;
+        KeepMoreButton.IsEnabled = !working && _keep < CompactionOptions.MaxKeep;
+        CompactFirstToggle.IsEnabled = CompactModelField.IsEnabled = CompactInstructionsBox.IsEnabled = !working;
 
-        var preview = _snapshot.CanCompact ? _snapshot.Compaction?.Preview(CompactOptions) : null;
-        var used = _snapshot.Context?.UsedTokens ?? 0;
+        var context = _workingContext ?? _snapshot.Context;
+        var preview = working ? _workingPreview : _snapshot.CanCompact ? _snapshot.Compaction?.Preview(CompactOptions) : null;
+        var used = context?.UsedTokens ?? 0;
         var after = preview?.UsedAfter ?? used;
+        var compressed = _showCompactResult ? 0 : Math.Clamp(preview?.TokensToCompact ?? (used - after), 0, used);
 
-        CompactRunButton.IsEnabled = preview is not null;
+        CompactRunButton.IsEnabled = !working && preview is not null;
+        CompactRunButton.Content = Loc.Get(working ? "S.SessionRail.CompactInProgress" : "S.Compact.Hint");
         CompactBefore.Text = used.ToString("N0", CultureInfo.CurrentCulture);
         CompactAfter.Text = "≈ " + after.ToString("N0", CultureInfo.CurrentCulture);
-        CompactArrow.Visibility = CompactAfter.Visibility = preview is null ? Visibility.Collapsed : Visibility.Visible;
+        CompactArrow.Visibility = CompactAfter.Visibility = preview is null || _showCompactResult
+            ? Visibility.Collapsed : Visibility.Visible;
+        CompactCapacity.Text = context is { CapacityTokens: > 0 }
+            ? Loc.Format("S.SessionRail.CompactCapacity", context.CapacityTokens.ToString("N0", CultureInfo.CurrentCulture))
+            : "";
         KeepHint.Text = preview switch
         {
-            null => Loc.Get("S.Compact.Nothing"),
+            null when _showCompactResult => "",
+            null => working ? "" : Loc.Get("S.Compact.Nothing"),
             { CompactedMessages: > 0 } => Loc.Format("S.SessionRail.CompactKeepHint", preview.CompactedMessages, preview.TotalMessages),
             _ => ""
         };
         KeepHint.Visibility = KeepHint.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
 
-        // Шкала меряет занятое сейчас, а не окно модели: так видна доля, которую сжатие освободит.
+        var capacity = Math.Max(used, context?.CapacityTokens ?? 0);
+        CompactBar.Visibility = capacity > 0 ? Visibility.Visible : Visibility.Collapsed;
+        CompactKeptColumn.Width = new GridLength(used - compressed, GridUnitType.Star);
+        CompactFreedColumn.Width = new GridLength(compressed, GridUnitType.Star);
+        CompactFreeColumn.Width = new GridLength(Math.Max(0, capacity - used), GridUnitType.Star);
         var freed = Math.Max(0, used - after);
-        CompactBar.Visibility = used > 0 ? Visibility.Visible : Visibility.Collapsed;
-        CompactKeptColumn.Width = new GridLength(Math.Max(0, used - freed), GridUnitType.Star);
-        CompactFreedColumn.Width = new GridLength(freed, GridUnitType.Star);
-        CompactFrees.Visibility = freed > 0 ? Visibility.Visible : Visibility.Collapsed;
-        CompactFrees.Text = freed > 0
-            ? Loc.Format("S.SessionRail.CompactFrees", ((double)freed / used).ToString("P0", CultureInfo.CurrentCulture))
-            : "";
+        CompactFrees.Text = _showCompactResult ? Loc.Get("S.SessionRail.CompactApplied")
+            : freed > 0 ? Loc.Format("S.SessionRail.CompactFrees", ((double)freed / used).ToString("P0", CultureInfo.CurrentCulture)) : "";
+        CompactFrees.Visibility = CompactFrees.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    internal void CompleteCompaction(bool success)
+    {
+        var before = _workingContext;
+        _workingContext = null;
+        _workingPreview = null;
+        if (!IsCompactOpen || before is null)
+        {
+            return;
+        }
+
+        StopCompactAnimation();
+        _showCompactResult = success;
+        ShowCompactPreview();
+        if (!success || !UiMotion.Enabled || !SystemParameters.ClientAreaAnimation || _snapshot.Context is not { } after)
+        {
+            return;
+        }
+
+        var capacity = Math.Max(Math.Max(before.UsedTokens, before.CapacityTokens), after.UsedTokens);
+        if (capacity == 0 || before.UsedTokens <= after.UsedTokens)
+        {
+            return;
+        }
+
+        CompactTransition.Visibility = Visibility.Visible;
+        var animation = new DoubleAnimation((double)before.UsedTokens / capacity,
+            (double)after.UsedTokens / capacity, TimeSpan.FromMilliseconds(310))
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        animation.Completed += (_, _) => StopCompactAnimation();
+        CompactScale.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
+    }
+
+    private void StopCompactAnimation()
+    {
+        CompactScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        CompactTransition.Visibility = Visibility.Collapsed;
     }
 
     private void CompactRun_Click(object sender, RoutedEventArgs e)
     {
-        ShowCompact(false);
+        _showCompactResult = false;
         CompactionRequested?.Invoke(this, new SessionRailCompactRequestedEventArgs(
             CompactOptions, CompactModelField.SelectedModelId, CompactModelField.SelectedKeyId, CompactInstructionsBox.Text.Trim()));
     }

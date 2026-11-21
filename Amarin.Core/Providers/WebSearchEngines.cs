@@ -48,6 +48,7 @@ public static class WebSearchEngines
         new(null, "Perplexity", "perplexity", null, "$0.005"),
         new(null, "Exa", "exa", "auto", "$0.007"),
         new(null, "Exa Deep", "exa", "deep", "$0.012"),
+        new(null, "Exa Deep Reasoning", "exa", "deep-reasoning", "$0.015"),
         new("S.Search.Engine.Native", "Native", "native", null, "")
     ];
 

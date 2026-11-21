@@ -351,14 +351,16 @@
                 <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Appearance.Backdrop}"/>
                 <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal">
+                        <WrapPanel>
                             <RadioButton x:Name="BackdropNone" Style="{StaticResource SettingsSegment}"
                                          Content="{DynamicResource S.Common.None}" Tag="None"/>
                             <RadioButton x:Name="BackdropGradient" Style="{StaticResource SettingsSegment}"
                                          Content="{DynamicResource S.Appearance.Gradient}" Tag="Gradient"/>
                             <RadioButton x:Name="BackdropImage" Style="{StaticResource SettingsSegment}"
                                          Content="{DynamicResource S.Appearance.Image}" Tag="Image"/>
-                        </StackPanel>
+                            <RadioButton x:Name="BackdropPanorama" Style="{StaticResource SettingsSegment}"
+                                         Content="{DynamicResource S.Appearance.Panorama}" Tag="Panorama"/>
+                        </WrapPanel>
 
                         <!-- ── Градиент ── -->
                         <StackPanel x:Name="GradientPanel" Margin="0,12,0,0" Visibility="Collapsed">
@@ -444,7 +446,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Grid Margin="0,0,0,8">
+                            <Grid x:Name="ImageFitRow" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -458,6 +460,62 @@
                                     <ComboBoxItem Content="{DynamicResource S.Appearance.FitTile}" Tag="Tile"/>
                                 </ComboBox>
                             </Grid>
+
+                            <StackPanel x:Name="PanoramaControls" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanoramaYaw}"
+                                               VerticalAlignment="Center"/>
+                                    <Slider x:Name="PanoramaYawSlider" Grid.Column="1" Style="{StaticResource SettingsRangeSlider}"
+                                            Minimum="0" Maximum="360" SmallChange="1" LargeChange="15"
+                                            AutomationProperties.Name="{DynamicResource S.Appearance.PanoramaYaw}"/>
+                                    <TextBlock x:Name="PanoramaYawValue" Grid.Column="2" Style="{StaticResource SettingValue}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanoramaPitch}"
+                                               VerticalAlignment="Center"/>
+                                    <Slider x:Name="PanoramaPitchSlider" Grid.Column="1" Style="{StaticResource SettingsRangeSlider}"
+                                            Minimum="-85" Maximum="85" SmallChange="1" LargeChange="10"
+                                            AutomationProperties.Name="{DynamicResource S.Appearance.PanoramaPitch}"/>
+                                    <TextBlock x:Name="PanoramaPitchValue" Grid.Column="2" Style="{StaticResource SettingValue}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanoramaZoom}"
+                                               VerticalAlignment="Center"/>
+                                    <Slider x:Name="PanoramaZoomSlider" Grid.Column="1" Style="{StaticResource SettingsRangeSlider}"
+                                            Minimum="35" Maximum="110" SmallChange="1" LargeChange="5"
+                                            AutomationProperties.Name="{DynamicResource S.Appearance.PanoramaZoom}"/>
+                                    <TextBlock x:Name="PanoramaZoomValue" Grid.Column="2" Style="{StaticResource SettingValue}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanoramaMouse}"
+                                               VerticalAlignment="Center"/>
+                                    <CheckBox x:Name="PanoramaMouseToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                                              AutomationProperties.Name="{DynamicResource S.Appearance.PanoramaMouse}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8" IsEnabled="{Binding IsChecked, ElementName=PanoramaMouseToggle}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanoramaSensitivity}"
+                                               VerticalAlignment="Center"/>
+                                    <Slider x:Name="PanoramaSensitivitySlider" Grid.Column="1" Style="{StaticResource SettingsRangeSlider}"
+                                            Minimum="0" Maximum="1" SmallChange="0.02" LargeChange="0.1"
+                                            AutomationProperties.Name="{DynamicResource S.Appearance.PanoramaSensitivity}"/>
+                                    <TextBlock x:Name="PanoramaSensitivityValue" Grid.Column="2" Style="{StaticResource SettingValue}"/>
+                                </Grid>
+                                <Button x:Name="ResetPanoramaButton" Style="{StaticResource SecondaryButton}"
+                                        Content="{DynamicResource S.Appearance.PanoramaReset}" HorizontalAlignment="Left" Margin="0,0,0,10"/>
+                            </StackPanel>
 
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>

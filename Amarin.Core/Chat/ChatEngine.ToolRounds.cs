@@ -250,7 +250,7 @@ internal sealed partial class ChatEngine
                         }))
                         {
                             started = true;
-                            result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
+                            result = await ExecuteChatToolAsync(call.Name, arguments, cancellationToken)
                                 .ConfigureAwait(false);
                             outcome = result.Success ? AuditOutcome.Ok : AuditOutcome.Failed;
                         }
@@ -401,6 +401,20 @@ internal sealed partial class ChatEngine
             approval,
             guard,
             result.Output);
+    }
+
+    private Task<ToolResult> ExecuteChatToolAsync(string name, JsonElement arguments, CancellationToken cancellationToken)
+    {
+        if (McpNames.IsMcp(name) && McpTools is { } tools)
+        {
+            // Пока вызов ждал подтверждения, сервер могли выключить или удалить.
+            var tool = tools().FirstOrDefault(tool => tool.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            return tool is null
+                ? Task.FromResult(ToolResult.Fail(Loc.Get("S.Mcp.ChatUnavailable")))
+                : tool.ExecuteAsync(arguments, cancellationToken);
+        }
+
+        return _tools.ExecuteAsync(name, arguments, cancellationToken);
     }
 
     /// <summary>

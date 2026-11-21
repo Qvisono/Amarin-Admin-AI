@@ -31,6 +31,7 @@ internal static class AppearanceImageCache
     private const int MinEdge = 200;
 
     private const int CacheSize = 4;
+    private const string PanoramaKeyPrefix = "panorama|";
 
     /// <summary>Крупнее этого готовый снимок на диск не пишем — см. <c>WriteDerived</c>.</summary>
     private const long MaxDerivedPixels = 4_000_000;
@@ -52,6 +53,7 @@ internal static class AppearanceImageCache
 
     private static readonly Lock Gate = new();
     private static readonly List<(string Key, BitmapSource Image)> Cache = [];
+    private static (string? Key, long Version) _panoramaRequest;
 
     /// <summary>
     /// Разбирает и обрабатывает картинку в фоне. <c>null</c> — файла нет, он не читается или это
@@ -65,8 +67,30 @@ internal static class AppearanceImageCache
     /// Папка профиля, куда кладётся готовый снимок. <c>null</c> — считать заново каждый раз;
     /// так работают вызовы, у которых профиля под рукой нет.
     /// </param>
-    public static Task<BitmapSource?> LoadAsync(string? path, double saturation, double blur, string? cacheRoot = null) =>
-        Task.Run(() => Load(path, saturation, blur, cacheRoot));
+    public static Task<BitmapSource?> LoadAsync(
+        string? path, double saturation, double blur, string? cacheRoot = null, bool panorama = false)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return Task.FromResult<BitmapSource?>(null);
+        }
+
+        // С округлением: ползунки ходят мелкими шагами, процент разницы не виден, а каждое
+        // отдельное значение было бы своей записью кэша и своим проходом по пикселям.
+        var sat = Round(saturation);
+        var rad = Round(blur, radius: true);
+        long? panoramaVersion = null;
+        if (panorama)
+        {
+            var key = Key(path, sat, rad, stamp: null, panorama: true);
+            lock (Gate)
+            {
+                panoramaVersion = SelectPanorama(key);
+            }
+        }
+
+        return Task.Run(() => Load(path, sat, rad, cacheRoot, panoramaVersion));
+    }
 
     /// <summary>
     /// Считает картинку заранее, ни на что не глядя.
@@ -108,18 +132,18 @@ internal static class AppearanceImageCache
 
     /// <summary>Cache lookup only — safe and instant on the UI thread. <c>null</c> means "not ready".</summary>
     /// <remarks>
-    /// Округление обязано повторять <see cref="Load"/> до последнего знака. Пока его здесь не
+    /// Округление обязано повторять <see cref="LoadAsync"/> до последнего знака. Пока его здесь не
     /// было, ключ от ползунка (<c>1.1506024096386072</c>) не совпадал с положенным в кэш
     /// (<c>1.15</c>) никогда, и каждое применение оформления заново мигало градиентом.
     /// </remarks>
-    public static BitmapSource? Peek(string? path, double saturation, double blur)
+    public static BitmapSource? Peek(string? path, double saturation, double blur, bool panorama = false)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             return null;
         }
 
-        var key = Key(path, Round(saturation), Round(blur, radius: true), stamp: null);
+        var key = Key(path, Round(saturation), Round(blur, radius: true), stamp: null, panorama);
         lock (Gate)
         {
             foreach (var entry in Cache)
@@ -127,6 +151,12 @@ internal static class AppearanceImageCache
                 // Отметку без обращения к диску не узнать — сверяем по началу ключа.
                 if (entry.Key.StartsWith(key, StringComparison.Ordinal))
                 {
+                    if (panorama)
+                    {
+                        // К готовому варианту можно вернуться, пока другой ещё обрабатывается.
+                        SelectPanorama(key);
+                    }
+
                     return entry.Image;
                 }
             }
@@ -140,21 +170,22 @@ internal static class AppearanceImageCache
         lock (Gate)
         {
             Cache.Clear();
+            _panoramaRequest = (null, _panoramaRequest.Version + 1);
         }
     }
 
-    private static BitmapSource? Load(string? path, double saturation, double blur, string? cacheRoot)
+    private static long SelectPanorama(string key)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (_panoramaRequest.Key != key)
         {
-            return null;
+            _panoramaRequest = (key, _panoramaRequest.Version + 1);
         }
 
-        // С округлением: ползунки ходят мелкими шагами, процент разницы не виден, а каждое
-        // отдельное значение было бы своей записью кэша и своим проходом по пикселям.
-        var sat = Round(saturation);
-        var rad = Round(blur, radius: true);
+        return _panoramaRequest.Version;
+    }
 
+    private static BitmapSource? Load(string path, double saturation, double blur, string? cacheRoot, long? panoramaVersion)
+    {
         string stamp;
         try
         {
@@ -175,20 +206,13 @@ internal static class AppearanceImageCache
             return null;
         }
 
-        var key = Key(path, sat, rad, stamp);
+        var panorama = panoramaVersion.HasValue;
+        var key = Key(path, saturation, blur, stamp, panorama);
         lock (Gate)
         {
-            for (var i = 0; i < Cache.Count; i++)
+            if (TouchCachedImage(key) is { } cached)
             {
-                if (Cache[i].Key != key)
-                {
-                    continue;
-                }
-
-                var hit = Cache[i];
-                Cache.RemoveAt(i);
-                Cache.Add(hit);
-                return hit.Image;
+                return cached;
             }
         }
 
@@ -198,13 +222,29 @@ internal static class AppearanceImageCache
             var result = ReadDerived(derived);
             if (result is null)
             {
-                result = Process(Decode(path, rad), sat, rad);
+                result = Process(Decode(path, blur, panorama), saturation, blur, panorama);
                 result.Freeze();
                 WriteDerived(derived, result);
             }
 
             lock (Gate)
             {
+                if (TouchCachedImage(key) is { } cached)
+                {
+                    return cached;
+                }
+
+                if (panorama)
+                {
+                    if (panoramaVersion != _panoramaRequest.Version)
+                    {
+                        return result;
+                    }
+
+                    // Панорама 7680 × 3840 занимает до 112,5 МиБ. Держим только один её вариант.
+                    Cache.RemoveAll(entry => entry.Key.StartsWith(PanoramaKeyPrefix, StringComparison.Ordinal));
+                }
+
                 Cache.Add((key, result));
                 while (Cache.Count > CacheSize)
                 {
@@ -222,13 +262,31 @@ internal static class AppearanceImageCache
         }
     }
 
-    /// <summary>Округление ползунка. Одно на <see cref="Load"/> и <see cref="Peek"/>.</summary>
+    private static BitmapSource? TouchCachedImage(string key)
+    {
+        for (var i = 0; i < Cache.Count; i++)
+        {
+            if (Cache[i].Key != key)
+            {
+                continue;
+            }
+
+            var hit = Cache[i];
+            Cache.RemoveAt(i);
+            Cache.Add(hit);
+            return hit.Image;
+        }
+
+        return null;
+    }
+
+    /// <summary>Округление ползунка. Одно на <see cref="LoadAsync"/> и <see cref="Peek"/>.</summary>
     private static double Round(double value, bool radius = false) => radius
         ? Math.Round(Math.Clamp(value, 0, 80), 1)
         : Math.Round(Math.Clamp(value, 0, 2), 2);
 
-    private static string Key(string path, double saturation, double blur, string? stamp) =>
-        string.Create(CultureInfo.InvariantCulture, $"{path}|{saturation}|{blur}|{stamp}");
+    private static string Key(string path, double saturation, double blur, string? stamp, bool panorama) =>
+        string.Create(CultureInfo.InvariantCulture, $"{(panorama ? PanoramaKeyPrefix : "")}{path}|{saturation}|{blur}|{stamp}");
 
     // ───────────────────────── готовый снимок на диске ─────────────────────────
 
@@ -366,7 +424,7 @@ internal static class AppearanceImageCache
     /// (<see cref="BitmapCreateOptions.DelayCreation"/> + <see cref="BitmapCacheOption.None"/>), так
     /// что ради замера полноразмерные пиксели не создаются.
     /// </summary>
-    private static BitmapSource Decode(string path, double blur)
+    private static BitmapSource Decode(string path, double blur, bool panorama)
     {
         var uri = new Uri(path, UriKind.Absolute);
 
@@ -394,7 +452,12 @@ internal static class AppearanceImageCache
         // частот, а кисть растягивает результат обратно на окно.
         var scale = 1.0 / (1.0 + (blur / 6.0));
         var longEdge = Math.Max(width, height);
-        var target = (int)Math.Round(Math.Min(longEdge, MaxEdge) * scale);
+        if (panorama && !PanoramaBackdrop.HasPanoramaRatio(width, height))
+        {
+            throw new NotSupportedException();
+        }
+
+        var target = (int)Math.Round(Math.Min(longEdge, panorama ? 7680 : MaxEdge) * scale);
         target = Math.Clamp(target, Math.Min(MinEdge, longEdge), longEdge);
 
         var image = new BitmapImage();
@@ -419,7 +482,7 @@ internal static class AppearanceImageCache
         return image;
     }
 
-    private static BitmapSource Process(BitmapSource source, double saturation, double blur)
+    private static BitmapSource Process(BitmapSource source, double saturation, double blur, bool panorama)
     {
         var greyOrPunchy = Math.Abs(saturation - 1.0) >= 0.01;
         if (!greyOrPunchy && blur <= 0)
@@ -450,7 +513,7 @@ internal static class AppearanceImageCache
             var radius = (int)Math.Clamp(Math.Round(2 + (blur / 20.0)), 1, 6);
             for (var pass = 0; pass < 3; pass++)
             {
-                BoxBlur(pixels, width, height, radius);
+                BoxBlur(pixels, width, height, radius, panorama);
             }
         }
 
@@ -478,14 +541,14 @@ internal static class AppearanceImageCache
     }
 
     /// <summary>Разделимое коробчатое размытие: проход по горизонтали, затем по вертикали; альфа не трогается.</summary>
-    private static void BoxBlur(byte[] pixels, int width, int height, int radius)
+    private static void BoxBlur(byte[] pixels, int width, int height, int radius, bool panorama)
     {
         var scratch = new byte[pixels.Length];
-        BlurAxis(pixels, scratch, width, height, radius, horizontal: true);
+        BlurAxis(pixels, scratch, width, height, radius, horizontal: true, wrap: panorama);
         BlurAxis(scratch, pixels, width, height, radius, horizontal: false);
     }
 
-    private static void BlurAxis(byte[] src, byte[] dst, int width, int height, int radius, bool horizontal)
+    private static void BlurAxis(byte[] src, byte[] dst, int width, int height, int radius, bool horizontal, bool wrap = false)
     {
         var outer = horizontal ? height : width;
         var inner = horizontal ? width : height;
@@ -497,10 +560,9 @@ internal static class AppearanceImageCache
             var line = o * jump;
             int sumB = 0, sumG = 0, sumR = 0, count = 0;
 
-            // Seed the window with [0, radius].
-            for (var i = 0; i <= Math.Min(radius, inner - 1); i++)
+            for (var i = wrap ? -radius : 0; i <= (wrap ? radius : Math.Min(radius, inner - 1)); i++)
             {
-                var p = line + (i * step);
+                var p = line + (Index(i) * step);
                 sumB += src[p];
                 sumG += src[p + 1];
                 sumR += src[p + 2];
@@ -517,9 +579,9 @@ internal static class AppearanceImageCache
 
                 // Slide the window: drop i-radius, take i+radius+1.
                 var leaving = i - radius;
-                if (leaving >= 0)
+                if (wrap || leaving >= 0)
                 {
-                    var q = line + (leaving * step);
+                    var q = line + (Index(leaving) * step);
                     sumB -= src[q];
                     sumG -= src[q + 1];
                     sumR -= src[q + 2];
@@ -527,9 +589,9 @@ internal static class AppearanceImageCache
                 }
 
                 var entering = i + radius + 1;
-                if (entering < inner)
+                if (wrap || entering < inner)
                 {
-                    var q = line + (entering * step);
+                    var q = line + (Index(entering) * step);
                     sumB += src[q];
                     sumG += src[q + 1];
                     sumR += src[q + 2];
@@ -537,6 +599,9 @@ internal static class AppearanceImageCache
                 }
             }
         }
+
+        // Горизонтальная развёртка панорамы замыкается на шве.
+        int Index(int index) => wrap ? ((index % inner) + inner) % inner : index;
     }
 
     private static byte Clamp(double value) => (byte)Math.Clamp(value, 0, 255);

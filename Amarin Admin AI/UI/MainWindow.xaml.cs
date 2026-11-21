@@ -229,6 +229,8 @@ namespace Amarin.UI
                 }
 
                 StopUpdateHeartbeat();
+                WatchBalances(null);
+                _appearance?.Dispose();
                 CancelAllTurns();
                 _persistQueue?.Dispose();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
@@ -256,6 +258,7 @@ namespace Amarin.UI
             _services.PlanReviews.Changed += OnPlanReviewChanged;
             WireAutoLock();
             WireSpendLimits();
+            WatchBalances(services.Balances);
 
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();
@@ -2210,6 +2213,10 @@ namespace Amarin.UI
                     ShowNoKeyNotice();
                     return;
 
+                case SendVerdict.ResearchNeedsTopic:
+                    ShowComposerNotice(Loc.Get("S.Command.ResearchNeedsTopic"));
+                    return;
+
                 case SendVerdict.AgentNoAttachments:
                     ShowAgentRefusal("S.Turn.AgentNoAttachments");
                     return;
@@ -2489,6 +2496,10 @@ namespace Amarin.UI
                     ShowNoKeyNotice();
                     return;
 
+                case SendVerdict.ResearchNeedsTopic:
+                    ShowComposerNotice(Loc.Get("S.Command.ResearchNeedsTopic"));
+                    return;
+
                 case SendVerdict.AgentNoAttachments:
                     ShowAgentRefusal("S.Turn.AgentNoAttachments");
                     return;
@@ -2530,7 +2541,7 @@ namespace Amarin.UI
                 }
 
                 // Команда кладёт в историю задачу, а не видимый текст, — как при отправке.
-                ChatBranches.Fork(chat, at, anchor, command is { } agent
+                ChatBranches.Fork(chat, at, anchor, command is { Name: ChatCommands.Agent } agent
                     ? () => ChatEngine.AgentCommandTurn(agent.Argument)
                     : () => new ChatMessage
                     {
@@ -2539,7 +2550,7 @@ namespace Amarin.UI
                     });
                 ShowForkedTail(chat);
 
-                await (command is { } run
+                await (command is { Name: ChatCommands.Agent } run
                     ? services.Chat.RunAgentCommandAsync(chat, text, run.Argument, run.Complexity, observer, token, placed: anchor)
                     : services.Chat.GenerateAssistantAsync(chat, observer, token));
             }), "edit_turn");

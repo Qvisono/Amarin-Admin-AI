@@ -73,6 +73,15 @@ public sealed class AppearanceSettings
     /// <summary>Путь к картинке. Нет файла — рисуется градиент.</summary>
     public string BackgroundImagePath { get; set; } = "";
 
+    // Режим Image остаётся читаемым при откате к прежней версии.
+    public bool UsePanorama { get; set; }
+    public string PanoramaPath { get; set; } = "";
+    public double PanoramaYaw { get; set; }
+    public double PanoramaPitch { get; set; }
+    public double PanoramaFieldOfView { get; set; } = 75;
+    public bool PanoramaMouse { get; set; } = true;
+    public double PanoramaSensitivity { get; set; } = 0.5;
+
     public BackdropFit ImageFit { get; set; } = BackdropFit.Fill;
 
     /// <summary>0.2..1.6. Below 1 the picture is dimmed, above 1 it is lifted.</summary>
@@ -162,6 +171,13 @@ public sealed class AppearanceSettings
         GradientMotion = GradientMotion,
         MotionSpeed = MotionSpeed,
         BackgroundImagePath = BackgroundImagePath,
+        UsePanorama = UsePanorama,
+        PanoramaPath = PanoramaPath,
+        PanoramaYaw = PanoramaYaw,
+        PanoramaPitch = PanoramaPitch,
+        PanoramaFieldOfView = PanoramaFieldOfView,
+        PanoramaMouse = PanoramaMouse,
+        PanoramaSensitivity = PanoramaSensitivity,
         ImageFit = ImageFit,
         ImageBrightness = ImageBrightness,
         ImageSaturation = ImageSaturation,
@@ -196,6 +212,10 @@ public sealed class AppearanceSettings
         ImageBrightness = Clamp(ImageBrightness, 0.2, 1.6);
         ImageSaturation = Clamp(ImageSaturation, 0.0, 2.0);
         ImageBlur = Clamp(ImageBlur, 0, 80);
+        PanoramaYaw = double.IsFinite(PanoramaYaw) ? Wrap360(PanoramaYaw) : 0;
+        PanoramaPitch = Clamp(PanoramaPitch, -85, 85);
+        PanoramaFieldOfView = Clamp(PanoramaFieldOfView, 35, 110);
+        PanoramaSensitivity = Clamp(PanoramaSensitivity, 0, 1);
         GlassOpacity = Clamp(GlassOpacity, 0.15, 1.0);
         GlassFrost = Clamp(GlassFrost, 0.0, 0.6);
         CornerRadius = Clamp(CornerRadius, 0, 20);
@@ -261,6 +281,7 @@ public sealed class AppearanceSettings
     private string Describe() =>
         string.Join('|',
             GradientAngle, MotionSpeed, ImageBrightness, ImageSaturation, ImageBlur,
+            PanoramaYaw, PanoramaPitch, PanoramaFieldOfView, PanoramaSensitivity,
             GlassOpacity, GlassFrost, CornerRadius, ChatColumnWidth, CompactDelayMs, CompactWidthPercent,
             CompactHoverRadius, AccentColor, Grain, string.Join(',', GradientColors));
 }

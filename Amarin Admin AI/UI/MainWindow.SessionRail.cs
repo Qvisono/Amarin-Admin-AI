@@ -104,16 +104,17 @@ public partial class MainWindow
         }
 
         var session = _session;
-        var idle = !_compacting.Contains(session.Id) && !IsBusy(session.Id);
+        var compacting = _compacting.Contains(session.Id);
+        var idle = !compacting && !IsBusy(session.Id);
         var compaction = new SessionRailCompaction(
             ChatSummary.ResolveModel(_services.Settings, _services.Options.Model),
             ModelSlots.ReadKey(_services.Settings, ModelSlot.Summary),
             options => ContextGauge.PreviewCompaction(
                     session, new CompactionOptions(options.KeepMessages, options.CompactFirst), categories.Total.Used) is { } preview
-                ? new SessionRailCompactPreview(preview.UsedAfter, preview.CompactedMessages, preview.TotalMessages)
+                ? new SessionRailCompactPreview(preview.UsedAfter, preview.CompactedMessages, preview.TotalMessages, preview.TokensToCompact)
                 : null);
         SessionRail.ShowSession(new SessionRailSnapshot(context, agents, files, _railSettings,
-            idle, idle && ContextCompaction.IsActive(session), compaction));
+            idle, idle && ContextCompaction.IsActive(session), compaction, session.Id, compacting));
     }
 
     internal static void CollectRailCalls(

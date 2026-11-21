@@ -10,6 +10,8 @@ public sealed class ChatCommandsTests
     [InlineData("/AGENT собери логи", "собери логи", "heavy")]
     [InlineData("/agent lite собери логи", "собери логи", "lite")]
     [InlineData("/agent LITE собери логи", "собери логи", "lite")]
+    [InlineData("/agent light собери логи", "собери логи", "lite")]
+    [InlineData("/agent-light собери логи", "собери логи", "lite")]
     [InlineData("/agent heavy собери логи", "собери логи", "heavy")]
     [InlineData("/agent-lite собери логи", "собери логи", "lite")]
     [InlineData("/agent-heavy собери логи", "собери логи", "heavy")]
